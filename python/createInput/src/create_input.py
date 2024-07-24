@@ -30,6 +30,19 @@ def main():
     # Read input config file
     config  = configparser.ConfigParser()
     config.read(args.input_config)
+    
+    file_exists = False
+    for f in args.input_config:
+    	if os.path.isfile(f):
+    	    file_exists = True
+    	    break;
+    if not file_exists:
+        print(f'None of the files in {args.input_config} can be found')
+        return
+        
+    if not {section: dict(config[section]) for section in config.sections()}:
+        print('Config file is empty')
+        return
 
     # General section
     section = 'General'
