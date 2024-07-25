@@ -27,10 +27,6 @@ def main():
     parser.add_argument('input_config', nargs=1, type=str, help='input configuration file') 
     args = parser.parse_args()
 
-    # Read input config file
-    config  = configparser.ConfigParser()
-    config.read(args.input_config)
-    
     file_exists = False
     for f in args.input_config:
     	if os.path.isfile(f):
@@ -43,6 +39,10 @@ def main():
     if not {section: dict(config[section]) for section in config.sections()}:
         print('Config file is empty')
         return
+        
+    # Read input config file
+    config  = configparser.ConfigParser()
+    config.read(args.input_config)
 
     # General section
     section = 'General'
