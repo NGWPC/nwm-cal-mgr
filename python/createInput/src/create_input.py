@@ -87,6 +87,8 @@ def main():
     sft_lib = config.get(section, 'sft_lib')
     smp_lib = config.get(section, 'smp_lib')
     lasam_lib = config.get(section, 'lasam_lib')
+    pet_lib = config.get(section, 'pet_lib')
+    snow17_lib = config.get(section, 'snow17_lib')
 
     # Time period 
     time_period={"run_time_period": {"calib": [calib_start_period, calib_end_period], 
@@ -118,6 +120,7 @@ def main():
                     'cfe_xaj_noah_sft': {'cfe': cfe_lib, 'noah': noah_lib, 'sft': sft_lib, 'smp': smp_lib, 'sloth': sloth_lib},
                     'topmodel_noah': {'topmodel': topmd_lib, 'noah': noah_lib, 'sloth': sloth_lib}, 
                     'lasam_noah_sft': {'lasam': lasam_lib, 'noah': noah_lib, 'sft': sft_lib, 'smp': smp_lib, 'sloth': sloth_lib},
+                    'pet_cfe_snow17': {'pet': pet_lib, 'cfe': cfe_lib, 'snow17': snow17_lib, 'sloth': sloth_lib},
                    }
     lib_file = library_file[model]
 
@@ -156,7 +159,7 @@ def main():
 
     # Create cfe input
     cfe_input_dir = os.path.join(input_dir, 'cfe_input')
-    if model in ['cfe_noah', 'cfe_noah_sft', 'cfe_xaj_noah', 'cfe_xaj_noah_sft']:
+    if model in ['cfe_noah', 'cfe_noah_sft', 'cfe_xaj_noah', 'cfe_xaj_noah_sft', 'pet_cfe_snow17']:
         gfun.create_cfe_input(catids, attr_file, cfe_input_dir)
 
     # Create noah input
