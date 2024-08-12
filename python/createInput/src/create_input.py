@@ -123,7 +123,10 @@ def create_input(filename):
     
     if not model:
         raise ValueError('Model must be specified')
-    lib_file = library_file[model]
+    try:
+        lib_file = library_file[model]
+    except:
+        raise ValueError(f'Invalid model [{model}] specified')
 
     # Create Input directory 
     run_dir = os.path.join(main_dir, '_'.join([objective, algorithm]))
@@ -229,8 +232,6 @@ def create_input(filename):
     general_dict['workdir'] = work_dir 
     general_dict['yaml_file'] = calib_config_file 
     gfun.create_calib_config_file(calib_params_file, work_dir, general_dict, model_dict, calib_config_file)
-
-    return ""
 
 def main():
     # Create command line parser to supply input config file
