@@ -426,7 +426,7 @@ def create_snow17_input(
         param_file = os.path.join(snow17_input_dir, 'snow17_params-' +catID + '.HHWM8.txt')
 
         with open(param_file, "w") as f:
-            f.writelines('\n'.join(param_list)
+            f.writelines('\n'.join(param_list))
 
         input_list = ['&SNOW17_CONTROL',
                 '! === run control file for snow17bmi v. 1.x ===',
