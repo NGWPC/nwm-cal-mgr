@@ -136,7 +136,7 @@ def main():
                     'topmodel_noah': {'topmodel': topmd_lib, 'noah': noah_lib, 'sloth': sloth_lib}, 
                     'lasam_noah_sft': {'lasam': lasam_lib, 'noah': noah_lib, 'sft': sft_lib, 'smp': smp_lib, 'sloth': sloth_lib},
                     'pet_cfe_snow17': {'pet': pet_lib, 'cfe': cfe_lib, 'snow17': snow17_lib, 'sloth': sloth_lib},
-                    'pet_sac_snow17': {'pet': pet_lib, 'sac': sac_lib, 'snow17': snow17_lib, 'sloth': sloth_lib},
+                    'sac_snow17': {'sac': sac_lib, 'snow17': snow17_lib, 'sloth': sloth_lib},
                    }
     lib_file = library_file[model]
 
@@ -186,7 +186,7 @@ def main():
 
     # Create snow17 input
     sac_input_dir = os.path.join(input_dir, 'sac_input')
-    if model in ['pet_sac_snow17']:
+    if model in ['sac_snow17']:
         gfun.create_sac_input(catids, attr_file, sac_input_dir)
 
     # Create noah input
