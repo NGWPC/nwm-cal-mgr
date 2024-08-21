@@ -913,7 +913,7 @@ def create_realization_file(
         snow17_dict = {"name": "bmi_fortran",
                       "params": {
                                 "model_type_name": "bmi_fortran_snow17",
-                                "library_file": lib_mod['Snow17'],
+                                "library_file": lib_mod['snow17'],
                                 "init_config": os.path.join(bmi_dir['snow17'], 'snow17-init-{{id}}.namelist.input'),
                                 "allow_exceed_end_time": True, "fixed_time_step": False, "uses_forcing_file": False,
                                 "main_output_variable": "raim",
