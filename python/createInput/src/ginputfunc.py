@@ -374,8 +374,8 @@ def create_sft_smp_input(
 
 def create_snow17_input(
     catids: List[str],
-    snow17_input_dir: str,
-    snow17_bmi_dir: Union[str, Path],
+    attr_file: Union[str, Path],
+    snow17_input_dir: str
 )->None:
 
     """ Create BMI configuration file for Snow17
@@ -391,7 +391,12 @@ def create_snow17_input(
     ----------
     None
 
-    """
+   """
+    os.makedirs(snow17_input_dir, exist_ok=True)
+
+    # Read hydrofabric attribute file
+    dfa = pd.read_parquet(attr_file)
+    dfa.set_index("divide_id", inplace=True)
 
     param_list = ['hru_id HHWM8IL HHWM8IU',
             'hru_area 2994.7 1271.3',
@@ -460,8 +465,8 @@ def create_snow17_input(
 
 def create_sac_input(
     catids: List[str],
-    sac_input_dir: str,
-    sac_bmi_dir: Union[str, Path],
+    attr_file: Union[str, Path],
+    sac_input_dir: str
 )->None:
 
     """ Create BMI configuration file for Snow17
@@ -477,6 +482,11 @@ def create_sac_input(
     None
 
     """
+    os.makedirs(sac_input_dir, exist_ok=True)
+
+    # Read hydrofabric attribute file
+    dfa = pd.read_parquet(attr_file)
+    dfa.set_index("divide_id", inplace=True)
 
     param_list = ['hru_id HHWM8IL HHWM8IU',
             'hru_area 2994.7 1271.3',
@@ -901,7 +911,7 @@ def create_realization_file(
     # snow17
     if model in ["sac_snow17"]:
         snow17_dict = {"name": "bmi_fortran",
-                       "params": {
+                      "params": {
                                 "model_type_name": "bmi_fortran_snow17",
                                 "library_file": lib_mod['snow17'],
                                 "init_config": os.path.join(bmi_dir['snow17'], 'snow17-init-{{id}}.namelist.input'),
