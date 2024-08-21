@@ -458,6 +458,111 @@ def create_snow17_input(
         with open(input_file, "w") as f:
             f.writelines('\n'.join(input_list))
 
+def create_sac_input(
+    catids: List[str],
+    sac_input_dir: str,
+    sac_bmi_dir: Union[str, Path],
+)->None:
+
+    """ Create BMI configuration file for Snow17
+
+    Parameters
+    ----------
+    catids : catchment IDs in the basin
+    sac_param_file : sac parameter file
+    sac_bmi_dir : directory for the sac bmi configuration file
+
+    Returns
+    ----------
+    None
+
+    """
+
+    param_list = ['hru_id HHWM8IL HHWM8IU',
+            'hru_area 2994.7 1271.3',
+            'uztwm 29.7257 31.9842',
+            'uzfwm 22.8335 86.7465',
+            'lztwm 18.6968 105.763',
+            'lzfpm 419.418 956.052',
+            'lzfsm 215.932 212.664',
+            'adimp 0.0000 0.0000',
+            'uzk 0.8910 0.9266',
+            'lzpk 0.0032 0.0037',
+            'lzsk 0.2551 0.2633',
+            'zperc 281.8200 267.7290',
+            'rexp 5.2353 5.0608',
+            'pctim 0.0000 0.0000',
+            'pfree 0.3142 0.2880',
+            'riva 0.0100 0.0100',
+            'side 0.0000 0.0000',
+            'rserv 0.3000 0.3000']
+
+    for catID in catids:
+        input_file = os.path.join(sac_input_dir, 'sac-init-' +catID + '.namelist.input')
+        param_file = os.path.join(sac_input_dir, 'sac_params-' +catID + '.HHWM8.txt')
+
+        with open(param_file, "w") as f:
+            f.writelines('\n'.join(param_list))
+
+
+
+
+        &SAC_CONTROL
+! === run control file for sacbmi v. 1.x ===
+
+! -- basin config and path information
+main_id               = "HHWM8"     ! basin label or gage id
+n_hrus                = 1           ! number of sub-areas in model
+forcing_root          = "./data/bmi/forcing/cat-10618.csv"
+output_root           = ""
+sac_param_file        = "./extern/sac-sma/sac-sma/test_cases/ex1/input/params/sac_params.HHWM8_10618.txt"
+output_hrus           = 0           ! output HRU results? (1=yes; 0=no)
+
+! -- run period information
+start_datehr          = 2015120112  ! start date time, backward looking (check)
+end_datehr            = 2015123012  ! end date time
+model_timestep        = 3600       ! in seconds (86400 seconds = 1 day)
+
+! -- state start/write flags and files
+warm_start_run        = 0  ! is this run started from a start file? (no=0 yes=1)
+write_states          = 0  ! write teh restart/state files for 'warm_start' runs (no=0 yes=1)
+
+! -- filenames only needed if warm_start_run = 1
+sac_state_in_root = "../state/sac_states." ! input state filename root
+
+! -- filenames only needed if write_states = 1
+sac_state_out_root = "../state/sac_states." ! output states filename root
+/
+        input_list = ['&SAC_CONTROL',
+                '! === run control file for sacbmi v. 1.x ===',
+                '',
+                '! -- basin config and path information',
+                'main_id             = "' + catID + '"     ! basin label or gage id',
+                'n_hrus              = 1            ! number of sub-areas in model',
+                'forcing_root        = "extern/sac-sma/sac-sma/test_cases/ex1/input/forcing/forcing.snow17bmi."',
+                'output_root         = ""',
+                'sac_param_file   = "' + param_file + '"',
+                'output_hrus         = 0            ! output HRU results? (1=yes; 0=no)',
+                '',
+                '! -- run period information',
+                'start_datehr        = 2015120112   ! start date time, backward looking (check)',
+                'end_datehr          = 2015123012   ! end date time',
+                'model_timestep      = 3600        ! in seconds (86400 seconds = 1 day)',
+                '',
+                '! -- state start/write flags and files',
+                'warm_start_run      = 0  ! is this run started from a state file?  (no=0 yes=1)',
+                "write_states        = 0  ! write restart/state files for 'warm_start' runs (no=0 yes=1)",
+                '',
+                '! -- filenames only needed if warm_start_run = 1',
+                'sac_state_in_root  = "../state/sac_states."  ! input state filename root',
+                '',
+                '! -- filenames only needed if write_states = 1',
+                'sac_state_out_root = "../state/sac_states."  ! output states filename root',
+                '/']
+        input_file = "test_{}.input".format(catID)
+        with open(input_file, "w") as f:
+            f.writelines('\n'.join(input_list))
+
 def create_lasam_input(
     catids: List[str],
     cfe_bmi_dir: Union[str, Path], 
@@ -808,6 +913,33 @@ def create_realization_file(
                                     "water_potential_evaporation_flux": "EVAPOTRANS"},
                                 "registration_function": "register_bmi_topmodel"}}
 
+    # sac-sma
+    if model in ["sac_snow17"]:
+        sac_dict = {"name": "bmi_fortran",
+                    "params": {
+                                "model_type_name": "bmi_fortran_sac",
+                                "library_file": lib_mod['sac'],
+                                "init_config": os.path.join(bmi_dir['sac'], 'sac-init-{{id}}-HHWM8.namelist.input'),
+                                "allow_exceed_end_time": True, "fixed_time_step": False, "uses_forcing_file": False,
+                                "main_output_variable": "tci",
+                                "variables_names_map": {
+                                    "precip": "raim",
+                                    "tair": "land_surface_air__temperature",
+                                    "pet": "water_potential_evaporation_flux"
+                                }}}
+    # snow17
+    if model in ["sac_snow17"]:
+        snow17_dict = "name": "bmi_fortran",
+                      "params": {
+                                "model_type_name": "bmi_fortran_snow17",
+                                "library_file": lib_mod['snow17'],
+                                "init_config": os.path.join(bmi_dir['snow17'], 'snow17-init-{{id}}.namelist.input'),
+                                "allow_exceed_end_time": True, "fixed_time_step": False, "uses_forcing_file": False,
+                                "main_output_variable": "raim",
+                                "variables_names_map": {
+                                    "precip": "atmosphere_water__liquid_equivalent_precipitation_rate",
+                                    "tair": "land_surface_air__temperature"
+                                }}}
     # sloth
     if model in ["cfe_noah", "topmodel_noah", "cfe_xaj_noah"]:
         sloth_dict = {"name": "bmi_c++",
@@ -922,6 +1054,11 @@ def create_realization_file(
         model_type_name = "NoahOWP_CFE"
         main_output_variable = "Q_OUT"        
         sub_module = [noah_dict, *[cfe_dict, sloth_dict]]
+
+    elif model in ["sac_snow17"]:
+        model_type_name = "SAC_SNOW17"
+        main_output_variable = "z"
+        sub_module = [snow17_dict, sac_dict]
 
     elif model == "topmodel_noah":
         model_type_name = "NoahOWP_TOPMODEL"
