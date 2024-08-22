@@ -400,7 +400,6 @@ def create_snow17_input(
 
     param_list = ['hru_id HHWM8IL HHWM8IU',
             'hru_area 2994.7 1271.3',
-            'hru_area 2994.7 1271.3',
             'latitude 47.78 47.78',
             'elev 1612.50 2153.35',
             'scf 2.15177 1.86124',
@@ -445,8 +444,8 @@ def create_snow17_input(
                 'output_hrus         = 1            ! output HRU results? (1=yes; 0=no)',
                 '',
                 '! -- run period information',
-                'start_datehr        = 2015120101   ! start date time, backward looking (check)',
-                'end_datehr          = 2015123023   ! end date time',
+                'start_datehr        = 2017120101   ! start date time, backward looking (check)',
+                'end_datehr          = 2017120123   ! end date time',
                 'model_timestep      = 3600        ! in seconds (86400 seconds = 1 day)',
                 '',
                 '! -- state start/write flags and files',
@@ -458,8 +457,9 @@ def create_snow17_input(
                 '',
                 '! -- filenames only needed if write_states = 1',
                 'snow_state_out_root = "data/state/snow17_states."  ! output states filename root',
-                '/']
-        input_file = "test_{}.input".format(catID)        
+                '/',
+                ''
+                ]
         with open(input_file, "w") as f:
             f.writelines('\n'.join(input_list))
 
@@ -508,7 +508,7 @@ def create_sac_input(
             'rserv 0.3000 0.3000']
 
     for catID in catids:
-        input_file = os.path.join(sac_input_dir, 'sac-init-' +catID + '.namelist.input')
+        input_file = os.path.join(sac_input_dir, 'sac-init-' +catID + '-HHWM8.namelist.input')
         param_file = os.path.join(sac_input_dir, 'sac_params-' +catID + '.HHWM8.txt')
 
         with open(param_file, "w") as f:
@@ -539,8 +539,9 @@ def create_sac_input(
                 '',
                 '! -- filenames only needed if write_states = 1',
                 'sac_state_out_root = "../state/sac_states."  ! output states filename root',
-                '/']
-        input_file = "test_{}.input".format(catID)
+                '/',
+                ''
+                ]
         with open(input_file, "w") as f:
             f.writelines('\n'.join(input_list))
 

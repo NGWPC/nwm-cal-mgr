@@ -181,7 +181,7 @@ def main():
 
     # Create snow17 input
     snow17_input_dir = os.path.join(input_dir, 'snow17_input')
-    if model in ['pet_cfe_snow17']:
+    if model in ['pet_cfe_snow17', 'sac_snow17']:
         gfun.create_snow17_input(catids, attr_file, snow17_input_dir)
 
     # Create sac input
