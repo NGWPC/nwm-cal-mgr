@@ -18,7 +18,7 @@ class Snow17(BMIFortran):
     model_params: Snow17Params = None
     main_output_variable: str = 'raim'
     #NOTE aliases don't propagate to subclasses, so we have to repeat the alias
-    model_name: Literal["Snow17"] = Field("Snow17", const=True, alias="model_type_name")
+    model_name: Literal["snow17"] = Field("Snow17", const=True, alias="model_type_name")
 
     _variable_names_map =  {
             "precip": "atmosphere_water__liquid_equivalent_precipitation_rate",

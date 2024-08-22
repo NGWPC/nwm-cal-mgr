@@ -912,7 +912,7 @@ def create_realization_file(
     if model in ["sac_snow17"]:
         snow17_dict = {"name": "bmi_fortran",
                       "params": {
-                                "model_type_name": "bmi_fortran_snow17",
+                                "model_type_name": "snow17",
                                 "library_file": lib_mod['snow17'],
                                 "init_config": os.path.join(bmi_dir['snow17'], 'snow17-init-{{id}}.namelist.input'),
                                 "allow_exceed_end_time": True, "fixed_time_step": False, "uses_forcing_file": False,
@@ -1037,7 +1037,7 @@ def create_realization_file(
         sub_module = [noah_dict, *[cfe_dict, sloth_dict]]
 
     elif model in ["sac_snow17"]:
-        model_type_name = "SAC_SNOW17"
+        model_type_name = "sac_snow17"
         main_output_variable = "z"
         sub_module = [snow17_dict, sac_dict]
 
