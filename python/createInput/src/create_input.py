@@ -136,7 +136,7 @@ def main():
                     'topmodel_noah': {'topmodel': topmd_lib, 'noah': noah_lib, 'sloth': sloth_lib}, 
                     'lasam_noah_sft': {'lasam': lasam_lib, 'noah': noah_lib, 'sft': sft_lib, 'smp': smp_lib, 'sloth': sloth_lib},
                     'pet_cfe_snow17': {'pet': pet_lib, 'cfe': cfe_lib, 'snow17': snow17_lib, 'sloth': sloth_lib},
-                    'sac_snow17': {'sac': sac_lib, 'snow17': snow17_lib, 'sloth': sloth_lib},
+                    'sac_snow17': {'sac': sac_lib, 'snow17': snow17_lib, 'sloth': sloth_lib, 'pet': pet_lib},
                    }
     lib_file = library_file[model]
 
@@ -184,6 +184,11 @@ def main():
     if model in ['pet_cfe_snow17', 'sac_snow17']:
         gfun.create_snow17_input(catids, attr_file, snow17_input_dir)
 
+    # Create pet input
+    pet_input_dir = os.path.join(input_dir, 'pet_input')
+    if model in ['pet_cfe_snow17', 'sac_snow17']:
+        gfun.create_pet_input(catids, attr_file, pet_input_dir)
+
     # Create sac input
     sac_input_dir = os.path.join(input_dir, 'sac_input')
     if model in ['sac_snow17']:
@@ -227,7 +232,7 @@ def main():
     # Create model realization file
     realization_file = work_dir + '/{}'.format(basin) + '_realization_config_bmi_calib.json' 
     routing_config_file = os.path.join(work_dir + '/Input', '{}'.format(basin) + run_configs[0])
-    bmi_dir = {"cfe": cfe_input_dir, "topmodel": topmd_input_dir, "noah": noah_input_dir, 'sft': sft_dir, 'smp': smp_dir, 'lasam': lasam_dir, "snow17": snow17_input_dir, "sac": sac_input_dir}
+    bmi_dir = {"cfe": cfe_input_dir, "topmodel": topmd_input_dir, "noah": noah_input_dir, 'sft': sft_dir, 'smp': smp_dir, 'lasam': lasam_dir, "snow17": snow17_input_dir, "sac": sac_input_dir, "pet": pet_input_dir}
     rt_dict = {"routing": {"t_route_config_file_with_path": routing_config_file}} 
     gfun.create_realization_file(work_dir, lib_file, bmi_dir, forcing_path, realization_file, model, time_period, rt_dict)
 

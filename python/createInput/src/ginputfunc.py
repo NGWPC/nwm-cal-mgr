@@ -545,6 +545,59 @@ def create_sac_input(
         with open(input_file, "w") as f:
             f.writelines('\n'.join(input_list))
 
+def create_pet_input(
+    catids: List[str],
+    attr_file: Union[str, Path],
+    pet_input_dir: str
+)->None:
+
+    """ Create BMI configuration file for pet
+
+    Parameters
+    ----------
+    catids : catchment IDs in the basin
+    pet_input_dir : directory for the pet input files
+
+    Returns
+    ----------
+    None
+
+    """
+    os.makedirs(pet_input_dir, exist_ok=True)
+
+    # Read hydrofabric attribute file
+    dfa = pd.read_parquet(attr_file)
+    dfa.set_index("divide_id", inplace=True)
+
+    ini_list = ['verbose=0',
+                'pet_method=5',
+                'forcing_file=BMI',
+                'run_unit_tests=0',
+                'yes_aorc=1',
+                'yes_wrf=0',
+                'wind_speed_measurement_height_m=10.0',
+                'humidity_measurement_height_m=2.0',
+                'vegetation_height_m=0.12',
+                'zero_plane_displacement_height_m=0.0003',
+                'momentum_transfer_roughness_length=0.0',
+                'heat_transfer_roughness_length_m=0.0',
+                'surface_longwave_emissivity=1.0',
+                'surface_shortwave_albedo=0.22',
+                'cloud_base_height_known=FALSE',
+                'latitude_degrees=37.25',
+                'longitude_degrees=-97.5554',
+                'site_elevation_m=303.33',
+                'time_step_size_s=3600',
+                'num_timesteps=720',
+                'shortwave_radiation_provided=0']
+
+    for catID in catids:
+        ini_file = os.path.join(pet_input_dir, catID + '_bmi_config.ini')
+
+        with open(ini_file, "w") as f:
+            f.writelines('\n'.join(ini_list))
+            
+
 def create_lasam_input(
     catids: List[str],
     cfe_bmi_dir: Union[str, Path], 
@@ -922,8 +975,21 @@ def create_realization_file(
                                     "precip": "atmosphere_water__liquid_equivalent_precipitation_rate",
                                     "tair": "land_surface_air__temperature"
                                 }}}
+
+
+    #pet 
+    if model in ["sac_snow17"]:
+        pet_dict = {"name": "bmi_c",
+                      "params": {
+                                "model_type_name": "PET",
+                                "library_file": lib_mod['pet'],
+                                "init_config": os.path.join(bmi_dir['pet'], '{{id}}_bmi_config.ini'),
+                                "allow_exceed_end_time": True, "fixed_time_step": False, "uses_forcing_file": False,
+                                "main_output_variable": "water_potential_evaporation_flux",
+                                "registration_function": "register_bmi_pet"
+                                }}
     # sloth
-    if model in ["cfe_noah", "topmodel_noah", "cfe_xaj_noah"]:
+    if model in ["cfe_noah", "sac_snow17", "topmodel_noah", "cfe_xaj_noah"]:
         sloth_dict = {"name": "bmi_c++",
                       "params": {"name": "bmi_c++", 
                                  "model_type_name": "SLOTH", 
@@ -1039,8 +1105,8 @@ def create_realization_file(
 
     elif model in ["sac_snow17"]:
         model_type_name = "sac_snow17"
-        main_output_variable = "z"
-        sub_module = [snow17_dict, sac_dict]
+        main_output_variable = "tci"
+        sub_module = [snow17_dict, *[sac_dict, pet_dict]]
 
     elif model == "topmodel_noah":
         model_type_name = "NoahOWP_TOPMODEL"
