@@ -622,7 +622,7 @@ def create_lasam_input(
 
     """
 
-    os.makedirs(lasam_dir, exist_ok=True)
+    os.makedirs(lasam_bmi_dir, exist_ok=True)
 
     # Create lasam list
     lasam_lst = ['verbosity=none',
