@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 from .bmi_formulation import BMIFortran
@@ -9,7 +9,10 @@ class SACParams(BaseModel):
     """
     #define params which can be adjusted here
     #see cfe.py for example
-    pass
+    uztwm: Optional[float]
+    uzfwm: Optional[float]
+    lzpk: Optional[float]
+    rexp: Optional[float]
 
 class SAC(BMIFortran):
     """A BMIFortran implementation for a snow17 module

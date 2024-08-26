@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 from .bmi_formulation import BMIFortran
@@ -8,8 +8,13 @@ class Snow17Params(BaseModel):
     """Class for validating snow17 Parameters
     """
     #define params which can be adjusted here
-    #see cfe.py for example
-    pass
+    #see cfe.py for example4
+    mfmin: Optional[float]
+    mfmax: Optional[float]
+    udaj: Optional[float]
+    pxtemp: Optional[float]
+    timp: Optional[float]
+    
 
 class Snow17(BMIFortran):
     """A BMIFortran implementation for a snow17 module
@@ -22,6 +27,5 @@ class Snow17(BMIFortran):
 
     _variable_names_map =  {
             "precip": "atmosphere_water__liquid_equivalent_precipitation_rate",
-            "tair": "land_surface_air__temperature",
-            "raim": "atmosphere_water__liquid_equivalent_precipitation_rate"
+            "tair": "land_surface_air__temperature"
         }

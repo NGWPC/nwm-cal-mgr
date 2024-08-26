@@ -958,7 +958,7 @@ def create_realization_file(
                                 "allow_exceed_end_time": True, "fixed_time_step": False, "uses_forcing_file": False,
                                 "main_output_variable": "tci",
                                 "variables_names_map": {
-                                    "atmosphere_water__liquid_equivalent_precipitation_rate": "raim",
+                                    "precip": "atmosphere_water__liquid_equivalent_precipitation_rate",
                                     "tair": "land_surface_air__temperature",
                                     "pet": "water_potential_evaporation_flux"
                                 }}}
@@ -1114,7 +1114,7 @@ def create_realization_file(
     elif model in ["snow17_pet"]:
         model_type_name = "snow17_pet"
         main_output_variable = "raim"
-        sub_module = [sloth_dict, snow17_dict, pet_dict]
+        sub_module = [sloth_dict, snow17_dict]
     elif model == "topmodel_noah":
         model_type_name = "NoahOWP_TOPMODEL"
         main_output_variable = "Qout"        
