@@ -949,7 +949,7 @@ def create_realization_file(
                                 "registration_function": "register_bmi_topmodel"}}
 
     # sac-sma
-    if model in ["sac_snow17"]:
+    if model in ["sac_snow17_pet", "sac_pet"]:
         sac_dict = {"name": "bmi_fortran",
                     "params": {
                                 "model_type_name": "sac",
@@ -958,12 +958,12 @@ def create_realization_file(
                                 "allow_exceed_end_time": True, "fixed_time_step": False, "uses_forcing_file": False,
                                 "main_output_variable": "tci",
                                 "variables_names_map": {
-                                    "precip": "raim",
+                                    "atmosphere_water__liquid_equivalent_precipitation_rate": "raim",
                                     "tair": "land_surface_air__temperature",
                                     "pet": "water_potential_evaporation_flux"
                                 }}}
     # snow17
-    if model in ["sac_snow17"]:
+    if model in ["sac_snow17_pet", "snow17_pet"]:
         snow17_dict = {"name": "bmi_fortran",
                       "params": {
                                 "model_type_name": "snow17",
@@ -978,7 +978,7 @@ def create_realization_file(
 
 
     #pet 
-    if model in ["sac_snow17"]:
+    if model in ["sac_snow17_pet", "sac_pet", "snow17_pet"]:
         pet_dict = {"name": "bmi_c",
                       "params": {
                                 "model_type_name": "PET",
@@ -989,7 +989,7 @@ def create_realization_file(
                                 "registration_function": "register_bmi_pet"
                                 }}
     # sloth
-    if model in ["cfe_noah", "sac_snow17", "topmodel_noah", "cfe_xaj_noah"]:
+    if model in ["cfe_noah", "sac_snow17_pet", "sac_pet", "snow17_pet", "topmodel_noah", "cfe_xaj_noah"]:
         sloth_dict = {"name": "bmi_c++",
                       "params": {"name": "bmi_c++", 
                                  "model_type_name": "SLOTH", 
@@ -1103,11 +1103,18 @@ def create_realization_file(
         main_output_variable = "Q_OUT"        
         sub_module = [noah_dict, *[cfe_dict, sloth_dict]]
 
-    elif model in ["sac_snow17"]:
-        model_type_name = "sac_snow17"
+    elif model in ["sac_snow17_pet"]:
+        model_type_name = "sac_snow17_pet"
         main_output_variable = "tci"
-        sub_module = [snow17_dict, *[sac_dict, pet_dict]]
-
+        sub_module = [sloth_dict, snow17_dict, sac_dict, pet_dict]
+    elif model in ["sac_pet"]:
+        model_type_name = "sac_pet"
+        main_output_variable = "tci"
+        sub_module = [sloth_dict, sac_dict, pet_dict]    
+    elif model in ["snow17_pet"]:
+        model_type_name = "snow17_pet"
+        main_output_variable = "raim"
+        sub_module = [sloth_dict, snow17_dict, pet_dict]
     elif model == "topmodel_noah":
         model_type_name = "NoahOWP_TOPMODEL"
         main_output_variable = "Qout"        

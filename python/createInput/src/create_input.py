@@ -136,7 +136,9 @@ def main():
                     'topmodel_noah': {'topmodel': topmd_lib, 'noah': noah_lib, 'sloth': sloth_lib}, 
                     'lasam_noah_sft': {'lasam': lasam_lib, 'noah': noah_lib, 'sft': sft_lib, 'smp': smp_lib, 'sloth': sloth_lib},
                     'pet_cfe_snow17': {'pet': pet_lib, 'cfe': cfe_lib, 'snow17': snow17_lib, 'sloth': sloth_lib},
-                    'sac_snow17': {'sac': sac_lib, 'snow17': snow17_lib, 'sloth': sloth_lib, 'pet': pet_lib},
+                    'sac_snow17_pet': {'sac': sac_lib, 'snow17': snow17_lib, 'sloth': sloth_lib, 'pet': pet_lib},
+                    'sac_pet': {'sac': sac_lib, 'sloth': sloth_lib, 'pet': pet_lib},
+                    'snow17_pet': {'snow17': snow17_lib, 'sloth': sloth_lib, 'pet': pet_lib},
                    }
     lib_file = library_file[model]
 
@@ -181,17 +183,17 @@ def main():
 
     # Create snow17 input
     snow17_input_dir = os.path.join(input_dir, 'snow17_input')
-    if model in ['pet_cfe_snow17', 'sac_snow17']:
+    if model in ['pet_cfe_snow17', 'sac_snow17_pet', 'snow17_pet']:
         gfun.create_snow17_input(catids, attr_file, snow17_input_dir)
 
     # Create pet input
     pet_input_dir = os.path.join(input_dir, 'pet_input')
-    if model in ['pet_cfe_snow17', 'sac_snow17']:
+    if model in ['pet_cfe_snow17', 'sac_snow17_pet', 'sac_pet', 'snow17_pet']:
         gfun.create_pet_input(catids, attr_file, pet_input_dir)
 
     # Create sac input
     sac_input_dir = os.path.join(input_dir, 'sac_input')
-    if model in ['sac_snow17']:
+    if model in ['sac_snow17_pet', 'sac_pet']:
         gfun.create_sac_input(catids, attr_file, sac_input_dir)
 
     # Create noah input
