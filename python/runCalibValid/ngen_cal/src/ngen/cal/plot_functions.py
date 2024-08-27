@@ -63,7 +63,7 @@ def plot_streamflow(
     # Plot
     df = df.iloc[24:] # remove first day with possible big values
     max0 = math.ceil(pd.melt(df, id_vars=['Time'], value_vars=colname[1:])['value'].max()) * 1.02
-    cols = ['black', 'blue', 'orange', 'tab:green'] # ['k','C1','C0','C3']
+    cols = ['black', 'blue', 'orange', 'tab:green','tab:cyan'] # ['k','C1','C0','C3']
     fig, ax = plt.subplots(figsize=(10, 6), dpi=120, tight_layout=True)
 
     for x in colname[1:]:
@@ -148,7 +148,7 @@ def plot_streamflow_precipitation(
         yint2 = 2
     ytk2  = range(0, 5*maxp+yint2, yint2) 
     label2 = [x if x <maxp+yint2 else '' for x in ytk2]
-    cols = ['black', 'blue', 'orange', 'tab:green', 'purple'] # ['k','C1','C0','C3']
+    cols = ['black', 'blue', 'orange', 'tab:green', 'tab:cyan', 'purple'] # ['k','C1','C0','C3']
 
     fig, ax = plt.subplots(figsize=(10, 6), dpi=120, tight_layout=True)
 
@@ -532,7 +532,8 @@ def barplot_metric(
     labels = list(df.index.get_level_values(1).unique())
     width = 0.35
     x = np.arange(len(labels))
-    xwidth = [x - width/2, x + width/2]
+    #xwidth = [x - width/2, x + width/2]
+    xwidth = list(range(x-width/2, x+width/2+width/len(runtp),width/len(runtp)))
 
     # Plot
     fig, axs = plt.subplots(rows, cols, figsize=figsize, dpi=105, sharex=False)
@@ -646,7 +647,7 @@ def plot_fdc_valid(
     max0 = math.ceil(pd.melt(df, id_vars=[df.columns[0]], value_vars=colname[1:])['value'].max()) * 1.02
 
     # Plot
-    cols = ['k', 'b', 'orange', 'tab:green'] # cols = ['k','C1','C0','C3']
+    cols = ['k', 'b', 'orange', 'tab:green','tab:cyan'] # cols = ['k','C1','C0','C3']
     keys = list(time_period.keys())
     df.set_index(df.columns[0], inplace=True)
     fig, ax = plt.subplots(figsize=(12.2, 5.8), nrows=1, ncols=3, sharey=True)
