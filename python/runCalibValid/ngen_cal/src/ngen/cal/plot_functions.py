@@ -530,19 +530,19 @@ def barplot_metric(
     rows = math.ceil(len(allcols)/cols)
     runtp = list(df.index.get_level_values(0).unique())
     labels = list(df.index.get_level_values(1).unique())
-    width = 0.35
     x = np.arange(len(labels))
-    #xwidth = [x - width/2, x + width/2]
-    xwidth = list(range(x-width/2, x+width/2+width/len(runtp),width/len(runtp)))
+    width = 0.7/len(runtp)
+    xwidth = [x - width/2, x + width/2] if len(runtp) == 2 else [x - width, x, x + width]
 
     # Plot
     fig, axs = plt.subplots(rows, cols, figsize=figsize, dpi=105, sharex=False)
     axs = trim_axs(axs, len(allcols))
     for ax, varname in zip(axs, allcols):
         if varname==allcols[-1]:
-            label0 = [x.split('_')[1] for x in runtp]
+            #label0 = [x.split('_')[1] for x in runtp]
+            label0 = [x.replace("valid_","") for x in runtp]
         else:
-            label0 = ["",""]
+            label0 = ["",""] if len(runtp)==2 else ["","",""]
         for i in range(len(runtp)):
             ax.bar(xwidth[i], df.loc[(runtp[i], labels),varname].values.tolist(), width, label=label0[i])
 
