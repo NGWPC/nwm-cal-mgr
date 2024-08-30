@@ -1,7 +1,10 @@
-FROM ngen:latest
+FROM registry.sh.nextgenwaterprediction.com/ngwpc/nwm-ngen/ngen:latest
 
 # ensure local python is preferred over distribution python
 ENV PATH="/usr/local/bin:$PATH"
+
+ARG GITLAB_TOKEN
+RUN git config --global url."https://oauth2:${GITLAB_TOKEN}@gitlab.sh.nextgenwaterprediction.com/".insteadOf "https://gitlab.sh.nextgenwaterprediction.com/"
 
 COPY . /ngen-app/ngen-cal/
 
