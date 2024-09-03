@@ -10,6 +10,12 @@ RUN --mount=type=secret,id=GITLAB_TOKEN \
     \
     git config --global url."https://oauth2:$(cat /run/secrets/GITLAB_TOKEN)@gitlab.sh.nextgenwaterprediction.com/".insteadOf "https://gitlab.sh.nextgenwaterprediction.com/"
 
+RUN --mount=type=secret,id=GITLAB_TOKEN 
+RUN --mount=type=secret,id=GITLAB_TOKEN \ 
+    set -eux; \
+    \
+    git config --global url."https://oauth2:$(cat /run/secrets/GITLAB_TOKEN)@gitlab.sh.nextgenwaterprediction.com/".insteadOf "https://gitlab.sh.nextgenwaterprediction.com/"
+
 COPY . /ngen-app/ngen-cal/
 
 COPY ./docker/run-ngen-cal.sh /ngen-app/bin/
