@@ -3,8 +3,8 @@ from urllib.parse import urljoin
 import requests
 import os 
 
-NGENCERF_URL = 'http://localhost:8000/'
-#NGENCERF_URL = os.environ('NGENCERF_URL')
+#NGENCERF_URL = 'http://localhost:8000/'
+NGENCERF_URL = os.environ.get('NGENCERF_URL')
 NGENCERF_REPORT_ITERATION_ENDPOINT = 'calibration/report_iteration'
 
 logger = logging.getLogger(__name__)
@@ -24,19 +24,16 @@ def report(calibration_run_id: int, iteration: int, worker: str, first_iteration
         "Authorization": f"Bearer {auth_token}"
     }
 
-    print('url=' + url)
-    print(payload)
-
-    # logger.info(f'Reporting iteration to ngenCerf server - {payload}')
-    # response = requests.get(url, json=payload, headers=headers)
+    logger.info(f'Reporting iteration to ngenCerf server - {payload}')
+    response = requests.get(url, json=payload, headers=headers)
     
-    # try:
-    #     response.raise_for_status()
-    #     response_json = response.json()
-    #     message = response_json.get('message')
-    #     logger.info(f'Response from report_iteration: {message}')
-    # except requests.exceptions.HTTPError as e:
-    #     logger.error(f"Call to NgenCerf Server  {url} failed with {response.status_code}.")
-    #     logger.error(f"Response from NgenCerf Server: response.text - {str(e)}")
-    #     return
+    try:
+        response.raise_for_status()
+        response_json = response.json()
+        message = response_json.get('message')
+        logger.info(f'Response from report_iteration: {message}')
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"Call to NgenCerf Server  {url} failed with {response.status_code}.")
+        logger.error(f"Response from NgenCerf Server: response.text - {str(e)}")
+        return
 
