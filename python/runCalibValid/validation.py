@@ -34,9 +34,9 @@ def main(general: General, model_conf):
             agent.nwmflow_file = ''
             logger.info('No NWM retrospective streamflow simulation is available for this location')
         else:
-            agent.nwmflow_file = model_conf['nwmflow']
-
-    # Execcute validation control and best simulation
+            agent.nwmflow_file = model_conf['nwmflow'] 
+    
+    # Execute validation control and best simulation
     run_valid_ctrl_best(agent)
 
 if __name__ == "__main__":
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     
     with open(args.config_file) as file:
         conf = yaml.safe_load(file)
-    
+
     general = General(**conf['general'])
 
     # Change directory to workdir
