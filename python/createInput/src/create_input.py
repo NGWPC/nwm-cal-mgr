@@ -205,9 +205,19 @@ def create_input(filename):
             elif m1 == 'sft':
                 sft_dir = os.path.join(input_dir, 'sft_input')
                 smp_dir = os.path.join(input_dir, 'smp_input')
-                cfe_dir = os.path.join(input_dir, 'cfe-s_input')
-                if 'cfex' in modules:
-                    cfe_dir = os.path.join(input_dir, 'cfe-x_input')
+
+                # smp/sft requires existing CFE BM config files
+                if 'cfe-s_bmi_dir' in conf3.keys() and conf3['cfe-s_bmi_dir'] != '':
+                    cfe_dir = conf3['cfe-s_bmi_dir']
+                    if not os.path.exists(cfe_dir):
+                        raise ValueError(f'Folder for CFE BMI config files does not exist: {cfe_dir}')
+                elif 'cfe-x_bmi_dir' in conf3.keys() and conf3['cfe-x_bmi_dir'] != '':
+                    cfe_dir = conf3['cfe-x_bmi_dir']
+                    if not os.path.exists(cfe_dir):
+                        raise ValueError(f'Folder for CFE BMI config files does not exist: {cfe_dir}')                    
+                else:
+                    raise ValueError(f'Folder for CFE BMI config files needs to be provided, via either cfe-s_bmi_dir or cfe-x_bmi_dir')
+                
                 gfun.create_sft_smp_input(catids, modules, attr_file, cfe_dir, conf3['forcing_dir'], sft_dir, smp_dir)
             elif m1 == 'smp':
                 continue
