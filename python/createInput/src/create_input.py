@@ -219,6 +219,7 @@ def create_input(filename):
                     raise ValueError(f'Folder for CFE BMI config files needs to be provided, via either cfe-s_bmi_dir or cfe-x_bmi_dir')
                 
                 gfun.create_sft_smp_input(catids, modules, attr_file, cfe_dir, conf3['forcing_dir'], sft_dir, smp_dir)
+
             elif m1 == 'smp':
                 continue
             elif m1 == 'lasam':
@@ -229,7 +230,6 @@ def create_input(filename):
                     run_file = os.path.join(conf3['topmd_dir'], '{}_topmodel'.format(catID) + '.run')
                     params_file = os.path.join(conf3['topmd_dir'], '{}_topmodel_params'.format(catID) + '.dat')
                     subcat_file = os.path.join(conf3['topmd_dir'], '{}_topmodel_subcat'.format(catID) + '.dat')
-
                     gfun.change_topmodel_input(catID, run_file, params_file, subcat_file, mod_input_dir)
 
             elif m1 == 'troute':            
