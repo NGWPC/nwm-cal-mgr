@@ -503,7 +503,7 @@ def gwo_search(start_iteration: int, iterations: int,  agent)->None:
         calibration_object.df.loc[:,'global_best'] = pos
         calibration_object.check_point(agent.workdir)
         logger.info("Best params with cost {}:".format(cost))
-        logger.info(calibration_object.df[['param','global_best']].set_index('param'))
+        #logger.info(calibration_object.df[['param','global_best']].set_index('param'))
 
         # Save and plot history
         #cost_hist_file = calibration_object.write_hist_file(optimizer, agent, list(calibration_object.df['param']))
