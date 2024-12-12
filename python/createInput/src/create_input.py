@@ -9,15 +9,9 @@ Example usage: python create_input.py input.config
 
 import argparse
 import configparser
-import copy
-from datetime import timedelta
-from pathlib import Path
 import os
 import sys
-import shutil
-import time
 import re
-import numpy as np
 import geopandas as gpd
 import pandas as pd
 import logging
