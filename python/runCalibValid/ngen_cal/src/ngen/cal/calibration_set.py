@@ -127,7 +127,7 @@ class CalibrationSet(Evaluatable):
             hydrograph = self._output
 
         except FileNotFoundError:
-            logger.info("Preparing for initial simulation.  Hydrograph output is currently empty.")
+            logger.info("Output is currently empty.")
             hydrograph = None
         except Exception as e:
             raise(e)
