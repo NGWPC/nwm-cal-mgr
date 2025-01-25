@@ -127,10 +127,10 @@ def _evaluate(i: int, calibration_object: 'Evaluatable', agent: 'Agent', first_i
     if np.isnan(metric_objective_function):
         if calibration_object.target == 'min':
             score = np.inf
-            logger.info(f'Objective function cannot be calcualted for this iteration. Set it to Inf')
+            logger.info(f'Objective function cannot be calculated for this iteration. Set it to Inf')
         elif calibration_object.target == 'max':
             score = -np.inf
-            logger.info(f'Objective function cannot be calcualted for this iteration. Set it to -Inf')
+            logger.info(f'Objective function cannot be calculated for this iteration. Set it to -Inf')
         else:
             raise Exception(f'Optimization target can only be min or max. {calibration_object.target} is not supported')
     else:
