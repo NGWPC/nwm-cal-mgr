@@ -41,8 +41,24 @@ RUN set -eux; \
     pip3 install . ; \
     \
     pip3 cache purge ; \
-    rm --force /root/.gitconfig
- 
+    rm --force /root/.gitconfig ; \
+    dnf install -y jq
+
+WORKDIR /ngen-app/ngen-cal
+
+# Extract Git information and write it to the JSON file specified by $GIT_INFO_PATH
+ENV GIT_INFO_PATH=/ngen-app/git_info.json
+
+RUN jq -n \
+    --arg commit_hash "$(git rev-parse HEAD)" \
+    --arg branch "$(git rev-parse --abbrev-ref HEAD)" \
+    --arg tags "$(git tag --points-at HEAD | tr '\n' ' ')" \
+    --arg author "$(git log -1 --pretty=format:'%an')" \
+    --arg commit_date "$(date -u -d @$(git log -1 --pretty=format:'%ct') +'%Y-%m-%d %H:%M:%S UTC')" \
+    --arg message "$(git log -1 --pretty=format:'%s' | tr '\n' ';')" \
+    --arg build_date "$(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+    '{"ngen-cal": {commit_hash: $commit_hash, branch: $branch, tags: $tags, author: $author, commit_date: $commit_date, message: $message, build_date: $build_date}}' \
+    > $GIT_INFO_PATH
 
 WORKDIR /
 
