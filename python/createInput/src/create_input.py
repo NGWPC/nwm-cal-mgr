@@ -107,15 +107,21 @@ def create_input(filename):
     modules = [m1 for m1 in settings.modules_all['module'] if m1 in modules]
     logger.info(f"Final list of modules in formulation: {modules}\n")
 
-    # make sure only one module is selected for each process (except for Soil_moisutre)
-    procs = [p1 if type(p1) is list else [p1] for p1 in settings.modules_all['process']]
-    procs = list(set([p1 for p2 in procs for p1 in p2]))
-    procs.remove("Soil_moisture")
+    
+    # check modules selected for each process
+    procs = []
+    for p1 in settings.modules_all['process']:
+        procs = list(set(procs + p1))
     for p1 in procs:
-        mods_all = settings.modules_all.loc[settings.modules_all['process']==p1,'module']
-        mods = [m1 for m1 in modules if m1 in mods_all]
-        if len(mods)>1:
+        mods = [m1 for m1 in modules if p1 in settings.modules_all.loc[settings.modules_all['module']==m1, 'process'].values[0]]
+
+        # make sure only one module is selected for each process (except for Soil_moisture and Glacier_snow)
+        if len(mods)>1 and p1 not in ['Soil_moisture','Glacier_snow']:
             raise Exception(f'Only one module can be selected for {p1} process')
+
+        # one and only one module must be selected for rainfall-runoff and PET
+        if (p1 in ['Evapotranspiration', 'Rainfall_runoff']) and (len(mods)==0):
+            raise Exception(f'At least one module must be selected for {p1} process')
 
     # library files for all modules included in the formulation
     lib_file = {}
@@ -133,8 +139,6 @@ def create_input(filename):
     os.makedirs(input_dir, exist_ok=True)
 
     # Extract hydrofabric files
-    #gpkg_file = os.path.join(conf3['hydrofab_dir'], 'gauge_'+ basin +'.gpkg')
-    #gpkg_file = Path(conf3['hydrofab_file']).resolve(strict=True)
     gpkg_file = conf3['hydrofab_file']
     if not os.path.exists(gpkg_file):
         raise Exception(f'File does not exist: {gpkg_file}')
@@ -305,7 +309,20 @@ def create_input(filename):
         if smp_index > sft_index:
             modules.remove("smp")
             modules.insert(sft_index, "smp")
-    gfun.create_realization_file(work_dir, lib_file, bmi_dir, forcing_path, realization_file, modules, time_period, rt_dict)
+
+    # whether to output SWE or soil moisture (default to False)
+    output_dict = dict()
+    for s1 in ['output_swe', 'output_sm']:
+        if (s1 not in conf2.keys()) or (conf2[s1] is None) or (conf2[s1]==''):
+            output_dict[s1] = False
+        elif conf2[s1].lower()=='true':
+            output_dict[s1] = True
+        elif conf2[s1].lower()=='false':
+            output_dict[s1] = False   
+        else:
+            raise ValueError(f'Invalid value provided for {s1}')     
+   
+    gfun.create_realization_file(work_dir, lib_file, bmi_dir, forcing_path, realization_file, modules, time_period, rt_dict, output_dict)
 
     # Create calibration configuration file 
     calib_config_file = os.path.join(work_dir + '/Input', '{}'.format(basin) + '_config_calib.yaml')

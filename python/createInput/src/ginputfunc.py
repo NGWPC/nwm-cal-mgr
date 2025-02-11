@@ -1265,28 +1265,46 @@ def var_mapping(
 
     Returns 
     ----------
-    Variable name mapping dictionary
+    Variable name mapping dictionary (for module inputs and outputs). 
+    Currently the following outputs are included:
+        swe_out: output variable name for SWE (snow water equivalent)
+        sm_out: output variable name for soil mositure fraction
 
     """
-    var_maps = {}
+    var_maps = {'input':{}, 'output':{}}
 
     # only needed when CFE is not coupled to SFT/SMP
-    if ('cfes' in modules or 'cfex' in modules) and ('sft' not in modules):
-        var_maps["ice_fraction_schaake"] = "sloth_ice_fraction_schaake"
-        var_maps["ice_fraction_xinanjiang"] = "sloth_ice_fraction_xinanjiang"
-        var_maps["soil_moisture_profile"] = "sloth_smp"
+    if ('cfes' in modules or 'cfex' in modules) and ('sft' not in modules) and ('smp' not in modules):
+        var_maps['input']["ice_fraction_schaake"] = "sloth_ice_fraction_schaake"
+        var_maps['input']["ice_fraction_xinanjiang"] = "sloth_ice_fraction_xinanjiang"
+        var_maps['input']["soil_moisture_profile"] = "sloth_smp"
         
     # PET
     if 'noah' in modules and 'pet' not in modules:
-        var_maps[pet_in] = "EVAPOTRANS"
+        var_maps['input'][pet_in] = "EVAPOTRANS"
         
     # snowmelt
     if 'snow17' in modules:
-        var_maps[pcp_in] = 'raim' 
+        var_maps['input'][pcp_in] = 'raim' 
+        var_maps['output']['swe_out'] = 'sneqv'
+        var_maps['output']['swe_out_header'] = 'SWE_mm'
     elif 'ueb' in modules:
-        var_maps[pcp_in] = "SWIT"    
+        var_maps['input'][pcp_in] = "SWIT"   
+        var_maps['output']['swe_out'] = 'SWE'
+        var_maps['output']['swe_out_header'] = 'SWE_m'
     elif 'noah' in modules: # check noah last since it can also be included to provided ET
-        var_maps[pcp_in] = "QINSUR"         
+        var_maps['input'][pcp_in] = "QINSUR" 
+        var_maps['output']['swe_out'] = 'SNEQV'  
+        var_maps['output']['swe_out_header'] = 'SWE_mm' 
+    else:
+        var_maps['output']['swe_out'] = ''
+
+    # soil moisture fraction
+    if 'smp' in modules:
+        var_maps['output']['sm_out'] = 'soil_moisture_fraction'
+        var_maps['output']['sm_out_header'] = 'sm_frac'       
+    else:
+        var_maps['output']['sm_out'] = ''
 
     return var_maps     
 
@@ -1304,6 +1322,7 @@ def create_realization_file(
     modules: List[str], 
     time_period: dict, 
     rt_dict: dict,
+    output_dict: dict,
 )-> None:
 
     """ Create realization file for the specified model and module
@@ -1318,6 +1337,7 @@ def create_realization_file(
     model: model and module combination 
     time_period : simulation and evaluation time period
     rt_dict : routing model source file directory and configuration file  
+    output_dict: whether to output certain variables (currently SWE and soil moisture) 
 
     Returns 
     ----------
@@ -1334,6 +1354,7 @@ def create_realization_file(
             os.symlink(value, lib_mod_link)
 
     model_configs = {}
+
     # noah 
     if 'noah' in modules:
         model_configs['noah'] = {"name": "bmi_fortran", 
@@ -1368,7 +1389,7 @@ def create_realization_file(
         # variable name mapping section
         pet_in = "water_potential_evaporation_flux"
         pcp_in = "atmosphere_water__liquid_equivalent_precipitation_rate"
-        model_configs[m1]["params"]["variables_names_map"] = var_mapping(modules, pet_in, pcp_in)
+        var_maps = var_mapping(modules, pet_in, pcp_in)
 
         # module output variable for input to t-route
         main_output_variable = "Q_OUT" 
@@ -1386,7 +1407,7 @@ def create_realization_file(
         # variable name mapping section
         pet_in = "water_potential_evaporation_flux"
         pcp_in = "atmosphere_water__liquid_equivalent_precipitation_rate"
-        model_configs['topmodel']["params"]["variables_names_map"] = var_mapping(modules, pet_in, pcp_in)
+        var_maps = var_mapping(modules, pet_in, pcp_in)
 
         # module output variable for input to t-route
         main_output_variable = "Qout"
@@ -1406,8 +1427,7 @@ def create_realization_file(
         pet_in = "pet"
         pcp_in = "precip"
         var_maps = var_mapping(modules, pet_in, pcp_in)
-        var_maps['tair'] = "land_surface_air__temperature"
-        model_configs['sac']["params"]["variables_names_map"] = var_maps
+        var_maps['input']['tair'] = "land_surface_air__temperature"
 
         # module output variable for input to t-route
         main_output_variable = "tci"
@@ -1546,7 +1566,7 @@ def create_realization_file(
         # variable name mapping section
         pet_in = "potential_evapotranspiration_rate"
         pcp_in = "precipitation_rate"
-        model_configs['lasam']["params"]["variables_names_map"] = var_mapping(modules, pet_in, pcp_in)
+        var_maps = var_mapping(modules, pet_in, pcp_in)
 
         # module output variable for input to t-route
         main_output_variable = "total_discharge"
@@ -1560,9 +1580,33 @@ def create_realization_file(
                          "uses_forcing_file": False,
                          "main_output_variable": main_output_variable}}
 
+    # Output section
+    output_config = {'output_variables':[], 'output_header_fields':[]}
+    for key, value in output_dict.items():
+        if 'swe' in key and var_maps['output']['swe_out'] != '':
+            if value:
+                output_config['output_variables'] = output_config['output_variables'] + [var_maps['output']['swe_out']]
+                output_config['output_header_fields'] = output_config['output_header_fields'] + [var_maps['output']['swe_out_header']]
 
+        elif 'sm' in key and var_maps['output']['sm_out'] != '':
+            if value:
+                output_config['output_variables'] = output_config['output_variables'] + [var_maps['output']['sm_out']]
+                output_config['output_header_fields'] = output_config['output_header_fields'] + [var_maps['output']['sm_out_header']]                
+    if output_config['output_variables'] != []:
+        gbmain['params']['output_variables'] = output_config['output_variables']
+    if output_config['output_header_fields'] != []:
+        gbmain['params']['output_header_fields'] = output_config['output_header_fields']
+
+    # determine the RR module in the current formulation
+    rr_mod1 = [m1 for m1 in modules if 'Rainfall_runoff' in settings.modules_all.loc[settings.modules_all['module']==m1, 'process'].values[0]]
+    if len(rr_mod1) == 0:
+        raise Exception(f'No rainfall-runoff module is selected')
+    elif len(rr_mod1) >1:
+        raise Exception(f'More than one rainfall-runoff module is selected: {rr_mod1}')
+    rr_mod1 = rr_mod1[0]
 
     # modules section    
+    model_configs[rr_mod1]["params"]["variables_names_map"] = var_maps['input']
     gbmain["params"]["modules"] = [model_configs[m1] for m1 in modules if m1 != 'troute']
 
     # global configuration
