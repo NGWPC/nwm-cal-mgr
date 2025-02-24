@@ -418,7 +418,7 @@ def create_noah_input_template(
                     elif 'enddate' in l1:
                         lines[i1] = "  " + "enddate".ljust(19) + "= " + "'" + enddate + "'" + "               ! UTC time end of simulation (YYYYMMDDhhmm)\n"
                     elif 'parameter_dir' in l1:
-                        lines[i1] = "  " + "parameter_dir".ljust(19) + "= " + "'" + input_dir + "\n'"
+                        lines[i1] = "  " + "parameter_dir".ljust(19) + "= " + "'" + input_dir + "'\n"
 
                 namelst = os.path.join(input_dir, '{}'.format(catID) + '_' + run_name + '.input')
                 with open(namelst, 'w') as outfile:
@@ -1362,7 +1362,7 @@ def var_mapping(
     pcp_in: str,
     output_dict: dict,
 )-> Dict[str,str]:
-    """ create variable nameing mapping based on modules
+    """ create variable name mapping based on modules
     
     Parameters
     ----------
