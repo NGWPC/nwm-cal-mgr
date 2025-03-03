@@ -83,7 +83,8 @@ def create_walk_file(
     df_cat.set_index('divide_id', inplace=True)
     df_nexus = gpd.read_file(gpkg_file, layer='nexus')
     
-    # read hl_uri info from nextwork or hydrolocations layers 
+    # read hl_uri info from network or hydrolocations layers and make sure the gageID is contained in the hl_uri column
+    # check the hydrolocations layer first, if conditions are not met, check the network layer
     df_network = gpd.read_file(gpkg_file, layer='network')
     df_hydro = gpd.read_file(gpkg_file, layer='hydrolocations')
     if (len(df_network)>0) and ('toid' in df_network.columns) and ('hl_uri' in df_network.columns) and (df_network['hl_uri'].str.contains(gageID).any()):
@@ -145,8 +146,8 @@ def create_walk_file(
         logger.info(f'More than 1 gage found in hydrofabric GeoPackage file {gpkg_file}')
     with open(walk_file, 'w') as outfile:
         json.dump(cw, outfile, indent=4, separators=(", ", ": "), sort_keys=False)    
-
         
+
 def create_cfe_input(
     catids: List[str],  
     modules: List[str],
