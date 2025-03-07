@@ -51,8 +51,10 @@ WORKDIR /ngen-app/ngen-cal
 ARG GIT_INFO_PATH=/ngen-app/ngen-cal_git_info.json
 
 RUN set -eux; \
+    echo "CI_COMMIT_REF_NAME: ${CI_COMMIT_REF_NAME:-not set}"; \
     # Determine branch name: if CI_COMMIT_REF_NAME is set (CI build), use it; otherwise, fall back to using the git command for manual builds.
     branch=$( [ -n "${CI_COMMIT_REF_NAME:-}" ] && echo "${CI_COMMIT_REF_NAME}" || git rev-parse --abbrev-ref HEAD ); \
+    echo "Determined branch: $branch"; \
     jq -n \
       --arg commit_hash "$(git rev-parse HEAD)" \
       --arg branch "$branch" \
