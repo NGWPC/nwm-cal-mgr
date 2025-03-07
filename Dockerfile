@@ -1,4 +1,5 @@
 ARG IMAGE_TAG=latest
+ARG CI_COMMIT_REF_NAME
 FROM registry.sh.nextgenwaterprediction.com/ngwpc/nwm-ngen/ngen:${IMAGE_TAG}
 # Uncomment when building ngen locallay
 # FROM ngen
