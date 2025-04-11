@@ -122,7 +122,7 @@ def main(general: General, model_conf):
         ['TROUTE_LOGLEVEL', 'DEBUG'], 
         ['SNOW17_LOGLEVEL', 'INFO'], 
         ['NOAHOWP_LOGLEVEL', 'INFO'], 
-        ['SACSMA_LOGLEVEL']', 'INFO'], 
+        ['SACSMA_LOGLEVEL', 'INFO'], 
         ['LASAM_LOGLEVEL', 'INFO'], 
         ['SCHISM_LOGLEVEL', 'INFO'], 
         ['SFINCS_LOGLEVEL', 'INFO'], 
