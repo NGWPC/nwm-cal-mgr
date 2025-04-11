@@ -114,7 +114,7 @@ def main(general: General, model_conf):
     import numpy as np
 
     log_level_array = np.array([
-        ['NGEN_LOGLEVEL', 'ERROR'], 
+        ['NGEN_LOGLEVEL', 'INFO'], 
         ['SFT_LOGLEVEL', 'INFO'], 
         ['SMP_LOGLEVEL', 'INFO'],
         ['CFE_LOGLEVEL', 'INFO'],
