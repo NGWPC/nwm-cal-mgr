@@ -1703,6 +1703,48 @@ def create_realization_file(
         # module output variable for input to t-route
         main_output_variable = "total_discharge"
 
+    if 'lstm' in modules:
+        '''
+        {
+          "name": "bmi_python",
+          "params": {
+          "python_type": "lstm.bmi_lstm.bmi_LSTM",
+              "model_type_name": "bmi_LSTM",
+              "init_config": "./data/lstm/yml_files/HUC01/cat-11475.yml",
+              "main_output_variable": "land_surface_water__runoff_volume_flux",
+              "uses_forcing_file": false,
+              "variables_names_map" : {
+                  "streamflow_cms": "land_surface_water__runoff_volume_flux"},
+              "pytorch_model_path": "./data/lstm/sugar_creek_trained.pt",
+              "normalization_path": "./data/lstm/input_scaling.csv",
+              "initial_state_path": "./data/lstm/initial_states.csv",
+              "useGPU": false
+         }
+        } 
+        '''  
+        model_configs['lstm'] = {"name": "bmi_python",
+                                  "params": {
+                                             "python_type": "lstm.bmi_lstm.bmi_LSTM",
+                                             "model_type_name": get_model_type_name('bmi_LSTM'),
+                                             "main_output_variable": "land_surface_water__runoff_volume_flux",
+                                             "init_config": os.path.join(bmi_dir['lstm'], '{{id}}_bmi_config_lasam.txt'),
+                                             "allow_exceed_end_time": True,
+                                             "uses_forcing_file": False}}
+
+        # variable name mapping section
+        variables_names_map = dict()
+        variables_names_map["streamflow_cms"] = "land_surface_water__runoff_volume_flux",
+        variables_names_map["pytorch_model_path"] = os.path.join(mod_input_dir, "sugar_creek_trained.pt"),
+        variables_names_map["normalization_path"] = os.path.join(mod_input_dir,"input_scaling.csv"),
+        variables_names_map["initial_state_path"] = os.path.join(mod_input_dir, "initial_states.csv"),
+        variables_names_map["useGPU"] = false
+        
+
+        var_maps = variables_names_map
+
+        # module output variable for input to t-route
+        main_output_variable = "land_surface_water__runoff_volume_flux"
+
     # Combine configurations
     model_type_name = '_'.join([m1 for m1 in modules if m1 not in ['sloth', 'troute']])
     gbmain = {"name": "bmi_multi",

@@ -99,7 +99,7 @@ def create_input(filename):
         modules = modules + ['smp']
 
     # always ensure troute is included
-    if 'troute' not in modules:
+    if 'lstm' not in modules and 'troute' not in modules:
         logger.info("T-Route must be included in the formulation. T-Route added to module list")
         modules = modules + ['troute']
 
@@ -107,7 +107,6 @@ def create_input(filename):
     modules = [m1 for m1 in settings.modules_all['module'] if m1 in modules]
     logger.info(f"Final list of modules in formulation: {modules}\n")
 
-    
     # check modules selected for each process
     procs = []
     for p1 in settings.modules_all['process']:
@@ -125,7 +124,7 @@ def create_input(filename):
 
     # library files for all modules included in the formulation
     lib_file = {}
-    modules1 = [m1 for m1 in modules if m1 != 'troute']
+    modules1 = [m1 for m1 in modules if m1 not in ['troute', 'lstm']]
     for m1 in modules1:
         m2 = settings.modules_all.loc[settings.modules_all['module']==m1,'name_ui'].iloc[0]
         m2 = m2 if m2 not in ['cfe-s','cfe-x'] else 'cfe'
@@ -208,11 +207,12 @@ def create_input(filename):
         modules1 =['cfes'] + [m1 for m1 in modules if m1!='cfes']
     if 'cfex' in modules:
         modules1 =['cfex'] + [m1 for m1 in modules if m1!='cfex']        
+
     for m1 in modules1:
 
         # module name used by the UI
         m2 = settings.modules_all.loc[settings.modules_all['module']==m1,'name_ui'].iloc[0]
-
+        
         # define module input directory
         mod_input_dir = os.path.join(input_dir, m2 + '_input')
         if os.path.isdir(mod_input_dir):
