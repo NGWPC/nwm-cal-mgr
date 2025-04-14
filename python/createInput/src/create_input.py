@@ -273,6 +273,8 @@ def create_input(filename):
                 gfun.create_sac_input(catids, attr_file, mod_input_dir)
             elif m1 == 'noah':
                 gfun.create_noah_input(catids, time_period, attr_file, conf3[m1+'_parameter_dir'], mod_input_dir)
+            elif m1 == "lstm":
+                gfun.create_lstm_input(catids, attr_file, mod_input_dir)
             elif m1 == 'sft':
                 sft_dir = os.path.join(input_dir, 'sft_input')
                 smp_dir = os.path.join(input_dir, 'smp_input')
@@ -312,7 +314,9 @@ def create_input(filename):
 
     # Create model realization file
     realization_file = work_dir + '/{}'.format(basin) + '_realization_config_bmi_calib.json' 
+    print(realization_file)
     routing_config_file = os.path.join(work_dir + '/Input', '{}'.format(basin) + run_configs[0])
+    print("routing_config_file :{}".format(routing_config_file))
     bmi_dir = {}
     #modules1 = [m1 for m1 in modules if m1 not in ['sloth','troute']]
     for m1 in modules:
@@ -327,9 +331,8 @@ def create_input(filename):
         if smp_index > sft_index:
             modules.remove("smp")
             modules.insert(sft_index, "smp")
-
     gfun.create_realization_file(work_dir, lib_file, bmi_dir, forcing_path, realization_file, modules, time_period, rt_dict, output_dict)
-
+    
     # Create calibration configuration file 
     calib_config_file = os.path.join(work_dir + '/Input', '{}'.format(basin) + '_config_calib.yaml')
     model_dict = {'type': 'ngen', 'binary': conf3['ngen_exe_file'], 'realization': realization_file, 'catchments': cat_file, 'nexus': nexus_file,

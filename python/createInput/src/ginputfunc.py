@@ -51,6 +51,7 @@ __all__ = [
     'change_smp_input',
     'create_lasam_input',
     'change_lasam_input',
+    'create_lstm_input',
     'create_snow17_input',
     'create_ueb_input',
     'create_sac_input',
@@ -807,6 +808,44 @@ def create_sac_input(
         with open(input_file, "w") as f:
             f.writelines('\n'.join(input_list))
 
+def create_lstm_input(
+        catids: List[str],
+        attr_file: Union[str, Path],
+        lstm_input_dir: str
+) -> None:
+    """ Create BMI configuration file for Snow17
+
+    Parameters
+    ----------
+    catids : catchment IDs in the basin
+    lstm_input_dir : directory for the lstm bmi configuration file
+
+    Returns
+    ----------
+    None
+
+    """
+
+    os.makedirs(lstm_input_dir, exist_ok=True)
+
+    # Read hydrofabric attribute file
+    dfa = pd.read_parquet(attr_file)
+    dfa.set_index("divide_id", inplace=True)
+
+    for catID in catids:
+        input_file = os.path.join(lstm_input_dir, catID + '.yml')
+
+        config = {
+            'train_cfg_file': os.path.join(lstm_input_dir, 'config.yml'),
+            'pytorch_model_path': os.path.join(lstm_input_dir, 'sugar_creek_trained.pt'),
+            'normalization_path': os.path.join(lstm_input_dir, 'input_scaling.csv'),
+            'initial_state_path': os.path.join(lstm_input_dir, 'initial_states.csv'),
+            'useGPU': False
+        }
+
+
+        with open(input_file, "w") as f:
+            yaml.dump(config, f, default_flow_style=False)
 
 def change_sac_snow17_input(
         module: str,
@@ -1472,7 +1511,6 @@ def create_realization_file(
     None
 
     """
-
     # Create symlinks for libraries
     lib_mod = {}
     for key, value in lib_file.items():
@@ -1481,6 +1519,7 @@ def create_realization_file(
         if not os.path.exists(lib_mod_link):
             os.symlink(value, lib_mod_link)
 
+    print("A")
     model_configs = {}
 
     smp_cfg_path_str = None
@@ -1725,7 +1764,7 @@ def create_realization_file(
         model_configs['lstm'] = {"name": "bmi_python",
                                   "params": {
                                              "python_type": "lstm.bmi_lstm.bmi_LSTM",
-                                             "model_type_name": get_model_type_name('bmi_LSTM'),
+                                             "model_type_name": get_model_type_name('lstm'),
                                              "main_output_variable": "land_surface_water__runoff_volume_flux",
                                              "init_config": os.path.join(bmi_dir['lstm'], '{{id}}_bmi_config_lasam.txt'),
                                              "allow_exceed_end_time": True,
@@ -1734,13 +1773,17 @@ def create_realization_file(
         # variable name mapping section
         variables_names_map = dict()
         variables_names_map["streamflow_cms"] = "land_surface_water__runoff_volume_flux",
-        variables_names_map["pytorch_model_path"] = os.path.join(mod_input_dir, "sugar_creek_trained.pt"),
-        variables_names_map["normalization_path"] = os.path.join(mod_input_dir,"input_scaling.csv"),
-        variables_names_map["initial_state_path"] = os.path.join(mod_input_dir, "initial_states.csv"),
-        variables_names_map["useGPU"] = false
+        variables_names_map["pytorch_model_path"] = os.path.join(bmi_dir['lstm'], "sugar_creek_trained.pt"),
+        variables_names_map["normalization_path"] = os.path.join(bmi_dir['lstm'],"input_scaling.csv"),
+        variables_names_map["initial_state_path"] = os.path.join(bmi_dir['lstm'], "initial_states.csv"),
+        variables_names_map["useGPU"] = False
         
 
-        var_maps = variables_names_map
+        var_maps = dict()
+        var_maps['input'] = variables_names_map
+        var_maps['output'] = dict()
+        var_maps['output']['swe_out'] = ''
+        var_maps['output']['sm_out'] = ''
 
         # module output variable for input to t-route
         main_output_variable = "land_surface_water__runoff_volume_flux"
@@ -1755,6 +1798,7 @@ def create_realization_file(
 
     # Output section
     output_config = {'output_variables': [], 'output_header_fields': []}
+
     for key, value in output_dict.items():
         if key == 'output_swe' and var_maps['output']['swe_out'] != '':
             if value:
@@ -1777,7 +1821,7 @@ def create_realization_file(
     elif len(rr_mod1) > 1:
         raise Exception(f'More than one rainfall-runoff module is selected: {rr_mod1}')
     rr_mod1 = rr_mod1[0]
-
+    
     # modules section    
     model_configs[rr_mod1]["params"]["variables_names_map"] = var_maps['input']
     gbmain["params"]["modules"] = [model_configs[m1] for m1 in modules if m1 != 'troute']
