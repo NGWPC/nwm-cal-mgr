@@ -41,6 +41,7 @@ def create_input(filename):
     conf1 = configs['General']
     conf2 = configs['Calibration']
     conf3 = configs['DataFile']
+    print(conf3)
 
     # Time period 
     time_period={"run_time_period": {"calib": [conf2['calib_start_period'], conf2['calib_end_period']], 
@@ -274,7 +275,7 @@ def create_input(filename):
             elif m1 == 'noah':
                 gfun.create_noah_input(catids, time_period, attr_file, conf3[m1+'_parameter_dir'], mod_input_dir)
             elif m1 == "lstm":
-                gfun.create_lstm_input(catids, attr_file, mod_input_dir)
+                gfun.create_lstm_input(catids, attr_file, mod_input_dir, conf3['lstm_data_dir'], conf3['lstm_run_dir'])
             elif m1 == 'sft':
                 sft_dir = os.path.join(input_dir, 'sft_input')
                 smp_dir = os.path.join(input_dir, 'smp_input')
@@ -316,7 +317,7 @@ def create_input(filename):
     realization_file = work_dir + '/{}'.format(basin) + '_realization_config_bmi_calib.json' 
     print(realization_file)
     routing_config_file = os.path.join(work_dir + '/Input', '{}'.format(basin) + run_configs[0])
-    print("routing_config_file :{}".format(routing_config_file))
+    # print("routing_config_file :{}".format(routing_config_file))
     bmi_dir = {}
     #modules1 = [m1 for m1 in modules if m1 not in ['sloth','troute']]
     for m1 in modules:
@@ -372,7 +373,6 @@ def create_input(filename):
 
     general_dict['calibration_run_id'] = int(general_dict['calibration_run_id'])
     general_dict['ngen_cerf'] = True if general_dict['ngen_cerf'].lower()=='true' else False
-
     gfun.create_calib_config_file(conf3['calib_parameter_file'], modules, work_dir, general_dict, model_dict, calib_config_file)
 
 def main():

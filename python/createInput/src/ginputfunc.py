@@ -26,6 +26,9 @@ from tempfile import mkstemp
 from createInput import settings
 
 
+def quoted_str_presenter(dumper, data):
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style="'")
+
 def replace_path(source_file_path, par_path, data_type_codes):
     fh, target_file_path = mkstemp()
     with open(target_file_path, 'w') as target_file:
@@ -808,12 +811,108 @@ def create_sac_input(
         with open(input_file, "w") as f:
             f.writelines('\n'.join(input_list))
 
+
+def create_lstm_config(
+    lstm_input_dir: str
+) -> None:
+
+    yaml.add_representer(str, quoted_str_presenter)
+
+    output_file = os.path.join(lstm_input_dir, 'config.yml')
+    data_dir = os.path.join(lstm_input_dir, 'data')
+    run_dir = lstm_input_dir #os.path.join(lstm_input_dir, 'run')
+    img_log_dir = os.path.join(lstm_input_dir, 'img_log')
+    validation_basin_file = ""
+
+    train_basin_file = f"{data_dir}/list_515_camels_basins_aorc.txt"
+    test_basin_file = train_basin_file
+    train_dir = f"{run_dir}/train_data"
+
+    config = {
+        'allow_subsequent_nan_losses': 1000,
+        'batch_size': 256,
+        'clip_gradient_norm': 1,
+        'clip_targets_to_zero': ['QObs(mm/h)'],
+        'commit_hash': 'a2e9bb2',
+        'data_dir': data_dir,
+        'dataset': 'hourly_camels_us',
+        'device': 'cuda:0',
+        'dynamic_inputs': ['APCP_surface', 'TMP_2maboveground'],
+        'epochs': 9,
+        'experiment_name': 'nh_AORC_hourly_slope_elev_precip_temp_seq999_seed101',
+        'forcings': ['aorc_hourly'],
+        'head': 'regression',
+        'hidden_size': 126,
+        'img_log_dir': img_log_dir,
+        'initial_forget_bias': 3,
+        'learning_rate': {
+            0: 0.001,
+            2: 0.0008,
+            4: 0.0005
+        },
+        'log_interval': 5,
+        'log_n_figures': 1,
+        'log_tensorboard': False,
+        'loss': 'NSE',
+        'metrics': ['NSE', 'KGE'],
+        'model': 'cudalstm',
+        'num_workers': 16,
+        'number_of_basins': 515,
+        'optimizer': 'Adam',
+        'output_activation': 'linear',
+        'output_dropout': 0.4,
+        'package_version': '1.10.0',
+        'predict_last_n': 1,
+        'run_dir': run_dir,
+        'save_weights_every': 1,
+        'seed': 101,
+        'seq_length': 999,
+        'static_attributes': ['elev_mean', 'slope_mean'],
+        'target_variables': ['QObs(mm/h)'],
+        'test_basin_file': test_basin_file,
+        'test_end_date': '30/09/2023',
+        'test_start_date': '01/10/1985',
+        'train_basin_file': train_basin_file,
+        'train_dir': train_dir,
+        'train_end_date': '30/09/2023',
+        'train_start_date': '01/10/2015',
+        'validate_every': 1,
+        'validate_n_random_basins': 100,
+        'validation_basin_file': validation_basin_file,
+        'validation_end_date': '30/09/2004',
+        'validation_start_date': '01/10/2003'
+    }
+
+    with open(output_file, "w") as f:
+        yaml.dump(config, f, sort_keys=False, default_flow_style=False)
+
+def create_symlinks(src_file_list, src_dir, dst_dir):
+
+    missing_input_files = list()
+
+    for data_file in src_file_list:
+        ffile = os.path.join(src_dir, data_file)
+        # Make sure we have the file
+        if not os.path.exists(ffile):
+            logger.info(f'Input file {ffile} does not exist')
+            missing_input_files.append(ffile)
+        else:
+            target = os.path.join(dst_dir, os.path.basename(ffile))
+            if not os.path.exists(target):
+                #print(f'Creating symlink from {ffile} to {target}')
+                os.symlink(ffile, target)
+
+    if missing_input_files:
+        raise Exception(f'Missing input files - {missing_input_files}')
+
 def create_lstm_input(
         catids: List[str],
         attr_file: Union[str, Path],
-        lstm_input_dir: str
+        lstm_input_dir: str,
+        lstm_data_dir: str,
+        lstm_run_dir:str
 ) -> None:
-    """ Create BMI configuration file for Snow17
+    """ Create BMI configuration file for LSTM
 
     Parameters
     ----------
@@ -825,6 +924,7 @@ def create_lstm_input(
     None
 
     """
+    yaml.add_representer(str, quoted_str_presenter)
 
     os.makedirs(lstm_input_dir, exist_ok=True)
 
@@ -832,17 +932,43 @@ def create_lstm_input(
     dfa = pd.read_parquet(attr_file)
     dfa.set_index("divide_id", inplace=True)
 
+    # create the config file
+    run_dir = lstm_input_dir #os.path.join(lstm_input_dir, 'run')
+    lstm_train_data_dir = os.path.join(lstm_run_dir, 'train_data')
+    train_data_dir = os.path.join(run_dir, 'train_data')
+    config_file = os.path.join(lstm_input_dir, 'config.yml')
+    #if not os.path.exists(train_data_dir):
+    if not os.path.isdir(lstm_train_data_dir):
+        raise ValueError(f"Source path '{lstm_train_data_dir}' must be an existing directory.")
+
+    if os.path.islink(train_data_dir) or os.path.exists(train_data_dir):
+        os.unlink(train_data_dir)
+
+    os.symlink(lstm_train_data_dir, train_data_dir, target_is_directory=True)
+    create_lstm_config(lstm_input_dir)
+
+    data_files = ['initial_states.csv', 'input_scaling.csv', 'lstm_mean_std.csv', 'sugar_creek_trained.pt']
+    create_symlinks(data_files, lstm_data_dir, lstm_input_dir)
+
+    data_files = ['model_epoch009.pt', 'optimizer_state_epoch009.pt']
+    create_symlinks(data_files, lstm_run_dir, lstm_input_dir)
+
     for catID in catids:
         input_file = os.path.join(lstm_input_dir, catID + '.yml')
 
         config = {
-            'train_cfg_file': os.path.join(lstm_input_dir, 'config.yml'),
-            'pytorch_model_path': os.path.join(lstm_input_dir, 'sugar_creek_trained.pt'),
-            'normalization_path': os.path.join(lstm_input_dir, 'input_scaling.csv'),
-            'initial_state_path': os.path.join(lstm_input_dir, 'initial_states.csv'),
-            'useGPU': False
+            "train_cfg_file": os.path.join(lstm_input_dir, 'config.yml'),
+            'time_step': '1 hour',
+            'initial_state': 'zero',
+            'basin_name': catID,
+            'basin_id': catID,
+            'area_sqkm': 10.09406319443798,
+            'lat': 46.528817831207256,
+            'lon': -69.2994875283471,
+            'verbose': 1,
+            'elev_mean': 316.713505221,
+            'slope_mean': 5.07506774
         }
-
 
         with open(input_file, "w") as f:
             yaml.dump(config, f, default_flow_style=False)
@@ -1766,7 +1892,7 @@ def create_realization_file(
                                              "python_type": "lstm.bmi_lstm.bmi_LSTM",
                                              "model_type_name": get_model_type_name('lstm'),
                                              "main_output_variable": "land_surface_water__runoff_volume_flux",
-                                             "init_config": os.path.join(bmi_dir['lstm'], '{{id}}_bmi_config_lasam.txt'),
+                                             "init_config": os.path.join(bmi_dir['lstm'], '{{id}}.yml'),
                                              "allow_exceed_end_time": True,
                                              "uses_forcing_file": False}}
 
@@ -1874,6 +2000,7 @@ def create_calib_config_file(
     # read from that file directly; otherwise gather this information from predefined calib_params files for 
     # individual modules in the directory given by par_file
     calib_modules_config = list(settings.modules_all.loc[settings.modules_all['calibratable'], 'name_config'])
+    print("calib_modules_config : {}".format(calib_modules_config))
     if os.path.isfile(par_file):
         df_params = pd.read_fwf(par_file).copy()
         df_params = df_params.loc[df_params['model'].isin(calib_modules_config)]
@@ -1900,6 +2027,7 @@ def create_calib_config_file(
     df_params.set_index('param', inplace=True)
     calib_params = df_params.groupby('model').groups
 
+    print("calib_params : {}".format(calib_params))
     params_range_dict = {}
     for k, v in calib_params.items():
         params_range = []
@@ -1907,8 +2035,9 @@ def create_calib_config_file(
             params_range.append({'name': m, 'min': float(df_params.query('model==@k').loc[m]['min']),
                                  'max': float(df_params.query('model==@k').loc[m]['max']),
                                  'init': float(df_params.query('model==@k').loc[m]['init'])})
+        print("AA")
         params_range_dict.update({k: params_range})
-
+        print("AB")
     # Create configuration 
     basin_yaml = {'general': general_dict}
     basin_yaml.update(params_range_dict)
