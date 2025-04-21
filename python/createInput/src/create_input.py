@@ -41,7 +41,6 @@ def create_input(filename):
     conf1 = configs['General']
     conf2 = configs['Calibration']
     conf3 = configs['DataFile']
-    print(conf3)
 
     # Time period 
     time_period={"run_time_period": {"calib": [conf2['calib_start_period'], conf2['calib_end_period']], 
@@ -100,7 +99,7 @@ def create_input(filename):
         modules = modules + ['smp']
 
     # always ensure troute is included
-    if 'lstm' not in modules and 'troute' not in modules:
+    if 'troute' not in modules:
         logger.info("T-Route must be included in the formulation. T-Route added to module list")
         modules = modules + ['troute']
 

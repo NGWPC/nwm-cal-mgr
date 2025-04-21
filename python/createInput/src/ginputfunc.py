@@ -25,9 +25,16 @@ logging.basicConfig(level=logging.INFO)
 from tempfile import mkstemp
 from createInput import settings
 
+class QuotedDumper(yaml.SafeDumper):
+    pass
+
+class UnquotedDumper(yaml.SafeDumper):
+    pass
 
 def quoted_str_presenter(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:str', data, style="'")
+
+QuotedDumper.add_representer(str, quoted_str_presenter)
 
 def replace_path(source_file_path, par_path, data_type_codes):
     fh, target_file_path = mkstemp()
@@ -816,8 +823,6 @@ def create_lstm_config(
     lstm_input_dir: str
 ) -> None:
 
-    yaml.add_representer(str, quoted_str_presenter)
-
     output_file = os.path.join(lstm_input_dir, 'config.yml')
     data_dir = os.path.join(lstm_input_dir, 'data')
     run_dir = lstm_input_dir #os.path.join(lstm_input_dir, 'run')
@@ -884,7 +889,7 @@ def create_lstm_config(
     }
 
     with open(output_file, "w") as f:
-        yaml.dump(config, f, sort_keys=False, default_flow_style=False)
+        yaml.dump(config, f, sort_keys=False, default_flow_style=False, Dumper=QuotedDumper)
 
 def create_symlinks(src_file_list, src_dir, dst_dir):
 
@@ -924,8 +929,6 @@ def create_lstm_input(
     None
 
     """
-    yaml.add_representer(str, quoted_str_presenter)
-
     os.makedirs(lstm_input_dir, exist_ok=True)
 
     # Read hydrofabric attribute file
@@ -971,7 +974,7 @@ def create_lstm_input(
         }
 
         with open(input_file, "w") as f:
-            yaml.dump(config, f, default_flow_style=False)
+            yaml.dump(config, f, default_flow_style=False, Dumper=QuotedDumper)
 
 def change_sac_snow17_input(
         module: str,
@@ -1404,6 +1407,7 @@ def create_troute_config(
 
     """
 
+    print("create_troute_config : {}, {}, {}, {}".format(gpkg_file, rt_cfg_file, start_date, nts))
     # bmi_parameters 
     bmi_param = {"flowpath_columns": ["id", "toid", "lengthkm"],
                  "attributes_columns": ['attributes_id',
@@ -1645,7 +1649,6 @@ def create_realization_file(
         if not os.path.exists(lib_mod_link):
             os.symlink(value, lib_mod_link)
 
-    print("A")
     model_configs = {}
 
     smp_cfg_path_str = None
@@ -1999,8 +2002,8 @@ def create_calib_config_file(
     # If par_file (which contains calibration parameters and its initial, min and max values) exists,
     # read from that file directly; otherwise gather this information from predefined calib_params files for 
     # individual modules in the directory given by par_file
+
     calib_modules_config = list(settings.modules_all.loc[settings.modules_all['calibratable'], 'name_config'])
-    print("calib_modules_config : {}".format(calib_modules_config))
     if os.path.isfile(par_file):
         df_params = pd.read_fwf(par_file).copy()
         df_params = df_params.loc[df_params['model'].isin(calib_modules_config)]
@@ -2021,26 +2024,27 @@ def create_calib_config_file(
         else:
             raise Exception(f'{par_file} is not a valid file or folder with calibration parameter files for the chosen modules')
 
-    if len(df_params) == 0:
-        raise Exception(f'No calibratable parameters found for the list of modules: {modules}')
 
-    df_params.set_index('param', inplace=True)
-    calib_params = df_params.groupby('model').groups
-
-    print("calib_params : {}".format(calib_params))
     params_range_dict = {}
-    for k, v in calib_params.items():
-        params_range = []
-        for m in v:
-            params_range.append({'name': m, 'min': float(df_params.query('model==@k').loc[m]['min']),
-                                 'max': float(df_params.query('model==@k').loc[m]['max']),
-                                 'init': float(df_params.query('model==@k').loc[m]['init'])})
-        print("AA")
-        params_range_dict.update({k: params_range})
-        print("AB")
-    # Create configuration 
+    # Create configuration
     basin_yaml = {'general': general_dict}
-    basin_yaml.update(params_range_dict)
+
+    if 'lstm' not in modules:
+        if len(df_params) == 0:
+            raise Exception(f'No calibratable parameters found for the list of modules: {modules}')
+
+        df_params.set_index('param', inplace=True)
+        calib_params = df_params.groupby('model').groups
+
+        for k, v in calib_params.items():
+            params_range = []
+            for m in v:
+                params_range.append({'name': m, 'min': float(df_params.query('model==@k').loc[m]['min']),
+                                     'max': float(df_params.query('model==@k').loc[m]['max']),
+                                     'init': float(df_params.query('model==@k').loc[m]['init'])})
+            params_range_dict.update({k: params_range})
+
+        basin_yaml.update(params_range_dict)
 
     # Create symlink for ngen executable
     ngen_file_link = os.path.join(workdir, 'Input/' + os.path.basename(model_dict['binary'])[0:4])
@@ -2049,9 +2053,10 @@ def create_calib_config_file(
 
     model_dict['binary'] = ngen_file_link
     basin_yaml['model'] = model_dict
-    basin_yaml['model']['params'] = params_range_dict
+    if 'lstm' not in modules:
+        basin_yaml['model']['params'] = params_range_dict
 
     # Save configuration into yaml file
     with open(config_yaml_file, 'w') as file:
-        yaml.dump(basin_yaml, file, sort_keys=False, default_flow_style=False, indent=2)
+        yaml.dump(basin_yaml, file, sort_keys=False, default_flow_style=False, indent=2, Dumper=UnquotedDumper)
     logger.info(f'Calibration config file is created at: {config_yaml_file}')
