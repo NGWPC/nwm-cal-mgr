@@ -17,7 +17,7 @@ except ImportError:
 
 from pydantic import BaseModel, Field, DirectoryPath
 
-from .model import PosInt
+from .model import PosInt, SimpleModelExec
 from .ngen import Ngen
 from .strategy import Estimation, Sensitivity
 
@@ -42,6 +42,7 @@ class General(BaseModel):
     log: Optional[bool] = False
     parameter_log_file: Optional[Path]
     objective_log_file: Optional[Path]
+    calibratable: Optional[bool] = True
     random_seed: Optional[int]
     calibration_run_id: Optional[int]
     ngen_cerf: Optional[bool]
@@ -85,3 +86,10 @@ class NoModel(BaseModel):
 class Model(BaseModel):
     """Composition data class for defining a model configuration."""
     model: Union[Ngen, NoModel] = Field(discriminator='type')
+
+class SimpleModel(BaseModel):
+    """Model configuration that supports both calibratable and non-calibratable runs."""
+    model: Union[Ngen, SimpleModelExec] = Field(discriminator='type')
+
+# Fix ForwardRef issues in Union types
+SimpleModel.update_forward_refs()

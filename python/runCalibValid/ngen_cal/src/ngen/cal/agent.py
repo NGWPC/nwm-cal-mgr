@@ -15,8 +15,9 @@ import pandas as pd
 
 from .strategy import Algorithm
 from ngen.cal.meta import JobMeta
-from .configuration import Model
+from .configuration import Model, SimpleModel
 from .utils import pushd
+from .ngen import Ngen
 
 import logging
 logger = logging.getLogger(__name__)
@@ -80,11 +81,12 @@ class Agent(BaseAgent):
         self._workdir = workdir
         self._job = None
         self._run_name = general.name 
-        self._params = general.strategy.parameters
+        self._params = general.strategy.parameters if general.strategy.parameters is not None else {}
         self._algorithm = general.strategy.algorithm.value
         self._yaml_file = general.yaml_file
         self._calib_path = general.calib_path
         self._valid_path = general.valid_path
+        self._calibratable = general.calibratable
         self._general = general
         if restart and 'calib' in self._run_name:
             # find prior ngen workdirs
@@ -126,11 +128,17 @@ class Agent(BaseAgent):
 
         model_conf['workdir'] = self.job.workdir
         try:
-            self._model = Model(model=model_conf)
+            # print(model_conf)
+            if self._calibratable:
+                self._model = Model(model=model_conf)
+            else:
+                self._model = SimpleModel(model=model_conf)
         except ValidationError as e:
             print(f'validation error: {e.json()}')
             raise
-        self._model.model.resolve_paths()
+        #self._model.model.resolve_paths()
+        if isinstance(self._model.model, Ngen):
+            self._model.model.resolve_paths()
 
     @property
     def parameters(self) -> 'Mapping[str, Any]':
