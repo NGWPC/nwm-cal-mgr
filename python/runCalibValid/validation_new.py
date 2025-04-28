@@ -9,6 +9,8 @@ import argparse
 import logging
 import os
 from pathlib import Path
+import subprocess
+import shutil
 
 import yaml
 from ngen.cal.agent import Agent
@@ -49,9 +51,51 @@ def main(general: General, model_conf):
         logging.info("Running validation with calibratable model (control & best)")
         run_valid_ctrl_best(agent)
     else:
-        logging.info("Running single validation (non-calibratable)")
+        logger.info('Running single validation (non-calibratable)')
+
+        '''
+        realization_src = Path(agent.model.realization)
+        realization_dst = Path(agent.job.workdir) / realization_src.name
+
+        if not realization_dst.exists():
+            print(f"[DEBUG] Copying realization file {realization_src} -> {realization_dst}")
+            shutil.copy(realization_src, realization_dst)
+
+        # Update the agent's model realization path
+        if hasattr(agent.model, "__root__"):
+            agent.model.__root__.realization = realization_dst
+        else:
+            agent.model.realization = realization_dst
+
+        # Rebuild the execution command with the updated realization path
+        agent._model.model.args = '{} "all" {} "all" {}'.format(
+            agent.model.catchments.resolve(),
+            agent.model.nexus.resolve(),
+            realization_dst.resolve()
+        )
+        '''
+        # Now change into worker directory
+        os.chdir(agent.job.workdir)
+
+        print(f"[DEBUG] Current working directory: {os.getcwd()}")
+        print(f"[DEBUG] Ngen execution command: {agent.cmd}")
         os.system(agent.cmd)
 
+        '''
+        # Split command into list form for subprocess
+        command_list = agent.cmd.split()
+
+        # Run ngen and capture output live
+        with subprocess.Popen(command_list, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as proc:
+            for line in proc.stdout:
+                print(line, end='')  # Live print output
+            proc.wait()
+            if proc.returncode != 0:
+                print(f"[ERROR] ngen failed with exit code {proc.returncode}")
+            else:
+                print("[SUCCESS] ngen executed successfully!")
+                print(f"[DEBUG] Output generated in: {os.getcwd()}")
+        '''
 if __name__ == "__main__":
     print_git_info_all()
 

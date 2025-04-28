@@ -51,6 +51,10 @@ class General(BaseModel):
     _calib_path: Path
     _valid_path: Path
 
+    # Optional singleExec
+    singleexec_path: Optional[Path] = None
+    _singleexec_output: Optional[Path] = None
+
     class Config:
         """Override configuration for pydantic BaseModel."""
         underscore_attrs_are_private = True
@@ -61,11 +65,18 @@ class General(BaseModel):
         super().__init__(**kwargs)
         self._calib_path = os.path.join(str(self.workdir) + '/Output', 'Calibration_Run')
         self._valid_path = os.path.join(str(self.workdir) + '/Output', 'Validation_Run')
+        if self.singleexec_path:
+            self._singleexec_output = Path(self.singleexec_path)
+            os.makedirs(self._singleexec_output, exist_ok=True)
         try:
             os.makedirs(self._calib_path, exist_ok=True)
             os.makedirs(self._valid_path, exist_ok=True)
         except OSError as error:
             print(error)
+
+    @property
+    def singleexec_output(self) -> Path:
+        return self._singleexec_output
 
     @property
     def calib_path(self) -> 'Path':
