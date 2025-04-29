@@ -133,7 +133,7 @@ def main(general: General, model_conf):
     for i in range(len(log_level_array)):
         logging.info(f"\t{log_level_array[i,0]} = {log_level_array[i,1]}")
         os.environ[log_level_array[i,0]] = log_level_array[i,1]
-    ewts_logging = 'ENABLE'
+    ewts_logging = 'ENABLED'
     os.environ['NGEN_EWTS_LOGGING'] = ewts_logging
     logging.info(f"NGEN_EWTS_LOGGING = {ewts_logging}")
 
