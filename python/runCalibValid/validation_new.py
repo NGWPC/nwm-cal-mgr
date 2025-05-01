@@ -18,7 +18,7 @@ from ngen.cal.configuration import General
 from ngen.cal.validation_run import run_valid_ctrl_best
 
 from ngen.cal.git_util import print_git_info_all
-
+from ngen.cal.model import SimpleModelExec
 
 logger = logging.getLogger(__name__)
 
@@ -45,15 +45,31 @@ def main(general: General, model_conf):
             logger.info('No NWM retrospective streamflow simulation is available for this location')
         else:
             agent.nwmflow_file = model_conf['nwmflow'] 
+
+    if isinstance(agent.model, SimpleModelExec):
+        logging.info("Running single validation (non-calibratable)")
+        
+        # Copy realization file to worker dir
+        realization_src = Path(agent.model.realization)
+        realization_dst = Path(agent.job.workdir) / realization_src.name
+        logging.debug(f"Copying realization file {realization_src} -> {realization_dst}")
+        shutil.copy(realization_src, realization_dst)
+        agent.model.realization = realization_dst  # Update the internal path
+
+        # Run ngen
+        os.chdir(agent.job.workdir)
+        logging.info(f"[DEBUG] Current working directory: {os.getcwd()}")
+        logging.info(f"[DEBUG] Ngen execution command: {agent.cmd}")
+        os.system(agent.cmd)        
     
     # Execute validation control and best simulation
-    if general.calibratable:
+    else:
         logging.info("Running validation with calibratable model (control & best)")
         run_valid_ctrl_best(agent)
+    '''    
     else:
         logger.info('Running single validation (non-calibratable)')
 
-        '''
         realization_src = Path(agent.model.realization)
         realization_dst = Path(agent.job.workdir) / realization_src.name
 
@@ -73,7 +89,6 @@ def main(general: General, model_conf):
             agent.model.nexus.resolve(),
             realization_dst.resolve()
         )
-        '''
         # Now change into worker directory
         os.chdir(agent.job.workdir)
 
@@ -81,7 +96,6 @@ def main(general: General, model_conf):
         print(f"[DEBUG] Ngen execution command: {agent.cmd}")
         os.system(agent.cmd)
 
-        '''
         # Split command into list form for subprocess
         command_list = agent.cmd.split()
 

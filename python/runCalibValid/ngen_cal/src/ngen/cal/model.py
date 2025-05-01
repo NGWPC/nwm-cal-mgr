@@ -14,7 +14,7 @@ from pathlib import Path
 import shutil
 import time
 
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Literal
 try: #to get literal in python 3.7, it was added to typing in 3.8
     from typing import Literal
 except ImportError:
@@ -22,6 +22,7 @@ except ImportError:
 
 import pandas as pd
 from pydantic import BaseModel, DirectoryPath, conint, PyObject, validator, Field, FilePath
+
 import yaml
 
 from .strategy import Objective
@@ -614,26 +615,30 @@ class EvaluationOptions(BaseModel):
         return start_iteration
 
 
-
 class SimpleModelExec(BaseModel, Configurable):
-    type: Literal['none']
-    binary: str
-    args: Optional[str] = None
-
+    type: Literal["nocalib"]
+    binary: FilePath
     realization: FilePath
     catchments: FilePath
     nexus: FilePath
+    args: Optional[str] = None
 
     def get_binary(self) -> str:
-        return self.binary
+        return str(self.binary)
 
     def get_args(self) -> str:
-        if self.args:
-            return self.args
-        return f'{self.catchments.resolve()} "all" {self.nexus.resolve()} "all" {self.realization.resolve()}'
+        # If args is not provided, auto-generate it
+        if self.args is None:
+            return f'{self.catchments.resolve()} "all" {self.nexus.resolve()} "all" {self.realization.resolve()}'
+        return self.args
 
     def update_config(self, *args, **kwargs):
-        return None
+        # No-op for nocalib models
+        pass
+
+    @property
+    def realization_file(self) -> FilePath:
+        return self.realization
 
 class ModelExec(BaseModel, Configurable):
     """

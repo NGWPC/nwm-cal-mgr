@@ -96,7 +96,8 @@ class NoModel(BaseModel):
 
 class Model(BaseModel):
     """Composition data class for defining a model configuration."""
-    model: Union[Ngen, NoModel] = Field(discriminator='type')
+    # model: Union[Ngen, NoModel] = Field(discriminator='type')
+    model: Union[Ngen, NoModel, SimpleModelExec] = Field(discriminator='type')
 
 class SimpleModel(BaseModel):
     """Model configuration that supports both calibratable and non-calibratable runs."""

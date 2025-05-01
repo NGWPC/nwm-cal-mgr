@@ -137,10 +137,16 @@ class Agent(BaseAgent):
         model_conf['workdir'] = self.job.workdir
         try:
             # print(model_conf)
+            '''
             if self._calibratable:
                 self._model = Model(model=model_conf)
             else:
                 self._model = SimpleModel(model=model_conf)
+            '''
+            if model_conf['type'] in ['none', 'lstm', 'single', 'static', 'noncalib']:
+                self._model = SimpleModel(model=model_conf)
+            else:
+                self._model = Model(model=model_conf)
         except ValidationError as e:
             print(f'validation error: {e.json()}')
             raise
