@@ -44,6 +44,18 @@ def create_input(filename):
     #get the parallel section
     parallelSec = configs['Parallel'] if config.has_section("Parallel") else None  
 
+    #check the Parallel section values
+    if parallelSec: 
+        if not 'nprocs' in parallelSec:
+            raise ValueError("Parallel section has no nprocs!") 
+        if not 'parallel_ngen_exe' in parallelSec:
+            raise ValueError("Parallel section has no parallel_ngen_exe!")
+        if not 'partition_generator_exe' in parallelSec:
+            raise ValueError("Parallel section has no partition_generator_exe!")
+
+    #Use parallel ngen only when the number of processors is greater than 1
+    parallelSec = configs[ 'Parallel' ] if config.has_section("Parallel") and int( parallelSec[ 'nprocs'  ] ) > 1 else None
+
     # Time period 
     time_period={"run_time_period": {"calib": [conf2['calib_start_period'], conf2['calib_end_period']], 
                                     "valid": [conf2['valid_start_period'], conf2['valid_end_period']]}, 
