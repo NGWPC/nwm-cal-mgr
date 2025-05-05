@@ -90,6 +90,11 @@ class Agent(BaseAgent):
         self._valid_path = general.valid_path
         self._calibratable = general.calibratable
         self._general = general
+        # Rename output directory prefix to 'ngen' even if model type is 'none' or 'nocalib'
+        output_prefix = model_conf['type']
+        if model_conf['type'] in ['none', 'nocalib']:
+            output_prefix = 'ngen'
+
         if restart and 'calib' in self._run_name:
             # find prior ngen workdirs
             # FIXME if a user starts with an independent calibration strategy
@@ -100,14 +105,14 @@ class Agent(BaseAgent):
             # 0 correctly since not all basin params can be loaded.
             # There are probably some similar issues with explicit and independent, since they have
             # similar data semantics
-            workdirs = list(Path(workdir).rglob(model_conf['type']+"_*_worker"))
+            workdirs = list(Path(workdir).rglob(output_prefix+"_*_worker"))
             if( len(workdirs) > 1 and self._algorithm=="pso") :
                 logger.warning("More than one existing {} workdir, cannot restart")
             else:
-                self._job = JobMeta(model_conf['type'], workdir, workdirs[agent_counter], log=log)
+                self._job = JobMeta(output_prefix, workdir, workdirs[agent_counter], log=log)
 
         if(self._job is None):
-            self._job = JobMeta(model_conf['type'], workdir, log=log)
+            self._job = JobMeta(output_prefix, workdir, log=log)
 
         if 'calib' in self._run_name:
             self._calib_path_output = os.path.join(self._job.workdir, 'Output_Calib')
@@ -120,9 +125,9 @@ class Agent(BaseAgent):
         if log and 'valid' in self._run_name:
             # Use single execution path if defined
             if hasattr(general, 'singleexec_output') and general.singleexec_output:
-                self._job = JobMeta(model_conf['type'], general.singleexec_output, log=log)
+                self._job = JobMeta(output_prefix, general.singleexec_output, log=log)
             else:
-                self._job = JobMeta(model_conf['type'], workdir, log=log)
+                self._job = JobMeta(output_prefix, workdir, log=log)
 
             self._valid_path_output = os.path.join(self._job.workdir, 'Output_Valid') 
             self._valid_path_plot = os.path.join(self._workdir, 'Plot_Valid')

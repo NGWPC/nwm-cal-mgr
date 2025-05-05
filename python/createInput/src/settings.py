@@ -23,5 +23,5 @@ modules_all = pd.DataFrame([
         ('lasam','lasam','LASAM',['Rainfall_runoff'],True),
         ('topmodel','topmodel','TOPMODEL',['Rainfall_runoff'],True),
         ('troute','t-route','troute',['Routing'],False),
-        ('lstm','lstm','bmi_LSTM', ['Glacier_snow', 'Evapotranspiration', 'Rainfall_runoff'],True)],
+        ('lstm','lstm','bmi_LSTM', ['Glacier_snow', 'Evapotranspiration', 'Rainfall_runoff'],False)],
     columns=['module','name_ui','name_config','process','calibratable'])
