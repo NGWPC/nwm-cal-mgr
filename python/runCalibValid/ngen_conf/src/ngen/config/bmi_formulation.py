@@ -1,14 +1,17 @@
-from pydantic import BaseModel, FilePath, DirectoryPath, PyObject, Field, root_validator, validator
-from typing import Mapping, Optional, Union, Sequence, Any
+import logging
 from pathlib import Path
 from sys import platform
+from typing import Any, Literal, Mapping, Optional, Sequence, Union
 
-import logging
-logger = logging.getLogger('bmi_formulation')
+from pydantic import BaseModel, DirectoryPath, Field, ImportString, field_validator, model_validator
+from pydantic.config import ConfigDict
+
+logger = logging.getLogger("bmi_formulation")
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
-class BMIParams(BaseModel, smart_union=True, allow_population_by_field_name = True):
+
+class BMIParams(BaseModel):
     """The base of all BMI paramterized ngen model configurations.
 
         This class holds the common configuiration requirements for general BMI models
@@ -16,37 +19,40 @@ class BMIParams(BaseModel, smart_union=True, allow_population_by_field_name = Tr
 
     The class args here set configuration options of the BaseModel meta class.
 
-    smart_union (bool): 
+    smart_union (bool):
         Use smart_union capabilities https://pydantic-docs.helpmanual.io/usage/model_config/#smart-union
-    
-    allow_population_by_field_name (bool): 
+
+    allow_population_by_field_name (bool):
         Initialize the allow_population_by_field_name config of the BaseModel meta class.
         Allows objects to be created with keyword args which match the python class attribute
         names or the field name/alias
         https://pydantic-docs.helpmanual.io/usage/model_config/#:~:text=default%3A%20False)-,allow_population_by_field_name,-whether%20an%20aliased
     """
 
-    #required fields
+    model_config = ConfigDict(smart_union=True, populate_by_name=True)
+
+    # required fields
     name: str
-    model_name: str = Field(alias='model_type_name')
+    model_name: str = Field(alias="model_type_name")
     main_output_variable: str
-    config: Union[Path] = Field(alias='init_config') #Bmi config, can be a file or a str pattern
-    
-    #reasonable defaultable fields
+    config: Union[Path] = Field(alias="init_config")  # Bmi config, can be a file or a str pattern
+
+    # reasonable defaultable fields
     allow_exceed_end_time: bool = False
     fixed_time_step: bool = False
     uses_forcing_file: bool = False
-    name_map: Mapping[str, str] = Field(None, alias='variables_names_map')
+    name_map: Mapping[str, str] = Field(None, alias="variables_names_map")
 
-    #strictly optional fields (null/none) by default
+    # strictly optional fields (null/none) by default
     output_vars: Optional[Sequence[str]] = Field(None, alias="output_variables")
     output_headers: Optional[Sequence[str]] = Field(None, alias="output_header_fields")
-    model_params: Optional[Mapping[str, str]] 
+    model_params: Optional[Mapping[str, str]]
 
-    #non exposed fields, derived from fields and used to build up and validate certain components
-    #such as configuration path/file
-    _config_prefix: Optional[DirectoryPath] = Field(default=None, alias="config_prefix")
-    _output_map: Optional[Mapping[str, str]] = Field(None, alias="output_map")
+    # non exposed fields, derived from fields and used to build up and validate certain components
+    # such as configuration path/file
+    model_config = ConfigDict(populate_by_name=True)
+    config_prefix: Optional[DirectoryPath] = Field(default=None, alias="config_prefix")
+    output_map: Optional[Mapping[str, str]] = Field(None, alias="output_map")
 
     def resolve_paths(self):
         """_summary_
@@ -54,12 +60,12 @@ class BMIParams(BaseModel, smart_union=True, allow_population_by_field_name = Tr
         Returns:
             _type_: _description_
         """
-        if(isinstance(self.config, Path)):
-            #Not sure why this is needed, but I found one case
-            #where a forumulation has an empty string config...
+        if isinstance(self.config, Path):
+            # Not sure why this is needed, but I found one case
+            # where a forumulation has an empty string config...
             self.config = self.config.resolve()
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
     def validate_output_fields(cls, values):
         """Build the output_vars and output_headers from a mapping type if provided.
 
@@ -80,17 +86,17 @@ class BMIParams(BaseModel, smart_union=True, allow_population_by_field_name = Tr
                 logger.info("BMIParams provided output map and output variables list.  List values will be ignored")
             output_vars = []
             output_headers = []
-            for k,v in output_map.items():
+            for k, v in output_map.items():
                 output_vars.append(k)
-                if v != '':
+                if v != "":
                     output_headers.append(v)
                 else:
                     output_headers.append(k)
-            values['output_vars'] = output_vars
-            values['output_headers'] = output_headers
+            values["output_vars"] = output_vars
+            values["output_headers"] = output_headers
         return values
-    
-    @validator("name_map", always=True, pre=True)
+
+    @field_validator("name_map", mode="before")
     def update_name_map(cls, name_map: Mapping[str, str]) -> Mapping[str, str]:
         """Update any default name map, ensuring the provided keys are overridden by the given `name_map`.
 
@@ -110,16 +116,15 @@ class BMIParams(BaseModel, smart_union=True, allow_population_by_field_name = Tr
         """
         if hasattr(cls, "_variable_names_map"):
             if name_map:
-                #need to copy here or we end up overwriting the class attribute for the
-                #life of the interperter...not really the indended semantics...
+                # need to copy here or we end up overwriting the class attribute for the
+                # life of the interperter...not really the indended semantics...
                 names = cls._variable_names_map.copy()
                 names.update(name_map)
                 return names
             return cls._variable_names_map
         return name_map
 
-
-    @root_validator(pre=True)
+    @model_validator(mode="before")
     def build_config_path(cls, values: Mapping[str, Any]):
         """Build a complete path for the init_config file if a prefix is provided.
 
@@ -132,14 +137,14 @@ class BMIParams(BaseModel, smart_union=True, allow_population_by_field_name = Tr
         Returns:
             Mapping[str, Any]: Attributes to assign to the class, with a (possibly) modified `config` attribute
         """
-        prefix = values.get('config_prefix')
+        prefix = values.get("config_prefix")
         if prefix:
-            values['config'] = prefix.joinpath(values['config'])
-            conf_str = str(values['config'])
-            #not the most efficient...but need to know if we need to type cast to a str
-            #or look for a filepath
+            values["config"] = prefix.joinpath(values["config"])
+            conf_str = str(values["config"])
+            # not the most efficient...but need to know if we need to type cast to a str
+            # or look for a filepath
             if "{{" in conf_str and "}}" in conf_str:
-                values['config'] = conf_str
+                values["config"] = conf_str
         return values
 
     @classmethod
@@ -150,24 +155,25 @@ class BMIParams(BaseModel, smart_union=True, allow_population_by_field_name = Tr
             str: The dynamic library extension used on the system (.so for `linux`, .dylib for `darwin`)
         """
         if platform == "linux":
-            return '.so'
+            return ".so"
         elif platform == "darwin":
-            return '.dylib'
+            return ".dylib"
+
 
 class BMILib(BMIParams):
-    """Intermidiate type for BMI parameters requiring library files
-    """
-    #required
-    #try file path first, otherwise use str and find extension
+    """Intermidiate type for BMI parameters requiring library files"""
+
+    # required
+    # try file path first, otherwise use str and find extension
     library: Path = Field(alias="library_file")
-    #optional
-    _library_prefix: Optional[DirectoryPath] = Field(None, alias="library_prefix")
-    
+    # optional
+    library_prefix: Optional[DirectoryPath] = Field(None, alias="library_prefix")
+
     def resolve_paths(self):
         super().resolve_paths()
         self.library = self.library.resolve()
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
     def build_library_path(cls, values: Mapping[str, Any]) -> Mapping[str, Any]:
         """Build a complete path for the library file if a prefix is provided.
 
@@ -184,43 +190,51 @@ class BMILib(BMIParams):
         Returns:
             Mapping[str, Any]: Attributes to assign to the class, with a (possibly) modified `library` attribute
         """
-        lib_path = values.get('library_prefix')
-        lib = values.get('library') or values.get('library_file')
+        lib_path = values.get("library_prefix")
+        lib = values.get("library") or values.get("library_file")
         if lib_path:
             lib = lib_path.joinpath(lib)
-        values['library'] = Path(lib).with_suffix( cls.get_system_lib_extension() )
+        values["library"] = Path(lib).with_suffix(cls.get_system_lib_extension())
         return values
+
 
 class BMIC(BMILib):
     """Intermediate type for BMI C library configurations
-        This class adds a `registration_function` requirement,
-        as well as fixes the `name` of the `BMIParams` attribute to a constant, `bmi_c`
-        for all subclasses
+    This class adds a `registration_function` requirement,
+    as well as fixes the `name` of the `BMIParams` attribute to a constant, `bmi_c`
+    for all subclasses
     """
+
     registration_function: str
-    name = Field("bmi_c", const=True)
+    name: Literal["bmi_c"] = "bmi_c"
+
 
 class BMIFortran(BMILib):
     """Interrmediate type for BMI Fortran library configurations
-        This class fixes the `name` of the `BMIParams` attribute to a constant, `bmi_fortran`
-        for all subclasses
+    This class fixes the `name` of the `BMIParams` attribute to a constant, `bmi_fortran`
+    for all subclasses
     """
-    name:str = Field("bmi_fortran", const=True)
+
+    name: Literal["bmi_fortran"] = "bmi_fortran"
+
 
 class BMIPython(BMIParams):
     """Intermediate type for BMI Python library configurations
-        This class adds a `python_type` requirement,
-        as well as fixes the `name` of the `BMIParams` attribute to a constant, `bmi_python`
-        for all subclasses
+    This class adds a `python_type` requirement,
+    as well as fixes the `name` of the `BMIParams` attribute to a constant, `bmi_python`
+    for all subclasses
     """
-    python_type: Union[PyObject, str]
-    name: str = Field("bmi_python", const=True)
+
+    python_type: Union[ImportString, str]
+    name: Literal["bmi_python"] = "bmi_python"
+
 
 class BMICxx(BMILib):
     """Intermediate type for BMI C++ library configurations
-        This class adds a `registration_function` requirement,
-        as well as fixes the `name` of the `BMIParams` attribute to a constant, `bmi_c++`
-        for all subclasses
+    This class adds a `registration_function` requirement,
+    as well as fixes the `name` of the `BMIParams` attribute to a constant, `bmi_c++`
+    for all subclasses
     """
+
     registration_function: str
-    name: str = Field("bmi_c++", const=True)
+    name: Literal["bmi_c++"] = "bmi_c++"

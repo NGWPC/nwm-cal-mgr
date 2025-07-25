@@ -1,74 +1,74 @@
 """
-This module implements several classes to hold generation confugrations. 
+This module implements several classes to hold generation confugrations.
 
 @author: Nels Frazer, Xia Feng
 """
 
-from __future__ import annotations #for pydnaitc 
+from __future__ import annotations  # for pydnaitc
 
 import logging
 import os
+from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
-try: #to get literal in python 3.7, it was added to typing in 3.8
+from typing import Dict, List, Optional, Union
+
+try:  # to get literal in python 3.7, it was added to typing in 3.8
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
 
-from pydantic import BaseModel, Field, DirectoryPath, PrivateAttr
-
-from .model import PosInt
-from .model import ModelExec
-from .ngen import Ngen
-from .strategy import Estimation, Sensitivity
-from .search import _calc_metrics as calculate_all_metrics
-import pandas as pd
 import glob
+import json
 import os
 import traceback
+
 import numpy as np
-import json
+import pandas as pd
+from pydantic import BaseModel, DirectoryPath, Field, PrivateAttr
 
+from .model import ModelExec, PosInt
+from .ngen import Ngen
+from .search import _calc_metrics as calculate_all_metrics
+from .strategy import Estimation, Sensitivity
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s,%(msecs)d %(levelname)s: %(message)s",
-    datefmt="%H:%M:%S")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s,%(msecs)d %(levelname)s: %(message)s", datefmt="%H:%M:%S")
 
 
 class General(BaseModel):
     """General configuration class."""
+
     # Required fields
-    strategy: Union[Estimation, Sensitivity] = Field(discriminator='type')
+    strategy: Union[Estimation, Sensitivity] = Field(discriminator="type")
     iterations: int
     # Fields with reasonable defaults
     restart: bool = False
     start_iteration: PosInt = 0
     workdir: DirectoryPath = Path("./")
-    name: str 
+    name: str
     yaml_file: Path
     # Optional fields
     log: Optional[bool] = False
-    parameter_log_file: Optional[Path]
-    objective_log_file: Optional[Path]
-    random_seed: Optional[int]
-    calibration_run_id: Optional[int]
-    ngen_cerf: Optional[bool]
-    auth_token: Optional[str]
+    parameter_log_file: Optional[Path] = None
+    objective_log_file: Optional[Path] = None
+    random_seed: Optional[int] = None
+    calibration_run_id: Optional[int] = None
+    ngen_cerf: Optional[bool] = None
+    auth_token: Optional[str] = None
     # Private
     _calib_path: Path
     _valid_path: Path
 
     class Config:
         """Override configuration for pydantic BaseModel."""
-        underscore_attrs_are_private = True
+
+        # underscore_attrs_are_private = True
         use_enum_values = True
         smart_union = True
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._calib_path = os.path.join(str(self.workdir) + '/Output', 'Calibration_Run')
-        self._valid_path = os.path.join(str(self.workdir) + '/Output', 'Validation_Run')
+        self._calib_path = os.path.join(str(self.workdir) + "/Output", "Calibration_Run")
+        self._valid_path = os.path.join(str(self.workdir) + "/Output", "Validation_Run")
         try:
             os.makedirs(self._calib_path, exist_ok=True)
             os.makedirs(self._valid_path, exist_ok=True)
@@ -76,51 +76,52 @@ class General(BaseModel):
             print(error)
 
     @property
-    def calib_path(self) -> 'Path':
+    def calib_path(self) -> "Path":
         """Directory for calibration run."""
         return self._calib_path
 
     @property
-    def valid_path(self) -> 'Path':
+    def valid_path(self) -> "Path":
         """Directory for validation run."""
         return self._valid_path
 
 
-
 class NoModel(BaseModel):
     """A simple empty model data class for testing."""
-    type: Literal['none']
+
+    type: Literal["none"]
 
 
 class Model(BaseModel):
     """Composition data class for defining a model configuration."""
+
     # model: Union[Ngen, NoModel] = Field(discriminator='type')
-    model: Union[Ngen, NoModel, NoCalibModel] = Field(discriminator='type')
+    model: Union[Ngen, NoModel, NoCalibModel] = Field(discriminator="type")
 
 
-
-from pathlib import Path
-import pandas as pd
-import shutil
 import glob
-import warnings
 import logging
+import shutil
+import warnings
+from pathlib import Path
+
 import geopandas as gpd
 import netCDF4
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-
-from .model import BaseModel
-#from .metrics import calculate_all_metrics
+# from .metrics import calculate_all_metrics
 from . import plot_output
+from .model import BaseModel
 
-#logger = logging.getLogger("NGEN_CAL")
+# logger = logging.getLogger("NGEN_CAL")
 
 
 # ... [existing imports and code above remain unchanged] ...
+
 
 class NoCalibModel(ModelExec):
     type: Literal["nocalib"] = "nocalib"
@@ -131,9 +132,9 @@ class NoCalibModel(ModelExec):
     nexus: Path
     obsflow: Path
     nwmflow: Path
-    crosswalk:Path
+    crosswalk: Path
     _precip: gpd.GeoDataFrame = None
-    objective_score: Optional[float] = None 
+    objective_score: Optional[float] = None
     _output_iter_file: Path = PrivateAttr(default=None)
     _output_best_iter_file: Path = PrivateAttr(default=None)
     _output_last_iter_file: Path = PrivateAttr(default=None)
@@ -145,8 +146,9 @@ class NoCalibModel(ModelExec):
         For NoCalibModel, generate dummy 'valid_control' and 'valid_best' config YAMLs
         and corresponding realization files, so validation workflow runs as expected.
         """
-        import yaml
         from pathlib import Path
+
+        import yaml
 
         logger.info("[NoCalibModel] Generating validation config files...")
 
@@ -178,8 +180,12 @@ class NoCalibModel(ModelExec):
                     config["time"]["end_time"] = self.eval_params.valid_end_time.strftime("%Y-%m-%d %H:%M:%S")
                 if self.eval_params.valid_eval_start_time and self.eval_params.valid_eval_end_time:
                     # If separate evaluation window for validation is provided
-                    config["time"]["evaluation_start"] = self.eval_params.valid_eval_start_time.strftime("%Y-%m-%d %H:%M:%S")
-                    config["time"]["evaluation_end"] = self.eval_params.valid_eval_end_time.strftime("%Y-%m-%d %H:%M:%S")
+                    config["time"]["evaluation_start"] = self.eval_params.valid_eval_start_time.strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
+                    config["time"]["evaluation_end"] = self.eval_params.valid_eval_end_time.strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
 
             # Remove calibration params if present (not needed for NoCalibModel validation configs)
             config["model"].pop("params", None)
@@ -188,41 +194,38 @@ class NoCalibModel(ModelExec):
             with open(yaml_out, "w") as f:
                 yaml.dump(config, f)
             logger.info(f"[NoCalibModel] Config file for {tag} created at {yaml_out}")
-   
 
     def get_working_basins_from_crosswalk(self, crosswalk_path, target_basin_id):
-
-        with open(crosswalk_path, 'r') as f:
+        with open(crosswalk_path, "r") as f:
             crosswalk = json.load(f)
 
         matched = [
-            key.split("-")[-1]
-            for key, value in crosswalk.items()
-                if str(value.get("Gage_no")) == str(target_basin_id)
+            key.split("-")[-1] for key, value in crosswalk.items() if str(value.get("Gage_no")) == str(target_basin_id)
         ]
 
         return matched
 
-
-    def get_sim_df(self, _output_file, _wb_lst) -> 'DataFrame':
+    def get_sim_df(self, _output_file, _wb_lst) -> "DataFrame":
         """
-            The model output hydrograph for this catchment
-            This re-reads the output file each call, as the output for given calibration catchment changes
-            for each calibration iteration. If it doesn't exist, should return None
+        The model output hydrograph for this catchment
+        This re-reads the output file each call, as the output for given calibration catchment changes
+        for each calibration iteration. If it doesn't exist, should return None
         """
         try:
             # Read the routed flow at the eval_nexus
-            ncvar=netCDF4.Dataset(_output_file, "r")
-            fid_index = [list(ncvar['feature_id'][0:]).index(int(fid)) for fid in _wb_lst]
-            _output = pd.DataFrame(data={'sim_flow': pd.DataFrame(ncvar['flow'][fid_index], index=fid_index).T.sum(axis=1)})
+            ncvar = netCDF4.Dataset(_output_file, "r")
+            fid_index = [list(ncvar["feature_id"][0:]).index(int(fid)) for fid in _wb_lst]
+            _output = pd.DataFrame(
+                data={"sim_flow": pd.DataFrame(ncvar["flow"][fid_index], index=fid_index).T.sum(axis=1)}
+            )
 
-            # Get date 
+            # Get date
             tnx_file = list(Path(_output_file).parent.glob("nex*.csv"))[0]
-            tnx_df = pd.read_csv(tnx_file, index_col=0, parse_dates=[1], names=['ts', 'time', 'Q']).set_index('time')
-            dt_range = pd.date_range(tnx_df.index[1], tnx_df.index[-1], len(_output.index)).round('min')
+            tnx_df = pd.read_csv(tnx_file, index_col=0, parse_dates=[1], names=["ts", "time", "Q"]).set_index("time")
+            dt_range = pd.date_range(tnx_df.index[1], tnx_df.index[-1], len(_output.index)).round("min")
             _output.index = dt_range
-            _output.index.name='Time'
-            _output = _output.resample('1h').first()
+            _output.index.name = "Time"
+            _output = _output.resample("1h").first()
             logger.info("Simulation results ready (DataFrame populated)")
             hydrograph = _output
 
@@ -231,35 +234,37 @@ class NoCalibModel(ModelExec):
             logger.info("Output is currently empty.")
             hydrograph = None
         except Exception as e:
-            raise(e)
+            raise (e)
 
         return hydrograph
 
     def postprocess_single_calibration_output(self, agent):
-        import os
-        import shutil
-        import pandas as pd
         import copy
         import csv
+        import logging
+        import os
+        import shutil
         from pathlib import Path
+        from types import SimpleNamespace
+
+        import pandas as pd
+
         from ngen.cal import metric_functions as mf
         from ngen.cal import plot_functions as pf
         from ngen.cal.plot_output import plot_calib_output
-        from types import SimpleNamespace
         from ngen.cal.utils import report_to_ngencerf
-        import logging
 
         basin_id = agent.model.eval_params.basinID
         workdir = agent.job.workdir
         calibration_dir = Path(workdir).parent
         plot_iter_path = Path(workdir) / "Plot_Iteration"
-        output_iter_path = Path(workdir)/"Output_Iteration"
+        output_iter_path = Path(workdir) / "Output_Iteration"
         plot_iter_path.mkdir(exist_ok=True)
         output_iter_path.mkdir(parents=True, exist_ok=True)
 
         logger = logging.getLogger("NGEN_CAL")
         output_dir = Path(workdir)
-        
+
         sim_streamflow_col = "sim_flow"
         obs_flow_col = "obs_flow"
 
@@ -270,7 +275,6 @@ class NoCalibModel(ModelExec):
         _wb_lst = self.get_working_basins_from_crosswalk(self.crosswalk, agent.model.eval_params.basinID)
 
         try:
-
             sim_df = self.get_sim_df(trout_file, _wb_lst)
             sim_df.reset_index()
             if "Time" in sim_df.columns:
@@ -293,14 +297,13 @@ class NoCalibModel(ModelExec):
             metrics_df.insert(0, "iteration", 0, True)
 
             # IS THIS CORRECT???????
-            #metrics_df["objFunVal"] = metrics_df[self.eval_params.objective.upper()]
+            # metrics_df["objFunVal"] = metrics_df[self.eval_params.objective.upper()]
             metrics_best_path = workdir / f"{basin_id}_metrics_iteration.csv"
             metrics_df.to_csv(metrics_best_path, index=False)
 
         except Exception as e:
             logger.warning(f"Metrics or plot failed: {e}")
             logger.info(traceback.format_exc())
-
 
         self._output_iter_file = str(output_iter_path / f"{basin_id}_output_iteration_0000.csv")
         self._output_best_iter_file = str(output_iter_path / f"{basin_id}_output_best_iteration.csv")
@@ -309,8 +312,9 @@ class NoCalibModel(ModelExec):
         sim_df.to_csv(self._output_iter_file)
         sim_df.to_csv(self._output_best_iter_file)
         sim_df.to_csv(self._output_last_iter_file)
-        logger.info(f"[NoCalibModel] Wrote: {self._output_iter_file}, {self._output_best_iter_file}, {self._output_best_iter_file}")
-
+        logger.info(
+            f"[NoCalibModel] Wrote: {self._output_iter_file}, {self._output_best_iter_file}, {self._output_best_iter_file}"
+        )
 
         for file in output_iter_path.glob("*.csv"):
             shutil.copy(file, workdir)
@@ -361,38 +365,39 @@ class NoCalibModel(ModelExec):
                 basinID=basin_id,
                 iter_num=0,
                 date_range=date_range,
-            
-                )
+            )
             plot_calib_output(0, calibration_object, agent, single_exec=True)
 
             report_to_ngencerf(agent)
 
         except Exception as e:
-                logger.warning(f"Calibration plot generation failed: {e}")
-                logger.info(traceback.format_exc())
-        
+            logger.warning(f"Calibration plot generation failed: {e}")
+            logger.info(traceback.format_exc())
+
         logger.info(f"[NoCalibModel] All calibration plots generated in Plot_Iteration.")
-    
-    def postprocess_single_validation_output(self, agent: 'Agent', valid_suffix=None):
-        """
-        Post-process validation output for NoCalibModel.
 
-        This includes:
-        -  Copying outputs from the run directory to Output_Valid
-        - Computing metrics using metric_functions
-    -     Generating plots via plot_functions
+    def postprocess_single_validation_output(self, agent: "Agent", valid_suffix=None):
+        """
+            Post-process validation output for NoCalibModel.
+
+            This includes:
+            -  Copying outputs from the run directory to Output_Valid
+            - Computing metrics using metric_functions
+        -     Generating plots via plot_functions
         """
 
-        import shutil
         import copy
-        import pandas as pd
         import csv
+        import shutil
         from pathlib import Path
+        from types import SimpleNamespace
+
+        import pandas as pd
+
         from ngen.cal import metric_functions as mf
         from ngen.cal import plot_functions as pf
-        from ngen.cal.search import _calc_metrics
-        from types import SimpleNamespace
         from ngen.cal.plot_output import plot_valid_output
+        from ngen.cal.search import _calc_metrics
 
         workdir = Path(agent.job.workdir)
         basin_id = self.basinID
@@ -411,7 +416,6 @@ class NoCalibModel(ModelExec):
             raise FileNotFoundError(f"No troute_output_*.nc file found in {os.getcwd()}.")
         trout_file = netcdf_files[0]
         _wb_lst = self.get_working_basins_from_crosswalk(self.crosswalk, agent.model.eval_params.basinID)
-
 
         try:
             sim_df = self.get_sim_df(trout_file, _wb_lst)
@@ -433,15 +437,15 @@ class NoCalibModel(ModelExec):
 
             self.eval_params._eval_range = (
                 pd.to_datetime(self.eval_params.evaluation_start),
-                pd.to_datetime(self.eval_params.evaluation_stop)
+                pd.to_datetime(self.eval_params.evaluation_stop),
             )
             self.eval_params._valid_eval_range = (
                 pd.to_datetime(self.eval_params.valid_eval_start_time),
-                pd.to_datetime(self.eval_params.valid_eval_end_time)
+                pd.to_datetime(self.eval_params.valid_eval_end_time),
             )
             self.eval_params._full_eval_range = (
                 pd.to_datetime(self.eval_params.full_eval_start_time),
-                pd.to_datetime(self.eval_params.full_eval_end_time)
+                pd.to_datetime(self.eval_params.full_eval_end_time),
             )
 
             output = sim_df
@@ -461,27 +465,32 @@ class NoCalibModel(ModelExec):
             # Create dummy calibration object
             calibration_object = SimpleNamespace(
                 output=output,
-                observed=observed, #self.observed,
+                observed=observed,  # self.observed,
                 station_name=basin_id,
                 basinID=basin_id,
                 evaluation_range=self.eval_params._eval_range,
                 valid_evaluation_range=self.eval_params._valid_eval_range,
                 full_evaluation_range=self.eval_params._full_eval_range,
                 streamflow_name=sim_streamflow_col,
-                threshold=self.eval_params.threshold
+                threshold=self.eval_params.threshold,
             )
-            time_period = {'calib': calibration_object.evaluation_range, 'valid': calibration_object.valid_evaluation_range,
-                           'full': calibration_object.full_evaluation_range}
+            time_period = {
+                "calib": calibration_object.evaluation_range,
+                "valid": calibration_object.valid_evaluation_range,
+                "full": calibration_object.full_evaluation_range,
+            }
 
             # Compute metrics for each time period
             metrics = pd.DataFrame()
             for period_name, date_range in time_period.items():
-                result = _calc_metrics(calibration_object.output, calibration_object.observed, date_range, calibration_object.threshold)
-                row = {'run': valid_suffix, 'period': period_name, **result}
+                result = _calc_metrics(
+                    calibration_object.output, calibration_object.observed, date_range, calibration_object.threshold
+                )
+                row = {"run": valid_suffix, "period": period_name, **result}
                 metrics = pd.concat([metrics, pd.DataFrame([row])], ignore_index=True)
 
             # Save metrics to CSV
-            metrics_path = Path(agent._valid_path) /  f"{basin_id}_metrics_{valid_suffix}.csv"
+            metrics_path = Path(agent._valid_path) / f"{basin_id}_metrics_{valid_suffix}.csv"
             metrics.to_csv(metrics_path, index=False)
 
             # df_all = pd.concat([obs_df, sim_df], axis=1).dropna()
@@ -505,7 +514,7 @@ class NoCalibModel(ModelExec):
                     shutil.move(file, output_valid_dir / new_name)
 
         # Plottimg is not part of valid control workflow
-        if valid_suffix != 'valid_best':
+        if valid_suffix != "valid_best":
             logger.info(f"[NoCalibModel] Post-processing of single-run valid control output completed.")
             return
 
@@ -513,16 +522,15 @@ class NoCalibModel(ModelExec):
 
         # nwm_retro data
         try:
-
-            if agent.nwmflow_file != '':
+            if agent.nwmflow_file != "":
                 if os.path.exists(agent.nwmflow_file):
-                    logger.info(f'Read NWM retrospective streamflow simulation from: {agent.nwmflow_file}')
+                    logger.info(f"Read NWM retrospective streamflow simulation from: {agent.nwmflow_file}")
                     nwm = pd.read_csv(agent.nwmflow_file)
-                    nwm.columns = ['value_date','sim_flow']
-                    nwm['value_date'] = pd.DatetimeIndex(nwm['value_date'])
-                    agent.nwmflow = nwm.set_index('value_date')
+                    nwm.columns = ["value_date", "sim_flow"]
+                    nwm["value_date"] = pd.DatetimeIndex(nwm["value_date"])
+                    agent.nwmflow = nwm.set_index("value_date")
                 else:
-                    logger.error(f'File does not exist: {agent.nwmflow_file}')
+                    logger.error(f"File does not exist: {agent.nwmflow_file}")
             else:
                 agent.nwmflow = None
                 agent.nwmflow = self.nwmflow
@@ -532,15 +540,15 @@ class NoCalibModel(ModelExec):
             observed = agent.nwmflow
 
             if isinstance(observed, pd.Series):
-                observed = observed.to_frame(name='obs_flow')
+                observed = observed.to_frame(name="obs_flow")
             else:
-                observed = observed.rename(columns={observed.columns[0]: 'obs_flow'})
+                observed = observed.rename(columns={observed.columns[0]: "obs_flow"})
 
             for period_name, date_range in time_period.items():
                 result = _calc_metrics(calibration_object.output, observed, date_range, calibration_object.threshold)
-                nwm_row = {'run': 'nwm_retro', 'period': period_name, **result}  # or modify result if needed for NWM
+                nwm_row = {"run": "nwm_retro", "period": period_name, **result}  # or modify result if needed for NWM
                 df_nwm_metrics = pd.concat([df_nwm_metrics, pd.DataFrame([nwm_row])], ignore_index=True)
-            nwm_metrics_path = Path(agent._valid_path) /  f"{basin_id}_metrics_nwm_retro.csv"
+            nwm_metrics_path = Path(agent._valid_path) / f"{basin_id}_metrics_nwm_retro.csv"
             df_nwm_metrics.to_csv(nwm_metrics_path, index=False)
         except Exception as e:
             logger.warning(f"Error computing nwm_retro metrics : {e}")
@@ -577,20 +585,21 @@ class NoCalibModel(ModelExec):
             logger.info(traceback.format_exc())
 
         try:
-
             # Fix df_precip formatting to add a 'Time' column
             df_precip_fixed = agent.df_precip.copy()
             df_precip_fixed = df_precip_fixed.reset_index().rename(columns={"index": "Time"})
 
             # Clone the agent with all fields + override df_precip
-            agent_fixed = SimpleNamespace(**vars(agent), df_precip=df_precip_fixed, valid_path=agent.valid_path, valid_path_plot=agent.valid_path_plot)
-           
+            agent_fixed = SimpleNamespace(
+                **vars(agent),
+                df_precip=df_precip_fixed,
+                valid_path=agent.valid_path,
+                valid_path_plot=agent.valid_path_plot,
+            )
+
             # Call plot_valid_output to produce all standard plots
             plot_valid_output(
-                calibration_object=calibration_object,
-                agent=agent_fixed,
-                runs=runs,
-                time_period=time_period
+                calibration_object=calibration_object, agent=agent_fixed, runs=runs, time_period=time_period
             )
         except Exception as e:
             logger.warning(f"plot_valid_output failed: {e}")
@@ -638,6 +647,7 @@ class NoCalibModel(ModelExec):
         if not self._output_iter_file or not self._output_iter_file.exists():
             raise FileNotFoundError(f"No simulation output file found at: {self._output_iter_file}")
         import pandas as pd
+
         return pd.read_csv(self._output_iter_file, index_col=0, parse_dates=True)
 
     @property
@@ -701,7 +711,6 @@ class NoCalibModel(ModelExec):
             plot_fdc(agent, df, self.observed, basinID, plot_iter_path)
     '''
 
-    
     @property
     def df_nwm(self):
         if not hasattr(self, "nwmflow"):
@@ -710,9 +719,8 @@ class NoCalibModel(ModelExec):
         if not path.exists():
             raise FileNotFoundError(f"NWM flow file not found: {path}")
         df = pd.read_csv(path, index_col=0, parse_dates=True)
-        df = df.rename(columns={df.columns[0]: 'nwm_retro'})
+        df = df.rename(columns={df.columns[0]: "nwm_retro"})
         return df
-    
 
     @property
     def df_precip(self):
@@ -720,55 +728,54 @@ class NoCalibModel(ModelExec):
         Reads forcing precipitation data based on realization JSON.
         Mimics logic from NgenBase in ngen.py.
         """
-        from functools import reduce
         import json
         from datetime import datetime
-        
+        from functools import reduce
+
         realization_path = self.realization
         if not realization_path.exists():
             raise FileNotFoundError(f"Realization file not found: {realization_path}")
 
-        with open(realization_path, 'r') as f:
+        with open(realization_path, "r") as f:
             realization = json.load(f)
 
         forcing_cfg = realization.get("global", {}).get("forcing", {})
 
-        forcing_path = forcing_cfg.get('path')
-        file_pattern = forcing_cfg.get('file_pattern', '*.csv')
+        forcing_path = forcing_cfg.get("path")
+        file_pattern = forcing_cfg.get("file_pattern", "*.csv")
 
         start_date = realization.get("time").get("start_time")
         end_date = realization.get("time").get("end_time")
 
-
         flst = []
-        for ffile in glob.glob(os.path.join(forcing_path, '*.csv')):
+        for ffile in glob.glob(os.path.join(forcing_path, "*.csv")):
             fdata = pd.read_csv(ffile)
-            fdata_copy = fdata.copy()[['Time','RAINRATE']]
-            fdata_copy['Time'] = pd.DatetimeIndex(fdata_copy['Time'])
-            fdata_copy.set_index('Time', inplace=True)
+            fdata_copy = fdata.copy()[["Time", "RAINRATE"]]
+            fdata_copy["Time"] = pd.DatetimeIndex(fdata_copy["Time"])
+            fdata_copy.set_index("Time", inplace=True)
             fdata_copy = fdata_copy.loc[start_date:end_date]
             flst.append(fdata_copy)
 
         if not flst:
             raise ValueError("No valid RAINRATE data found in forcing files.")
 
-        suffixes=[f"_{i}" for i in range(len(flst))]
-        flst=[flst[i].add_suffix(suffixes[i]) for i in range(len(flst))]
+        suffixes = [f"_{i}" for i in range(len(flst))]
+        flst = [flst[i].add_suffix(suffixes[i]) for i in range(len(flst))]
         df_precip = reduce(lambda left, right: pd.merge(left, right, left_index=True, right_index=True), flst)
-        dfp = df_precip.sum(axis=1)*3600
-        dfp.name = 'RAINRATE'
+        dfp = df_precip.sum(axis=1) * 3600
+        dfp.name = "RAINRATE"
         # self._precip = dfp.reset_index()
 
-        df_merged = reduce(lambda x, y: pd.merge(x, y, left_index=True, right_index=True, how='outer'), flst).fillna(0)
+        df_merged = reduce(lambda x, y: pd.merge(x, y, left_index=True, right_index=True, how="outer"), flst).fillna(0)
         df_precip = df_merged.sum(axis=1) * 3600.0  # Convert mm/hr to mm
-        #df_precip = df_precip.to_frame(name="Precip(mm)")
+        # df_precip = df_precip.to_frame(name="Precip(mm)")
         df_precip = df_precip.to_frame(name="RAINRATE")
         df_precip.index.name = "Time"
         return df_precip
 
-
     def write_cost_iter_file(self, i, path):
         # No-op for single-run NoCalibModel
         pass
+
 
 Model.update_forward_refs()
