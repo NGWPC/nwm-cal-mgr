@@ -1,6 +1,6 @@
-from typing import Mapping, Optional
+from typing import Any, Literal, Mapping, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from .bmi_formulation import BMICxx
 
@@ -8,11 +8,9 @@ from .bmi_formulation import BMICxx
 class SLOTH(BMICxx):
     """A BMICXX implementation for the SLOTH ngen module"""
 
-    model_params: Optional[
-        Mapping[str, str]
-    ]  # Is this a better represntation of SLOTH params??? just generic mappings?
+    model_params: Optional[Mapping[str, Any]] = None
     registration_function: str = (
         "none"  # FIXME this isn't required for CXX bmi in ngen?
     )
     # NOTE aliases don't propagate to subclasses, so we have to repeat the alias
-    model_name: str = Field("SLOTH", const=True, alias="model_type_name")
+    model_name: Literal["SLOTH"] = Field(default="SLOTH", alias="model_type_name")

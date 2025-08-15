@@ -17,8 +17,9 @@ logging.disable(logging.DEBUG)
 import os
 import re
 import shutil
+import sys
 from pathlib import Path
-from typing import Dict, Mapping, Optional, Sequence, Union
+from typing import Annotated, Any, Dict, Mapping, Optional, Sequence, Union
 
 try:  # to get literal in python 3.7, it was added to typing in 3.8
     from typing import Literal
@@ -31,7 +32,7 @@ from config.multi import MultiBMI
 from config.realization import CatchmentRealization, NgenRealization, Realization
 from hypy.hydrolocation import NWISLocation  # type: ignore
 from hypy.nexus import Nexus  # type: ignore
-from pydantic import BaseModel, Field, FilePath, root_validator
+from pydantic import BaseModel, ConfigDict, Field, FilePath, model_validator
 
 from .calibration_cathment import AdjustableCatchment, CalibrationCatchment
 from .calibration_set import CalibrationSet, UniformCalibrationSet
@@ -103,17 +104,17 @@ class NgenBase(ModelExec):
     catchments: FilePath
     nexus: FilePath
     crosswalk: FilePath
-    ngen_realization: Optional[NgenRealization]
+    ngen_realization: Optional[NgenRealization] = None
     routing_output: Optional[Path] = Field(default=Path("flowveldepth_Ngen.h5"))
     # optional fields
-    partitions: Optional[FilePath]
-    parallel: Optional[PosInt]
-    params: Optional[Mapping[str, Parameters]]
+    partitions: Optional[FilePath] = None
+    parallel: Optional[PosInt] = None
+    params: Optional[Mapping[str, Parameters]] = None
     # dependent fields
     binary: str = "ngen"
-    args: Optional[str]
-    obsflow: Optional[FilePath]
-    nwmflow: Optional[FilePath]
+    args: Optional[str] = None
+    obsflow: Optional[FilePath] = None
+    nwmflow: Optional[FilePath] = None
 
     # private, not validated
     _catchments: Sequence["CalibrationCatchment"] = []
@@ -126,9 +127,9 @@ class NgenBase(ModelExec):
     class Config:
         """Override configuration for pydantic BaseModel"""
 
-        underscore_attrs_are_private = True
+        # underscore_attrs_are_private = True
         use_enum_values = True
-        smart_union = True
+        # smart_union = True
 
     def __init__(self, **kwargs):
         # Let pydantic work its magic
@@ -237,7 +238,7 @@ class NgenBase(ModelExec):
         """
         return self._catchments
 
-    @root_validator
+    @model_validator(mode="before")
     def set_defaults(cls, values: Dict):
         """Compose default values
 
@@ -266,7 +267,9 @@ class NgenBase(ModelExec):
         if args is None:
             # args = '{} "" {} "" {}'.format(catchments.resolve(), nexus.resolve(), realization.name)
             args = '{} "all" {} "all" {}'.format(
-                catchments.resolve(), nexus.resolve(), realization.name
+                Path(catchments).resolve(),
+                Path(nexus).resolve(),
+                Path(realization).name,
             )
             values["args"] = args
         else:
@@ -286,7 +289,9 @@ class NgenBase(ModelExec):
 
         return values
 
-    @root_validator(pre=True)  # pre-check, don't validate anything else if this fails
+    @model_validator(
+        mode="before"
+    )  # pre-check, don't validate anything else if this fails
     def check_for_partitions(cls, values: dict):
         """Validate that if parallel is used and valid that partitions is passed (and valid)
 
@@ -352,9 +357,55 @@ class NgenBase(ModelExec):
         else:
             p = groups.get_group(module.model_name)
             module.model_params = p[str(i)].to_dict()
+
+        def safe_model_dump_json(
+            model: BaseModel, *, by_alias=True, exclude_none=True, indent=4
+        ) -> str:
+            """
+            Serialize a Pydantic v2 model to JSON safely, including nested models and arbitrary objects.
+            """
+
+            def convert(obj):
+                # Handle Pydantic models
+                if isinstance(obj, BaseModel):
+                    data = {}
+                    for k, v in obj.__dict__.items():
+                        if exclude_none and v is None:
+                            continue
+                        # Use alias if requested
+                        field = obj.model_fields.get(k)
+                        key = field.alias if by_alias and field and field.alias else k
+                        data[key] = convert(v)
+                    return data
+                # Handle dicts
+                elif isinstance(obj, dict):
+                    return {
+                        k: convert(v)
+                        for k, v in obj.items()
+                        if not (exclude_none and v is None)
+                    }
+                # Handle lists, tuples, sets
+                elif isinstance(obj, (list, tuple, set)):
+                    return [convert(v) for v in obj]
+                # Handle objects that can't be serialized
+                else:
+                    try:
+                        json.dumps(obj)
+                        return obj
+                    except TypeError:
+                        return str(obj)  # fallback to string
+
+            safe_dict = convert(model)
+            return json.dumps(safe_dict, indent=indent)
+
         with open(path / self.realization.name, "w") as fp:
             fp.write(
-                self.ngen_realization.json(by_alias=True, exclude_none=True, indent=4)
+                # self.ngen_realization.json(
+                #     by_alias=True, exclude_none=True, indent=4
+                # )
+                safe_model_dump_json(
+                    self.ngen_realization, by_alias=True, exclude_none=True, indent=4
+                )
             )
 
 
@@ -606,29 +657,56 @@ class NgenUniform(NgenBase):
         )
 
 
-class Ngen(BaseModel, Configurable, smart_union=True):
-    __root__: Union[NgenExplicit, NgenIndependent, NgenUniform] = Field(
-        discriminator="strategy"
-    )
+# class Ngen(BaseModel, Configurable, smart_union=True):
+#    __root__: Union[NgenExplicit, NgenIndependent, NgenUniform] = Field(discriminator="strategy")
+
+
+class Ngen(BaseModel, Configurable):
+    model_config = ConfigDict()
+
+    type: Literal["ngen"]
+
+    strategy: Annotated[
+        Union[NgenExplicit, NgenIndependent, NgenUniform],
+        Field(discriminator="strategy"),
+    ]
+
+    @model_validator(mode="before")
+    def convert_strategy_string(cls, values: dict[str, Any]) -> dict[str, Any]:
+        """
+        Convert the 'strategy' string in the YAML into the correct Ngen subclass
+        before Pydantic validation.
+        """
+        strat = values.get("strategy")
+        if isinstance(strat, str):
+            if strat == "uniform":
+                values["strategy"] = NgenUniform(**values)
+            elif strat == "explicit":
+                values["strategy"] = NgenExplicit(**values)
+            elif strat == "independent":
+                values["strategy"] = NgenIndependent(**values)
+            else:
+                raise ValueError(f"Unknown strategy '{strat}'")
+        return values
 
     # proxy methods for Configurable
     def get_args(self) -> str:
-        return self.__root__.get_args()
+        return self.strategy.get_args()
 
     def get_binary(self) -> str:
-        return self.__root__.get_binary()
+        return self.strategy.get_binary()
 
     def update_config(self, *args, **kwargs):
-        return self.__root__.update_config(*args, **kwargs)
+        return self.strategy.update_config(*args, **kwargs)
 
     # proxy methods for model
     @property
     def adjustables(self):
-        return self.__root__._catchments
+        return self.strategy._catchments
 
     @property
-    def strategy(self):
-        return self.__root__.strategy
+    def model_strategy(self):
+        return self.strategy.strategy
 
     def restart(self) -> int:
         starts = []
@@ -641,26 +719,26 @@ class Ngen(BaseModel, Configurable, smart_union=True):
             return 0
 
     @property
-    def type(self):
-        return self.__root__.type
+    def model_type(self):
+        return self.strategy.type
 
     def resolve_paths(self):
         """resolve any possible relative paths in the realization"""
-        if self.__root__.ngen_realization != None:
-            self.__root__.ngen_realization.resolve_paths()
+        if self.strategy.ngen_realization is not None:
+            self.strategy.ngen_realization.resolve_paths()
 
     @property
     def best_params(self):
-        return self.__root__.eval_params.best_params
+        return self.strategy.eval_params.best_params
 
     @property
     def df_precip(self):
-        return self.__root__._precip
+        return self.strategy._precip
 
     @property
     def model_params(self):
-        return self.__root__.params
+        return self.strategy.params
 
     @property
     def realization_file(self):
-        return self.__root__.realization
+        return self.strategy.realization

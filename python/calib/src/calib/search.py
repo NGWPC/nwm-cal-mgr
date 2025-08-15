@@ -447,7 +447,6 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
     neighborhood_size = agent.parameters.get("neighborhood", 0.2)
     calibration_sets = agent.model.adjustables
     init = start_iteration - 1 if start_iteration > 0 else start_iteration
-
     for calibration_set in calibration_sets:
         for calibration_object in calibration_set.adjustables:
             calibration_object.df["sigma"] = neighborhood_size * (

@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import ClassVar, Literal, Mapping, Optional
 
 from pydantic import BaseModel, Field
 
@@ -21,12 +21,12 @@ class Snow17(BMIFortran):
     """A BMIFortran implementation for a snow17 module"""
 
     # NGEN complains about 'model_params' = {} in input...use none to remove it for now
-    model_params: Snow17Params = None
+    model_params: Optional[Snow17Params] = None
     main_output_variable: str = "raim"
     # NOTE aliases don't propagate to subclasses, so we have to repeat the alias
-    model_name: Literal["snow17"] = Field("snow17", const=True, alias="model_type_name")
+    model_name: Literal["snow17"] = Field(default="snow17", alias="model_type_name")
 
-    _variable_names_map = {
+    variable_names_map: ClassVar[Mapping[str, str]] = {
         "precip": "atmosphere_water__liquid_equivalent_precipitation_rate",
         "tair": "land_surface_air__temperature",
     }

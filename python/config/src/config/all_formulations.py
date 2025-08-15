@@ -18,6 +18,7 @@ from .ueb import UEB
 # unless the model class is using smart_union!
 KnownFormulations = Union[
     Topmod, CFE, PET, NoahOWP, LSTM, SLOTH, MultiBMI, SFT, SMP, LASAM, Snow17, SAC, UEB
+    # Topmod, CFE, PET, NoahOWP, LSTM, SLOTH, SFT, SMP, LASAM, Snow17, SAC, UEB
 ]
 
 # See notes in multi.py and formulation.py about the recursive

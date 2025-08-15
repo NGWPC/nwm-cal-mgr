@@ -1,4 +1,4 @@
-from typing import Mapping, Optional
+from typing import ClassVar, Literal, Mapping, Optional
 
 from pydantic import BaseModel, Field
 
@@ -14,9 +14,9 @@ class SFTParams(BaseModel):
 class SFT(BMICxx):
     """A BMIC++ implementation for SFT module"""
 
-    model_params: SFTParams = None
+    model_params: Optional[SFTParams] = None
     registration_function: str = "none"
     main_output_variable: str = "num_cells"
-    model_name: str = Field("SFT", const=True, alias="model_type_name")
+    model_name: Literal["SFT"] = Field(default="SFT", alias="model_type_name")
 
-    _variable_names_map = {"ground_temperature": "TG"}
+    variable_names_map: ClassVar[Mapping[str, str]] = {"ground_temperature": "TG"}

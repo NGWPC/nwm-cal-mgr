@@ -12,7 +12,7 @@ class Realization(BaseModel):
 
     formulations: Sequence[Formulation]
     forcing: Forcing
-    calibration: Optional[Mapping[str, Sequence[Any]]]
+    calibration: Optional[Mapping[str, Sequence[Any]]] = None
 
     def resolve_paths(self):
         for f in self.formulations:
@@ -39,7 +39,7 @@ class NgenRealization(BaseModel):
     # so you have to define the encoder at the top level object that
     # will be serialized...
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name = True
         json_encoders = {datetime: lambda v: v.strftime("%Y-%m-%d %H:%M:%S")}
 
     def resolve_paths(self):

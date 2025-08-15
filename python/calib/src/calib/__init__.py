@@ -1,12 +1,12 @@
-# Monkey patch pydantic to allow schema serialization of PyObject types to string
-from pydantic import PyObject
+# Monkey patch pydantic to allow schema serialization of ImportString types to string
+from pydantic.types import ImportString
 
 
-def pyobject_schema(cls, field_schema):
+def ImportString_schema(cls, field_schema):
     field_schema["type"] = "string"
 
 
-PyObject.__modify_schema__ = classmethod(pyobject_schema)
+ImportString.__modify_schema__ = classmethod(ImportString_schema)
 
 from . import gwo_global_best, gwo_swarms, metric_functions, plot_functions, plot_output
 from .calibratable import Adjustable, Calibratable, Evaluatable

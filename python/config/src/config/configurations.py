@@ -3,13 +3,15 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional, Union
 
-from pydantic import BaseModel, DirectoryPath, Field, FilePath, conint
+from pydantic import BaseModel, ConfigDict, DirectoryPath, Field, FilePath, conint
 
 PosInt = conint(gt=0)
 
 
-class Forcing(BaseModel, smart_union=True):
+class Forcing(BaseModel):
     """Model for ngen forcing component inputs"""
+
+    model_config = ConfigDict()
 
     class Provider(str, Enum):
         """Enumeration of the supported NGEN forcing provider strings"""

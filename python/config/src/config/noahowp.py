@@ -1,3 +1,5 @@
+from typing import Any, ClassVar, Literal, Mapping, Optional
+
 from pydantic import BaseModel, Field
 
 from .bmi_formulation import BMIFortran
@@ -15,12 +17,12 @@ class NoahOWP(BMIFortran):
     """A BMIFortran implementation for a noahowp module"""
 
     # NGEN complains about 'model_params' = {} in input...use none to remove it for now
-    model_params: NoahOWPParams = None
+    model_params: Optional[NoahOWPParams] = None
     main_output_variable: str = "QINSUR"
     # NOTE aliases don't propagate to subclasses, so we have to repeat the alias
-    model_name: str = Field("NoahOWP", const=True, alias="model_type_name")
+    model_name: Literal["NoahOWP"] = Field(default="NoahOWP", alias="model_type_name")
 
-    _variable_names_map = {
+    variable_names_map: ClassVar[Mapping[str, str]] = {
         "PRCPNONC": "atmosphere_water__liquid_equivalent_precipitation_rate",
         "Q2": "atmosphere_air_water~vapor__relative_saturation",
         "SFCTMP": "land_surface_air__temperature",

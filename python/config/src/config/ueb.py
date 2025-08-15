@@ -1,4 +1,4 @@
-from typing import Literal, Mapping, Optional
+from typing import ClassVar, Literal, Mapping, Optional
 
 from pydantic import BaseModel, Field
 
@@ -19,13 +19,15 @@ class UEB(BMICxx):
     """A BMIFortran implementation for a UEB module"""
 
     # NGEN complains about 'model_params' = {} in input...use none to remove it for now
-    model_params: UebParams = None
+    model_params: Optional[UebParams] = None
     registration_function: str = "none"
     main_output_variable: str = "SWIT"
     # NOTE aliases don't propagate to subclasses, so we have to repeat the alias
-    model_name: str = Field("UEB", const=True, alias="model_type_name")
+    model_name: Literal["UEB"] = Field(
+        default="UEB", alias="model_type_name", frozen=True
+    )
 
-    _variable_names_map = {
+    variable_names_map: ClassVar[Mapping[str, str]] = {
         "Prec": "atmosphere_water__liquid_equivalent_precipitation_rate",
         "Ta": "land_surface_air__temperature",
         "qair": "atmosphere_air_water~vapor__relative_saturation",

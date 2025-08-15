@@ -24,7 +24,14 @@ import logging
 
 import pandas as pd
 import yaml
-from pydantic import BaseModel, DirectoryPath, Field, PyObject, conint, validator
+from pydantic import (
+    BaseModel,
+    DirectoryPath,
+    Field,
+    conint,
+    field_validator,
+)
+from pydantic.types import ImportString
 
 from .strategy import Objective
 
@@ -63,27 +70,27 @@ class Configurable(ABC):
 class EvaluationOptions(BaseModel):
     """A class for performance evaluation and output processing during model run."""
 
-    evaluation_start: Optional[datetime]
-    evaluation_stop: Optional[datetime]
+    evaluation_start: Optional[datetime] = None
+    evaluation_stop: Optional[datetime] = None
     _eval_range: Tuple[datetime, datetime] = None
-    valid_start_time: Optional[datetime]
-    valid_end_time: Optional[datetime]
-    valid_eval_start_time: Optional[datetime]
-    valid_eval_end_time: Optional[datetime]
-    full_eval_start_time: Optional[datetime]
-    full_eval_end_time: Optional[datetime]
+    valid_start_time: Optional[datetime] = None
+    valid_end_time: Optional[datetime] = None
+    valid_eval_start_time: Optional[datetime] = None
+    valid_eval_end_time: Optional[datetime] = None
+    full_eval_start_time: Optional[datetime] = None
+    full_eval_end_time: Optional[datetime] = None
     _valid_range: Tuple[datetime, datetime] = None
     _valid_eval_range: Tuple[datetime, datetime] = None
     _full_eval_range: Tuple[datetime, datetime] = None
-    objective: Optional[Union[Objective, PyObject]] = Objective.kge
+    objective: Optional[Union[Objective, ImportString]] = Objective.kge
     target: Union[Literal["min"], Literal["max"], float] = "min"
     _best_score: float
     _best_params_iteration: str = "0"
     _best_save_flag: bool = None
-    id: Optional[str]
-    basinID: Optional[str]
-    threshold: Optional[float]
-    site_name: Optional[str]
+    id: Optional[str] = None
+    basinID: Optional[str] = None
+    threshold: Optional[float] = None
+    site_name: Optional[str] = None
     streamflow_name: Optional[str] = "sim_flow"
     save_output_iteration: Optional[bool] = False
     save_plot_iteration: Optional[bool] = False
@@ -102,7 +109,7 @@ class EvaluationOptions(BaseModel):
     class Config:
         """Override configuration for pydantic BaseModel."""
 
-        underscore_attrs_are_private = True
+        # underscore_attrs_are_private = True
         use_enum_values = (
             False  # if true, then objective turns into a str, and things blow up
         )
@@ -749,7 +756,7 @@ class EvaluationOptions(BaseModel):
         """Whether save plot file at each iteration."""
         return self.save_plot_iteration
 
-    @validator("objective")
+    @field_validator("objective")
     def validate_objective(cls, value):
         if value is None:
             logger.info("Objective cannot be none -- setting default objective")

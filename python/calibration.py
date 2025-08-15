@@ -51,7 +51,9 @@ def log_level_set():
         BASE_DIR = Path(__file__).resolve().parent.parent
 
         if Path("/ngencerf/data").exists():
-            log_file_dir = Path(f"/ngencerf/data/run-logs/ngen_cal_{create_timestamp()}/")
+            log_file_dir = Path(
+                f"/ngencerf/data/run-logs/ngen_cal_{create_timestamp()}/"
+            )
         else:
             log_file_dir = Path(BASE_DIR) / f"run-logs/ngen_cal_{create_timestamp()}/"
 
@@ -62,7 +64,9 @@ def log_level_set():
             logFile = open(logFilePath, "a")
             print(f"Logging into: {logFilePath}")
         except IOError:
-            print(f"Can't Open local directory Log File: {logFilePath}", file=sys.stderr)
+            print(
+                f"Can't Open local directory Log File: {logFilePath}", file=sys.stderr
+            )
 
         logging.Formatter.converter = time.gmtime
         logging.basicConfig(
@@ -109,7 +113,9 @@ def main(general: General, model_conf):
 
     # set environment variable for ngencerf backend
     os.environ["NGEN_RESULTS_DIR"] = str(Path(agent.workdir).parent.parent)
-    logging.info(f"Set environment variable NGEN_RESULTS_DIR to: {os.environ['NGEN_RESULTS_DIR']}")
+    logging.info(
+        f"Set environment variable NGEN_RESULTS_DIR to: {os.environ['NGEN_RESULTS_DIR']}"
+    )
 
     import numpy as np
 
@@ -136,7 +142,9 @@ def main(general: General, model_conf):
     LOG.info("Starting Iteration: {}".format(start_iteration))
     LOG.info("Starting calibration loop")
     if general.strategy.algorithm in [Algorithm.pso, Algorithm.gwo]:
-        LOG.info(f"The full set of plots are only produced for the first worker at: {agent.job.workdir}")
+        LOG.info(
+            f"The full set of plots are only produced for the first worker at: {agent.job.workdir}"
+        )
 
     # NOTE this assumes we calibrate each catchment independently, it may be possible to design an "aggregate" calibration
     # that works in a more sophisticated manner.
@@ -145,18 +153,16 @@ def main(general: General, model_conf):
         single_exec(agent)
 
         LOG.info("Calibration complete.")
-
-    elif (
-        agent.model.strategy == "explicit"
-    ):  # FIXME this needs a refactor...should be able to use a calibration_set with explicit loading
+    # FIXME this needs a refactor...should be able to use a calibration_set with explicit loading
+    elif agent.model.strategy.strategy == "explicit":
         for catchment in agent.model.adjustables:
             dds(start_iteration, general.iterations, catchment, agent)
 
-    elif agent.model.strategy == "independent":
+    elif agent.model.strategy.strategy == "independent":
         # for catchment_set in agent.model.adjustables:
         func(start_iteration, general.iterations, agent)
 
-    elif agent.model.strategy == "uniform":
+    elif agent.model.strategy.strategy == "uniform":
         func(start_iteration, general.iterations, agent)
 
 
@@ -164,8 +170,14 @@ if __name__ == "__main__":
     print_git_info_all()
 
     # Create the command line parser
-    parser = argparse.ArgumentParser(description="Calibrate catchments in NGEN architecture.")
-    parser.add_argument("config_file", type=Path, help="The configuration yaml file for catchments to be operated on")
+    parser = argparse.ArgumentParser(
+        description="Calibrate catchments in NGEN architecture."
+    )
+    parser.add_argument(
+        "config_file",
+        type=Path,
+        help="The configuration yaml file for catchments to be operated on",
+    )
 
     args = parser.parse_args()
 
