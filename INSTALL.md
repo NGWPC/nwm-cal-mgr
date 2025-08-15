@@ -44,7 +44,7 @@ git clone -b development --recurse-submodules https://gitlab.sh.nextgenwaterpred
 ```bash
 cd [NWM_ROOT]/mswm
 pip install .
-
+```
 
 ### Usage
 
@@ -57,9 +57,7 @@ set up your configuration for calibration/validation.
 ```bash
 python -m mswm.manager build_default input.config
 ```
-
 3) run calibration
-
 ```bash
 python [NWM_ROOT]/ngen-cal/python/calibration.py [CALIB_CONFIG]
 ```
