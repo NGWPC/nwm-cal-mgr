@@ -3,7 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional, Union
 
-from pydantic import BaseModel, ConfigDict, DirectoryPath, Field, FilePath, conint
+from pydantic import BaseModel, ConfigDict, DirectoryPath, Field, FilePath, conint, field_serializer
 
 PosInt = conint(gt=0)
 
@@ -46,7 +46,10 @@ class Time(BaseModel):
     # will be serialized...
     class Config:
         # override how datetime format looks in .json()
-        json_encoders = {datetime: lambda v: v.strftime("%Y-%m-%d %H:%M:%S")}
+        # json_encoders = {datetime: lambda v: v.strftime("%Y-%m-%d %H:%M:%S")}
+        @field_serializer("timestamp")
+        def serialize_dt(self, dt: datetime) -> str:
+            return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
 class Routing(BaseModel):
@@ -55,9 +58,7 @@ class Routing(BaseModel):
     # required
     config: FilePath = Field(alias="t_route_config_file_with_path")
     # optional/not used TODO make default None?
-    path: Optional[str] = Field(
-        "", alias="t_route_connection_path"
-    )  # TODO deprecate this field?
+    path: Optional[str] = Field("", alias="t_route_connection_path")  # TODO deprecate this field?
 
     def resolve_paths(self):
         self.config = self.config.resolve()

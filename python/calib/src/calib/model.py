@@ -110,28 +110,16 @@ class EvaluationOptions(BaseModel):
         """Override configuration for pydantic BaseModel."""
 
         # underscore_attrs_are_private = True
-        use_enum_values = (
-            False  # if true, then objective turns into a str, and things blow up
-        )
+        use_enum_values = False  # if true, then objective turns into a str, and things blow up
 
     def __init__(self, **kwargs):
         """Assign output files, evaluation time range, and initialize best obejctive function and best iteration."""
         super().__init__(**kwargs)
-        self._objective_log_file = kwargs.pop(
-            "objective_log_file", Path("{}_objective_log.txt".format(self.basinID))
-        )
-        self._metric_iter_file = kwargs.pop(
-            "metric_iter_file", Path("{}_metrics_iteration.csv".format(self.basinID))
-        )
-        self._param_iter_file = kwargs.pop(
-            "param_iter_file", Path("{}_params_iteration.csv".format(self.basinID))
-        )
-        self._param_all_file = kwargs.pop(
-            "param_all_file", Path("{}_params_all.csv".format(self.basinID))
-        )
-        self._output_iter_file = kwargs.pop(
-            "output_iter_file", Path("{}_output_iteration_".format(self.basinID))
-        )
+        self._objective_log_file = kwargs.pop("objective_log_file", Path("{}_objective_log.txt".format(self.basinID)))
+        self._metric_iter_file = kwargs.pop("metric_iter_file", Path("{}_metrics_iteration.csv".format(self.basinID)))
+        self._param_iter_file = kwargs.pop("param_iter_file", Path("{}_params_iteration.csv".format(self.basinID)))
+        self._param_all_file = kwargs.pop("param_all_file", Path("{}_params_all.csv".format(self.basinID)))
+        self._output_iter_file = kwargs.pop("output_iter_file", Path("{}_output_iteration_".format(self.basinID)))
         self._last_output_file = kwargs.pop(
             "last_output_file",
             Path("{}_output_last_iteration.csv".format(self.basinID)),
@@ -140,12 +128,8 @@ class EvaluationOptions(BaseModel):
             "best_output_file",
             Path("{}_output_best_iteration.csv".format(self.basinID)),
         )
-        self._last_iter_file = kwargs.pop(
-            "last_iter_file", Path("{}_last_iteration.csv".format(self.basinID))
-        )
-        self._cost_iter_file = kwargs.pop(
-            "cost_iter_file", Path("{}_cost_iter.csv".format(self.basinID))
-        )
+        self._last_iter_file = kwargs.pop("last_iter_file", Path("{}_last_iteration.csv".format(self.basinID)))
+        self._cost_iter_file = kwargs.pop("cost_iter_file", Path("{}_cost_iter.csv".format(self.basinID)))
 
         if self.evaluation_start and self.evaluation_stop:
             self._eval_range = (self.evaluation_start, self.evaluation_stop)
@@ -272,9 +256,7 @@ class EvaluationOptions(BaseModel):
         param_current = params.copy()
         param_current["iteration"] = i
         param_order = param_current.param
-        param_current = param_current.pivot_table(
-            index="iteration", columns="param", values=str(i)
-        )
+        param_current = param_current.pivot_table(index="iteration", columns="param", values=str(i))
         param_current = param_current[param_order]
         param_current.reset_index(inplace=True)
         param_current.to_csv(
@@ -297,9 +279,7 @@ class EvaluationOptions(BaseModel):
         df_params.pop("model")
         param_name = df_params["param"]
         df_params.drop("param", axis=1, inplace=True)
-        df_params = df_params.T.rename(
-            columns=dict(zip(df_params.T.columns, param_name))
-        )
+        df_params = df_params.T.rename(columns=dict(zip(df_params.T.columns, param_name)))
 
         # Remove rows for plotting
         df_params.reset_index(inplace=True)
@@ -342,9 +322,7 @@ class EvaluationOptions(BaseModel):
         """
         cost_iter_file = os.path.join(calib_run_path, self._cost_iter_file)
 
-        obj_file = glob.glob(
-            os.path.join(calib_run_path, "ngen*", "*objective_log.txt")
-        )
+        obj_file = glob.glob(os.path.join(calib_run_path, "ngen*", "*objective_log.txt"))
         df_log = pd.DataFrame()
         for f in obj_file:
             alog = pd.read_csv(f)
@@ -352,9 +330,7 @@ class EvaluationOptions(BaseModel):
 
         df_cost = pd.DataFrame()
         for n in range(0, i + 1):
-            df_log_iter = df_log.query("iteration==@n")[
-                ["iteration", "best_objective_function"]
-            ]
+            df_log_iter = df_log.query("iteration==@n")[["iteration", "best_objective_function"]]
             if df_log_iter.shape[0] > 0:
                 best_cost = pd.DataFrame(
                     {
@@ -370,9 +346,7 @@ class EvaluationOptions(BaseModel):
 
         return cost_iter_file
 
-    def write_hist_file(
-        self, optimizer_result: "SwarmOptimizer", agent: "Agent", params: "pd.DataFrame"
-    ) -> Path:
+    def write_hist_file(self, optimizer_result: "SwarmOptimizer", agent: "Agent", params: "pd.DataFrame") -> Path:
         """Write cost and position history plus global best position into csv files.
 
         Parameters
@@ -395,29 +369,21 @@ class EvaluationOptions(BaseModel):
         if agent.algorithm == "gwo":
             cost_hist.update({"mean_leader_best": optimizer_result.mean_leader_history})
         cost_hist = pd.DataFrame(cost_hist)
-        cost_hist_file = os.path.join(
-            agent.workdir, "{}_cost_hist.csv".format(self.basinID)
-        )
+        cost_hist_file = os.path.join(agent.workdir, "{}_cost_hist.csv".format(self.basinID))
         cost_hist.to_csv(cost_hist_file, index=False)
 
         # Save parameters of swarms
         pos_hist = pd.DataFrame()
         for i in range(len(optimizer_result.pos_history)):
-            pos_df = pd.DataFrame(
-                optimizer_result.pos_history[i], columns=params["param"].tolist()
-            )
+            pos_df = pd.DataFrame(optimizer_result.pos_history[i], columns=params["param"].tolist())
             pos_df["agent"] = range(1, optimizer_result.swarm.n_particles + 1)
             pos_df["iteration"] = i + 1
             pos_hist = pd.concat([pos_hist, pos_df], ignore_index=True)
-        pos_hist_file = os.path.join(
-            agent.workdir, "{}_pos_hist.csv".format(self.basinID)
-        )
+        pos_hist_file = os.path.join(agent.workdir, "{}_pos_hist.csv".format(self.basinID))
         pos_hist.to_csv(pos_hist_file, index=False)
 
         # Save best parameters
-        best_pos = pd.DataFrame(
-            optimizer_result.swarm.best_pos, columns=["global_best_params"]
-        )
+        best_pos = pd.DataFrame(optimizer_result.swarm.best_pos, columns=["global_best_params"])
         best_pos.reset_index(inplace=True, drop=True)
         best_pos["param"] = params["param"].tolist()
         best_pos["model"] = params["model"].tolist()
@@ -427,36 +393,26 @@ class EvaluationOptions(BaseModel):
         #    return [x for xs in xss for x in xs]
         # best_pos['model'] = flatten([[m1]*len(agent.model_params[m1]) for m1 in agent.model_params.keys()])
 
-        best_pos_file = os.path.join(
-            agent.workdir, "{}_global_best_params.csv".format(self.basinID)
-        )
+        best_pos_file = os.path.join(agent.workdir, "{}_global_best_params.csv".format(self.basinID))
         best_pos.to_csv(best_pos_file, index=False)
 
         # Save local and leader best
         if agent.algorithm == "gwo":
             pbest_hist = pd.DataFrame()
             for i in range(len(optimizer_result.pbest_history)):
-                pbest_df = pd.DataFrame(
-                    optimizer_result.pbest_history[i], columns=["local_best"]
-                )
+                pbest_df = pd.DataFrame(optimizer_result.pbest_history[i], columns=["local_best"])
                 pbest_df["agent"] = range(1, optimizer_result.swarm.n_particles + 1)
                 pbest_df["iteration"] = i + 1
                 pbest_hist = pd.concat([pbest_hist, pbest_df], ignore_index=True)
-            pbest_hist_file = os.path.join(
-                agent.workdir, "{}_pbest_hist.csv".format(self.basinID)
-            )
+            pbest_hist_file = os.path.join(agent.workdir, "{}_pbest_hist.csv".format(self.basinID))
             pbest_hist.to_csv(pbest_hist_file, index=False)
             leader_hist = pd.DataFrame()
             for i in range(len(optimizer_result.leader_history)):
-                leader_df = pd.DataFrame(
-                    optimizer_result.leader_history[i], columns=["leader_best"]
-                )
+                leader_df = pd.DataFrame(optimizer_result.leader_history[i], columns=["leader_best"])
                 leader_df["rank"] = range(1, 4)
                 leader_df["iteration"] = i + 1
                 leader_hist = pd.concat([leader_hist, leader_df], ignore_index=True)
-            leader_hist_file = os.path.join(
-                agent.workdir, "{}_leader_hist.csv".format(self.basinID)
-            )
+            leader_hist_file = os.path.join(agent.workdir, "{}_leader_hist.csv".format(self.basinID))
             leader_hist.to_csv(leader_hist_file, index=False)
 
         return cost_hist_file
@@ -484,21 +440,13 @@ class EvaluationOptions(BaseModel):
         d = copy.deepcopy(y)
         d["general"]["name"] = valid_run_name
         f = d["general"]["yaml_file"]
-        d["general"]["yaml_file"] = os.path.join(
-            valid_run_path, os.path.basename(f).replace("calib", valid_run_name)
-        )
+        d["general"]["yaml_file"] = os.path.join(valid_run_path, os.path.basename(f).replace("calib", valid_run_name))
         d["model"]["realization"] = os.path.join(valid_run_path, valid_config_file)
         with open(d["general"]["yaml_file"], "w") as yfile:
             yaml.dump(d, yfile, sort_keys=False, default_flow_style=False, indent=2)
-        logger.info(
-            "Config file for {} is created at {}".format(
-                valid_run_name, d["general"]["yaml_file"]
-            )
-        )
+        logger.info("Config file for {} is created at {}".format(valid_run_name, d["general"]["yaml_file"]))
 
-    def create_valid_realization_file(
-        self, agent: "Agent", params: "pd.DataFrame", valid_run_name: str
-    ) -> None:
+    def create_valid_realization_file(self, agent: "Agent", params: "pd.DataFrame", valid_run_name: str) -> None:
         """Create model realization file for valiation control and best runs.
 
         Parameters:
@@ -514,23 +462,15 @@ class EvaluationOptions(BaseModel):
             agent.model.update_config(0, params, path=Path(agent.valid_path))
         elif valid_run_name == "valid_best":
             if agent.algorithm != "dds":
-                agent.model.update_config(
-                    "global_best", params, path=Path(agent.valid_path)
-                )
+                agent.model.update_config("global_best", params, path=Path(agent.valid_path))
             else:
-                agent.model.update_config(
-                    self._best_params_iteration, params, path=Path(agent.valid_path)
-                )
+                agent.model.update_config(self._best_params_iteration, params, path=Path(agent.valid_path))
         else:
-            agent.model.update_config(
-                valid_run_name, params, path=Path(agent.valid_path)
-            )
+            agent.model.update_config(valid_run_name, params, path=Path(agent.valid_path))
 
         # Create realization file for validation run
         # agent.model.update_config(0, params, path = Path(agent.valid_path))
-        configfl = os.path.join(
-            agent.valid_path, os.path.basename(str(agent.realization_file))
-        )
+        configfl = os.path.join(agent.valid_path, os.path.basename(str(agent.realization_file)))
         config_valid_file = os.path.join(
             agent.valid_path,
             os.path.basename(configfl).replace("calib", valid_run_name),
@@ -540,12 +480,8 @@ class EvaluationOptions(BaseModel):
             config_valid = json.load(fl)
 
         # Replace calib simulation time period with valid sumulation period
-        config_valid["time"]["start_time"] = datetime.strftime(
-            self._valid_range[0], "%Y-%m-%d %H:%M:%S"
-        )
-        config_valid["time"]["end_time"] = datetime.strftime(
-            self._valid_range[1], "%Y-%m-%d %H:%M:%S"
-        )
+        config_valid["time"]["start_time"] = datetime.strftime(self._valid_range[0], "%Y-%m-%d %H:%M:%S")
+        config_valid["time"]["end_time"] = datetime.strftime(self._valid_range[1], "%Y-%m-%d %H:%M:%S")
 
         # correct path for init_config for validation runs for modules with time periods info in these files
         # (currently Noah-OWP-Modular and UEB)
@@ -557,9 +493,7 @@ class EvaluationOptions(BaseModel):
                 )
 
         # Replace t-route yaml file
-        rt = os.path.basename(
-            config_valid["routing"]["t_route_config_file_with_path"]
-        ).replace("calib", valid_run_name)
+        rt = os.path.basename(config_valid["routing"]["t_route_config_file_with_path"]).replace("calib", valid_run_name)
         rt = os.path.join(
             os.path.dirname(config_valid["routing"]["t_route_config_file_with_path"]),
             rt,
@@ -604,16 +538,10 @@ class EvaluationOptions(BaseModel):
                 "AET",
                 "soil_moisture_fraction",
             ]
-        if (
-            config_valid["global"]["formulations"][0]["params"]["model_type_name"]
-            == "NoahOWP_CFE_XAJ_SFT_SMP"
-        ):
+        if config_valid["global"]["formulations"][0]["params"]["model_type_name"] == "NoahOWP_CFE_XAJ_SFT_SMP":
             output_variables[9] = "ice_fraction_xinanjiang"
             output_header_fields[9] = "ice_fraction_xinanjiang"
-        if (
-            config_valid["global"]["formulations"][0]["params"]["model_type_name"]
-            == "NoahOWP_LASAM_SFT_SMP"
-        ):
+        if config_valid["global"]["formulations"][0]["params"]["model_type_name"] == "NoahOWP_LASAM_SFT_SMP":
             output_variables = [
                 "soil_ice_fraction",
                 "TGS",
@@ -647,12 +575,8 @@ class EvaluationOptions(BaseModel):
                 "soil_moisture_fraction",
             ]
         if len(output_variables) > 1 and len(output_header_fields) > 1:
-            config_valid["global"]["formulations"][0]["params"]["output_variables"] = (
-                output_variables
-            )
-            config_valid["global"]["formulations"][0]["params"][
-                "output_header_fields"
-            ] = output_header_fields
+            config_valid["global"]["formulations"][0]["params"]["output_variables"] = output_variables
+            config_valid["global"]["formulations"][0]["params"]["output_header_fields"] = output_header_fields
         config_valid["global"]["formulations"][0]["params"]["modules"] = cf1[1]
 
         # Write realization file for validation run
@@ -666,9 +590,7 @@ class EvaluationOptions(BaseModel):
             )
 
         # Write yaml configuration file for validation run
-        self.create_valid_config_file(
-            agent.yaml_file, agent.valid_path, config_valid_file, valid_run_name
-        )
+        self.create_valid_config_file(agent.yaml_file, agent.valid_path, config_valid_file, valid_run_name)
 
     def write_run_complete_file(self, run_name: str, path: "Path") -> None:
         """Write empty file if calibration or validation run is complete.
@@ -681,10 +603,7 @@ class EvaluationOptions(BaseModel):
         """
         complete_file = os.path.join(
             path,
-            "{}".format(self.basinID)
-            + "_"
-            + "{}".format(run_name).capitalize()
-            + "_Run_Complete",
+            "{}".format(self.basinID) + "_" + "{}".format(run_name).capitalize() + "_Run_Complete",
         )
         with open(complete_file, "w") as fp:
             pass
@@ -797,16 +716,11 @@ class EvaluationOptions(BaseModel):
             str(self._param_iter_file),
         ]
         for infile in all_log_files:
-            shutil.copy(
-                infile, infile + "_before_restart_" + time.strftime("%Y%m%d_%H%M%S")
-            )
+            shutil.copy(infile, infile + "_before_restart_" + time.strftime("%Y%m%d_%H%M%S"))
             indata = pd.read_csv(infile)
             if indata.iloc[-1]["iteration"] == i:
                 indata.iloc[0 : (len(indata) - 1)].to_csv(infile, index=False)
-            elif (
-                indata.iloc[-1]["iteration"] - i == 1
-                and indata.iloc[-2]["iteration"] == i
-            ):
+            elif indata.iloc[-1]["iteration"] - i == 1 and indata.iloc[-2]["iteration"] == i:
                 indata.iloc[0 : (len(indata) - 2)].to_csv(infile, index=False)
 
     def restart(self) -> int:
@@ -822,9 +736,7 @@ class EvaluationOptions(BaseModel):
         start_iteration = int(df_iter.iloc[-1]["last_iteration"])
         shutil.copy(
             str(self._last_iter_file),
-            str(self._last_iter_file)
-            + "_before_restart_"
-            + time.strftime("%Y%m%d_%H%M%S"),
+            str(self._last_iter_file) + "_before_restart_" + time.strftime("%Y%m%d_%H%M%S"),
         )
         df_iter.iloc[0 : (len(df_iter) - 1)].to_csv(self._last_iter_file, index=False)
 
@@ -843,7 +755,7 @@ class ModelExec(BaseModel, Configurable):
     """
 
     binary: str
-    args: Optional[str]
+    args: Optional[str] = None
     workdir: DirectoryPath = Path("./")  # FIXME test the various workdirs
     eval_params: Optional[EvaluationOptions] = Field(default=EvaluationOptions())
 

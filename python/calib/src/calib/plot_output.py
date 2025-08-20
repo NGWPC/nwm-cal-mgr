@@ -63,9 +63,7 @@ def plot_calib_output(
     df_control_run = pd.read_csv(control_run)
     df_control_run["Time"] = pd.DatetimeIndex(df_control_run["Time"])
     df_control = df_control_run[["Time", calibration_object.streamflow_name]]
-    df_control = df_control.rename(
-        columns={calibration_object.streamflow_name: "Control Run"}
-    )
+    df_control = df_control.rename(columns={calibration_object.streamflow_name: "Control Run"})
     df_control.set_index("Time", inplace=True)
     df_best_run = pd.read_csv(best_run)
     df_best = df_best_run[["Time", calibration_object.streamflow_name]]
@@ -79,15 +77,11 @@ def plot_calib_output(
     df_last.set_index("Time", inplace=True)
     dfs1 = [calibration_object.observed, df_control, df_last, df_best]
     df_merged = reduce(
-        lambda left, right: pd.merge(
-            left, right, left_index=True, right_index=True, how="right"
-        ),
+        lambda left, right: pd.merge(left, right, left_index=True, right_index=True, how="right"),
         dfs1,
     )
     df_merged = df_merged.rename(columns={"obs_flow": "Observation"})
-    df_merged[["Control Run", "Last Run", "Best Run"]] = df_merged[
-        ["Control Run", "Last Run", "Best Run"]
-    ]
+    df_merged[["Control Run", "Last Run", "Best Run"]] = df_merged[["Control Run", "Last Run", "Best Run"]]
     if df_merged.empty:
         logger.warning("can't merge different runs")
     if eval_range:
@@ -111,21 +105,11 @@ def plot_calib_output(
         if calibration_object.save_plot_iter_flag:
             plotfile = os.path.join(
                 fig_path,
-                calibration_object.basinID
-                + "_hydrograph_iteration_"
-                + str("{:04d}").format(i)
-                + ".png",
+                calibration_object.basinID + "_hydrograph_iteration_" + str("{:04d}").format(i) + ".png",
             )
         else:
-            plotfile = os.path.join(
-                fig_path, calibration_object.basinID + "_hydrograph_iteration.png"
-            )
-        title = (
-            "Hydrograph at Iteration = "
-            + str(i)
-            + "\n"
-            + calibration_object.station_name
-        )
+            plotfile = os.path.join(fig_path, calibration_object.basinID + "_hydrograph_iteration.png")
+        title = "Hydrograph at Iteration = " + str(i) + "\n" + calibration_object.station_name
         df_merged_copy1 = copy.deepcopy(df_merged)
         plf.plot_streamflow(df_merged_copy1, plotfile, title)
 
@@ -133,22 +117,14 @@ def plot_calib_output(
         if calibration_object.save_plot_iter_flag:
             plotfile = os.path.join(
                 fig_path,
-                calibration_object.basinID
-                + "_scatterplot_streamflow_iteration_"
-                + str("{:04d}").format(i)
-                + ".png",
+                calibration_object.basinID + "_scatterplot_streamflow_iteration_" + str("{:04d}").format(i) + ".png",
             )
         else:
             plotfile = os.path.join(
                 fig_path,
                 calibration_object.basinID + "_scatterplot_streamflow_iteration.png",
             )
-        title = (
-            "Scatterplot of Streaflow at Iteration = "
-            + str(i)
-            + "\n"
-            + calibration_object.station_name
-        )
+        title = "Scatterplot of Streaflow at Iteration = " + str(i) + "\n" + calibration_object.station_name
         df_merged_copy2 = copy.deepcopy(df_merged)
         plf.scatterplot_streamflow(df_merged_copy2, plotfile, title)
 
@@ -156,29 +132,15 @@ def plot_calib_output(
         if calibration_object.save_plot_iter_flag:
             plotfile = os.path.join(
                 fig_path,
-                calibration_object.basinID
-                + "_fdc_iteration_"
-                + str("{:04d}").format(i)
-                + ".png",
+                calibration_object.basinID + "_fdc_iteration_" + str("{:04d}").format(i) + ".png",
             )
         else:
-            plotfile = os.path.join(
-                fig_path, calibration_object.basinID + "_fdc_iteration.png"
-            )
-        title = (
-            "Flow Duration Curve at Iteration = "
-            + str(i)
-            + "\n"
-            + calibration_object.station_name
-        )
+            plotfile = os.path.join(fig_path, calibration_object.basinID + "_fdc_iteration.png")
+        title = "Flow Duration Curve at Iteration = " + str(i) + "\n" + calibration_object.station_name
         df_merged_copy3 = copy.deepcopy(df_merged)
-        df_merged_copy3 = mf.treat_values(
-            df_merged_copy3, remove_neg=True, remove_na=True, replace_zero=True
-        )
+        df_merged_copy3 = mf.treat_values(df_merged_copy3, remove_neg=True, remove_na=True, replace_zero=True)
         if len(df_merged_copy3) < 1:
-            logger.warning(
-                "Plot of Flow Duration Curve cannot be created due to lack of valid streamflow data"
-            )
+            logger.warning("Plot of Flow Duration Curve cannot be created due to lack of valid streamflow data")
         else:
             plf.plot_fdc_calib(df_merged_copy3, plotfile, title)
 
@@ -186,46 +148,27 @@ def plot_calib_output(
         if calibration_object.save_plot_iter_flag:
             plotfile = os.path.join(
                 fig_path,
-                calibration_object.basinID
-                + "_streamflow_precip_iteration_"
-                + str("{:04d}").format(i)
-                + ".png",
+                calibration_object.basinID + "_streamflow_precip_iteration_" + str("{:04d}").format(i) + ".png",
             )
         else:
             plotfile = os.path.join(
                 fig_path,
                 calibration_object.basinID + "_streamflow_precip_iteration.png",
             )
-        title = (
-            "Streamflow and Total Precipitation at Iteration = "
-            + str(i)
-            + "\n"
-            + calibration_object.station_name
-        )
+        title = "Streamflow and Total Precipitation at Iteration = " + str(i) + "\n" + calibration_object.station_name
         df_merged_copy4 = copy.deepcopy(df_merged)
-        plf.plot_streamflow_precipitation(
-            df_merged_copy4, agent.df_precip, plotfile, title
-        )
+        plf.plot_streamflow_precipitation(df_merged_copy4, agent.df_precip, plotfile, title)
 
     if not single_exec:
         # Plot scatterplot between objective function and iteration
         if calibration_object.save_plot_iter_flag:
             plotfile = os.path.join(
                 fig_path,
-                calibration_object.basinID
-                + "_objfun_iteration_"
-                + str("{:04d}").format(i)
-                + ".png",
+                calibration_object.basinID + "_objfun_iteration_" + str("{:04d}").format(i) + ".png",
             )
         else:
-            plotfile = os.path.join(
-                fig_path, calibration_object.basinID + "_objfun_iteration.png"
-            )
-        title = (
-            "Scatterplot of Objective Function vs Iteration "
-            + "\n"
-            + calibration_object.station_name
-        )
+            plotfile = os.path.join(fig_path, calibration_object.basinID + "_objfun_iteration.png")
+        title = "Scatterplot of Objective Function vs Iteration " + "\n" + calibration_object.station_name
         plf.scatterplot_objfun(
             calibration_object.metric_iter_file,
             plotfile,
@@ -238,18 +181,11 @@ def plot_calib_output(
     if calibration_object.save_plot_iter_flag:
         plotfile = os.path.join(
             fig_path,
-            calibration_object.basinID
-            + "_metric_iteration_"
-            + str("{:04d}").format(i)
-            + ".png",
+            calibration_object.basinID + "_metric_iteration_" + str("{:04d}").format(i) + ".png",
         )
     else:
-        plotfile = os.path.join(
-            fig_path, calibration_object.basinID + "_metric_iteration.png"
-        )
-    title = (
-        "Scatterplot of Metrics vs Iteration " + "\n" + calibration_object.station_name
-    )
+        plotfile = os.path.join(fig_path, calibration_object.basinID + "_metric_iteration.png")
+    title = "Scatterplot of Metrics vs Iteration " + "\n" + calibration_object.station_name
     plf.scatterplot_var(
         calibration_object.metric_iter_file,
         plotfile,
@@ -262,20 +198,11 @@ def plot_calib_output(
         if calibration_object.save_plot_iter_flag:
             plotfile = os.path.join(
                 fig_path,
-                calibration_object.basinID
-                + "_metric_objfun_"
-                + str("{:04d}").format(i)
-                + ".png",
+                calibration_object.basinID + "_metric_objfun_" + str("{:04d}").format(i) + ".png",
             )
         else:
-            plotfile = os.path.join(
-                fig_path, calibration_object.basinID + "_metric_objfun.png"
-            )
-        title = (
-            "Scatterplot of Metrics vs Objectiv Function "
-            + "\n"
-            + calibration_object.station_name
-        )
+            plotfile = os.path.join(fig_path, calibration_object.basinID + "_metric_objfun.png")
+        title = "Scatterplot of Metrics vs Objectiv Function " + "\n" + calibration_object.station_name
         plf.scatterplot_objfun_metric(
             calibration_object.metric_iter_file,
             plotfile,
@@ -287,20 +214,11 @@ def plot_calib_output(
         if calibration_object.save_plot_iter_flag:
             plotfile = os.path.join(
                 fig_path,
-                calibration_object.basinID
-                + "_param_iteration_"
-                + str("{:04d}").format(i)
-                + ".png",
+                calibration_object.basinID + "_param_iteration_" + str("{:04d}").format(i) + ".png",
             )
         else:
-            plotfile = os.path.join(
-                fig_path, calibration_object.basinID + "_param_iteration.png"
-            )
-        title = (
-            "Scatterplot of Parameters vs Iteration "
-            + "\n"
-            + calibration_object.station_name
-        )
+            plotfile = os.path.join(fig_path, calibration_object.basinID + "_param_iteration.png")
+        title = "Scatterplot of Parameters vs Iteration " + "\n" + calibration_object.station_name
         plf.scatterplot_var(
             calibration_object.param_iter_file,
             plotfile,
@@ -353,9 +271,7 @@ def plot_valid_output(
     for run1 in runs:
         if run1 == "nwm_retro":
             continue
-        outfile = os.path.join(
-            agent.valid_path, calibration_object.basinID + "_output_" + run1 + ".csv"
-        )
+        outfile = os.path.join(agent.valid_path, calibration_object.basinID + "_output_" + run1 + ".csv")
         if not os.path.exists(outfile):
             logger.error(f"File does not exist: {outfile}")
         df1 = pd.read_csv(outfile)
@@ -366,9 +282,7 @@ def plot_valid_output(
         df0.append(df1)
 
     df_merged = reduce(
-        lambda left, right: pd.merge(
-            left, right, left_index=True, right_index=True, how="right"
-        ),
+        lambda left, right: pd.merge(left, right, left_index=True, right_index=True, how="right"),
         df0,
     )
     df_merged = df_merged.rename(columns={"obs_flow": "Observation"})
@@ -389,16 +303,10 @@ def plot_valid_output(
     else:
         # Plot hydrograph
         df_merged_copy1 = copy.deepcopy(df_merged)
-        logger.info(f"Hydrograph : {df_merged_copy1}")
+        # logger.info(f"Hydrograph : {df_merged_copy1}")
         fig_path = agent.valid_path_plot
-        plotfile = os.path.join(
-            fig_path, calibration_object.basinID + "_hydrograph_valid_run.png"
-        )
-        title = (
-            "Hydrograph during Calibration and Validation period"
-            + "\n"
-            + calibration_object.station_name
-        )
+        plotfile = os.path.join(fig_path, calibration_object.basinID + "_hydrograph_valid_run.png")
+        title = "Hydrograph during Calibration and Validation period" + "\n" + calibration_object.station_name
         plf.plot_streamflow(
             df_merged_copy1,
             plotfile,
@@ -411,29 +319,19 @@ def plot_valid_output(
 
         # Plot flow duration curve
         df_merged_copy2 = copy.deepcopy(df_merged)
-        df_merged_copy2 = mf.treat_values(
-            df_merged_copy2, remove_neg=True, remove_na=True, replace_zero=True
-        )
+        df_merged_copy2 = mf.treat_values(df_merged_copy2, remove_neg=True, remove_na=True, replace_zero=True)
         if len(df_merged_copy2) < 1:
-            logger.warning(
-                "Plot of Flow Duration Curve cannot be created due to lack of valid streamflow data"
-            )
+            logger.warning("Plot of Flow Duration Curve cannot be created due to lack of valid streamflow data")
         else:
-            plotfile = os.path.join(
-                fig_path, calibration_object.basinID + "_fdc_valid_run.png"
-            )
+            plotfile = os.path.join(fig_path, calibration_object.basinID + "_fdc_valid_run.png")
             title = (
-                "Flow Duration Curve during Calibration and Validation period"
-                + "\n"
-                + calibration_object.station_name
+                "Flow Duration Curve during Calibration and Validation period" + "\n" + calibration_object.station_name
             )
             plf.plot_fdc_valid(df_merged_copy2, plotfile, title, time_period)
 
         # Plot time series of streamflow and precipitation
         df_merged_copy3 = copy.deepcopy(df_merged)
-        plotfile = os.path.join(
-            fig_path, calibration_object.basinID + "_streamflow_precip_valid_run.png"
-        )
+        plotfile = os.path.join(fig_path, calibration_object.basinID + "_streamflow_precip_valid_run.png")
         title = (
             "Streamflow and Total Precipitation during Calibration and Validation Period "
             + "\n"
@@ -453,19 +351,11 @@ def plot_valid_output(
     # Plot metrics
     mdf = pd.DataFrame()
     for run1 in runs:
-        outfile = os.path.join(
-            agent.valid_path, calibration_object.basinID + "_metrics_" + run1 + ".csv"
-        )
+        outfile = os.path.join(agent.valid_path, calibration_object.basinID + "_metrics_" + run1 + ".csv")
         logger.info(f"Plot Metrics input file: {outfile}")
         mdf = pd.concat([mdf, pd.read_csv(outfile)], ignore_index=True)
-    plotfile = os.path.join(
-        fig_path, calibration_object.basinID + "_barplot_metrics_valid_run.png"
-    )
-    title = (
-        "Metrics from Different Simulation Time Periods"
-        + "\n"
-        + calibration_object.station_name
-    )
+    plotfile = os.path.join(fig_path, calibration_object.basinID + "_barplot_metrics_valid_run.png")
+    title = "Metrics from Different Simulation Time Periods" + "\n" + calibration_object.station_name
     plf.barplot_metric(mdf, plotfile, title)
 
 
@@ -492,18 +382,9 @@ def plot_cost_func(
 
     """
     if calib_iter:
-        plotfile = os.path.join(
-            agent.workdir, calibration_object.basinID + "_cost_iter.png"
-        )
+        plotfile = os.path.join(agent.workdir, calibration_object.basinID + "_cost_iter.png")
     else:
-        plotfile = os.path.join(
-            agent.workdir, calibration_object.basinID + "_cost_hist.png"
-        )
-    title = (
-        algorithm.upper()
-        + " Convergence Curve "
-        + "\n"
-        + calibration_object.station_name
-    )
+        plotfile = os.path.join(agent.workdir, calibration_object.basinID + "_cost_hist.png")
+    title = algorithm.upper() + " Convergence Curve " + "\n" + calibration_object.station_name
     # plf.plot_cost_hist(cost_hist_file, plotfile, title)
     plf.plot_cost_hist(cost_hist_file, plotfile, title, algorithm, calib_iter)

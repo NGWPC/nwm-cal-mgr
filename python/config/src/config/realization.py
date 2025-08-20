@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Mapping, Optional, Sequence
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 from .configurations import Forcing, Routing, Time
 from .formulation import Formulation
@@ -30,9 +30,9 @@ class NgenRealization(BaseModel):
 
     global_config: Realization = Field(alias="global")
     time: Time
-    routing: Optional[Routing]
+    routing: Optional[Routing] = None
     # FIXME have not tested catchments...
-    catchments: Optional[Mapping[str, CatchmentRealization]] = {}
+    catchments: Optional[Mapping[str, CatchmentRealization]] = Field(default_factory=dict)
 
     # FIXME https://github.com/samuelcolvin/pydantic/issues/2277
     # Until 1.10, it looks like nested encoder config doesn't apply
@@ -40,7 +40,11 @@ class NgenRealization(BaseModel):
     # will be serialized...
     class Config:
         validate_by_name = True
-        json_encoders = {datetime: lambda v: v.strftime("%Y-%m-%d %H:%M:%S")}
+
+        # json_encoders = {datetime: lambda v: v.strftime("%Y-%m-%d %H:%M:%S")}
+        @field_serializer("timestamp")
+        def serialize_dt(self, dt: datetime) -> str:
+            return dt.strftime("%Y-%m-%d %H:%M:%S")
 
     def resolve_paths(self):
         """resolve possible relative paths in configuration"""

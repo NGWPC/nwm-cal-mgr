@@ -8,11 +8,11 @@ from .bmi_formulation import BMIC
 class TopmodParams(BaseModel):
     """Class for validating Topmod Parameters"""
 
-    sr0: Optional[float]
-    srmax: Optional[float]
-    szm: Optional[float]
-    t0: Optional[float]
-    td: Optional[float]
+    sr0: Optional[float] = None
+    srmax: Optional[float] = None
+    szm: Optional[float] = None
+    t0: Optional[float] = None
+    td: Optional[float] = None
 
 
 class Topmod(BMIC):
