@@ -8,7 +8,7 @@ in your local workspace, respectively.
 
 ```bash
 cd [NWM_ROOT]
-git clone -b development --recurse-submodules https://gitlab.sh.nextgenwaterprediction.com/NGWPC/nwm-ngen/ngen-cal.git
+git clone -b development --recurse-submodules https://github.com/NGWPC/nwm-cal-mgr/tree/nwm-cal-mgr.git
 ```
 
 2. create python venv
@@ -22,13 +22,13 @@ pip install --upgrade pip
 3. install package **calib**
 
 ```bash
-cd [NWM_ROOT]/ngen-cal/python/calib
+cd [NWM_ROOT]/nwm-cal-mgr/python/calib
 pip install . #or use "pip install -e ." to install the package as an editable 
 ```
 4. install package **config**
 
 ```bash
-cd [NWM_ROOT]/ngen-cal/python/config
+cd [NWM_ROOT]/nwm-cal-mgr/python/config
 pip install . #or use "pip install -e ." to install the package as an editable 
 ```
 
@@ -37,12 +37,12 @@ pip install . #or use "pip install -e ." to install the package as an editable
 - clone mswm
 ```bash
 cd [NWM_ROOT]
-git clone -b development --recurse-submodules https://gitlab.sh.nextgenwaterprediction.com/NGWPC/nwm-ngen/mswm.git
+git clone -b development --recurse-submodules https://github.com/NGWPC/nwm-cal-mgr/tree/nwm-msw-mgr.git
 ```
 
 - install mswm
 ```bash
-cd [NWM_ROOT]/mswm
+cd [NWM_ROOT]/nwm-msw-mgr
 pip install .
 ```
 
@@ -50,14 +50,14 @@ pip install .
 
 1) set up input configuration (e.g., input.config)
 
-Refer to one of the sample input config files in [sample_input_config](sample_input_config) to 
+Refer to one of the sample input config files in [sample_input_config](https://github.com/NGWPC/nwm-cal-mgr/tree/nwm-cal-mgr/sample_input_config) to 
 set up your configuration for calibration/validation.
 
-2) run model setup workflow (nwm-msw-mgr) to produce iput files
+2) run model setup workflow (nwm-msw-mgr) to produce input files
 ```bash
 python -m mswm.manager build_default input.config
 ```
 3) run calibration
 ```bash
-python [NWM_ROOT]/ngen-cal/python/calibration.py [CALIB_CONFIG]
+python [NWM_ROOT]/nwm-cal-mgr/python/calibration.py [CALIB_CONFIG]
 ```
