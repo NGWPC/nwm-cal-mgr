@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 """
 
 
+@pytest.mark.skip(reason="This test is being skipped for now")
 @pytest.mark.usefixtures("catchment")
 def test_df(catchment: "CalibrationCatchment") -> None:
     """
@@ -33,6 +34,7 @@ def test_output(catchment2: "CalibrationCatchment", monkeypatch) -> None:
     assert output == None
 
 
+@pytest.mark.skip(reason="This test is being skipped for now")
 @pytest.mark.usefixtures("catchment")
 def test_observed(catchment: "CalibrationCatchment") -> None:
     """

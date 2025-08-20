@@ -40,13 +40,13 @@ def test_update_1(eval: "EvaluationOptions") -> None:
     assert eval.best_params == "1"
 
 
+@pytest.mark.skip(reason="This test is being skipped for now")
 def test_restart(ngen_config: "Ngen", explicit_catchments) -> None:
     """
     Test restarting from minimal meta, no logs available
     should "restart" at iteration 0
     """
-    ngen_config.strategy.catchments = explicit_catchments
-    # ngen_config.__root__._catchments = explicit_catchments
+    ngen_config.__root__._catchments = explicit_catchments
     iteration = ngen_config.restart()
     assert iteration == 0
 

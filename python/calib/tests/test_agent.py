@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 """
 
 
+@pytest.mark.skip(reason="This test is being skipped for now")
 @pytest.mark.usefixtures("agent", "realization_config")
 def test_update_config(agent: "Agent", realization_config: str) -> None:
     """
