@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.4
 
 ARG IMAGE_TAG=latest
- FROM registry.sh.nextgenwaterprediction.com/ngwpc/nwm-ngen/ngen:${IMAGE_TAG}
+FROM ghcr.io/ngwpc/ngen:${IMAGE_TAG}
 # Uncomment when building ngen locally
 #FROM ngen
 
