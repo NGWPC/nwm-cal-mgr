@@ -10,8 +10,8 @@ class UebParams(BaseModel):
 
     # define params which can be adjusted here
     # see cfe.py for example
-    tr: Optional[float]
-    ts: Optional[float]
+    tr: Optional[float] = None
+    ts: Optional[float] = None
     pass
 
 

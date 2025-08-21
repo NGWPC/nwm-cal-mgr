@@ -10,10 +10,10 @@ class SACParams(BaseModel):
 
     # define params which can be adjusted here
     # see cfe.py for example
-    uztwm: Optional[float]
-    uzfwm: Optional[float]
-    lzpk: Optional[float]
-    rexp: Optional[float]
+    uztwm: Optional[float] = None
+    uzfwm: Optional[float] = None
+    lzpk: Optional[float] = None
+    rexp: Optional[float] = None
 
 
 class SAC(BMIFortran):

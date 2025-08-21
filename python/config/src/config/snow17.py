@@ -10,11 +10,11 @@ class Snow17Params(BaseModel):
 
     # define params which can be adjusted here
     # see cfe.py for example4
-    mfmin: Optional[float]
-    mfmax: Optional[float]
-    udaj: Optional[float]
-    pxtemp: Optional[float]
-    timp: Optional[float]
+    mfmin: Optional[float] = None
+    mfmax: Optional[float] = None
+    udaj: Optional[float] = None
+    pxtemp: Optional[float] = None
+    timp: Optional[float] = None
 
 
 class Snow17(BMIFortran):

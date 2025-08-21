@@ -8,12 +8,12 @@ from .bmi_formulation import BMIC
 class CFEParams(BaseModel):
     """Class for validating CFE Parameters"""
 
-    maxsmc: Optional[float]
-    satdk: Optional[float]
-    slope: Optional[float]
-    bb: Optional[float]
-    multiplier: Optional[float]
-    expon: Optional[float]
+    maxsmc: Optional[float] = None
+    satdk: Optional[float] = None
+    slope: Optional[float] = None
+    bb: Optional[float] = None
+    multiplier: Optional[float] = None
+    expon: Optional[float] = None
 
 
 class CFE(BMIC):
