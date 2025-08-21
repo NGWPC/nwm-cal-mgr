@@ -1,9 +1,15 @@
 # syntax=docker/dockerfile:1.4
 
 ARG IMAGE_TAG=latest
-FROM registry.sh.nextgenwaterprediction.com/ngwpc/nwm-ngen/ngen:${IMAGE_TAG}
+ FROM registry.sh.nextgenwaterprediction.com/ngwpc/nwm-ngen/ngen:${IMAGE_TAG}
 # Uncomment when building ngen locally
-# FROM ngen
+#FROM ngen
+
+
+RUN --mount=type=secret,id=GITLAB_TOKEN \
+    set -eux; \
+    git config --global url."https://oauth2:$(cat /run/secrets/GITLAB_TOKEN)@gitlab.sh.nextgenwaterprediction.com/".insteadOf "https://gitlab.sh.nextgenwaterprediction.com/"
+
 
 COPY . /ngen-app/ngen-cal/
 
