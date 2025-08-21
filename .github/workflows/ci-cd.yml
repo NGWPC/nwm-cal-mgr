@@ -87,7 +87,7 @@ jobs:
       - name: Run unit tests
         run: |
           echo "Running Unit Tests..."
-          cd /ngen-app/ngen-cal
+          cd /ngen-app/nwm-cal-mgr
           echo "Current Git commit hash:"
           git rev-parse HEAD  # Shows the current commit hash being used
           echo "Last commit log:"

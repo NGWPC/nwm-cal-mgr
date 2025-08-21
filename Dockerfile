@@ -5,20 +5,14 @@ ARG IMAGE_TAG=latest
 # Uncomment when building ngen locally
 #FROM ngen
 
+COPY . /ngen-app/nwm-cal-mgr/
 
-RUN --mount=type=secret,id=GITLAB_TOKEN \
-    set -eux; \
-    git config --global url."https://oauth2:$(cat /run/secrets/GITLAB_TOKEN)@gitlab.sh.nextgenwaterprediction.com/".insteadOf "https://gitlab.sh.nextgenwaterprediction.com/"
-
-
-COPY . /ngen-app/ngen-cal/
-
-COPY ./docker/run-ngen-cal.sh /ngen-app/bin/
+COPY ./docker/run-nwm-cal-mgr.sh /ngen-app/bin/
 
 WORKDIR /ngen-app/
 
 RUN set -eux; \
-    chmod +x /ngen-app/bin/run-ngen-cal.sh
+    chmod +x /ngen-app/bin/run-nwm-cal-mgr.sh
 
 # Install numpy, netcdf4, hydrotools events, and nwis-client
 RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
@@ -28,18 +22,18 @@ RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
 
 #COPY requirements.txt .
 #RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
-#    pip3 install -r ngen-cal/requirements.txt && \
-#    rm ngen-cal/requirements.txt
+#    pip3 install -r nwm-cal-mgr/requirements.txt && \
+#    rm nwm-cal-mgr/requirements.txt
 
 WORKDIR /ngen-app/
 RUN set -eux; \
     # Install dependencies for createInput module
-    cd /ngen-app/ngen-cal/python/calib && \
+    cd /ngen-app/nwm-cal-mgr/python/calib && \
 #    touch src/*.py && \
     pip3 install . ; \
     \
     # Install dependencies for runCalibValid module
-    cd /ngen-app//ngen-cal/python/config && \
+    cd /ngen-app/nwm-cal-mgr/python/config && \
 #    touch src/ngen/cal/*.py && \
     pip3 install . ; \
     \
@@ -47,7 +41,7 @@ RUN set -eux; \
     pip3 cache purge && \
     rm --force /root/.gitconfig ;
 
-WORKDIR /ngen-app/ngen-cal
+WORKDIR /ngen-app/nwm-cal-mgr
 
 ARG CI_COMMIT_REF_NAME
 
@@ -74,4 +68,4 @@ RUN set -eux; \
 
 WORKDIR /
 
-ENTRYPOINT [ "/ngen-app/bin/run-ngen-cal.sh" ] 
+ENTRYPOINT [ "/ngen-app/bin/run-nwm-cal-mgr.sh" ]

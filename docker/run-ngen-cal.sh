@@ -3,14 +3,14 @@
 # Define valid commands
 VALID_COMMANDS=("calibration" "validation" "validation_iteration" "create_input")
 
-# This shell script lives in the ngen-cal repo.  It is used by CerfServer when calling ngen-cal
+# This shell script lives in the nwm-cal-mgr repo.  It is used by CerfServer when calling nwm-cal-mgr
 
 # It is used by CerfServer directly when running in LOCAL mode.
-# It is used by the ngen-cal docker container when the server is running in DOCKER or PARALLEL_WORKS mode.
+# It is used by the nwm-cal-mgr docker container when the server is running in DOCKER or PARALLEL_WORKS mode.
 
-CALIB_SCRIPT=/ngen-app/ngen-cal/python/calibration.py
-VALID_SCRIPT=/ngen-app/ngen-cal/python/validation.py
-VALID_ITERATION_SCRIPT=/ngen-app/ngen-cal/python/validation_iteration.py
+CALIB_SCRIPT=/ngen-app/nwm-cal-mgr/python/calibration.py
+VALID_SCRIPT=/ngen-app/nwm-cal-mgr/python/validation.py
+VALID_ITERATION_SCRIPT=/ngen-app/nwm-cal-mgr/python/validation_iteration.py
 
 # I think we can get rid of this one
 CREATE_INPUT_SCRIPT=/ngen-app/ngen-python/lib/python3.10/site-packages/createInput/create_input.py

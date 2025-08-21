@@ -100,6 +100,6 @@ def print_git_info_all():
     """
     Convenience function to print Git information from multiple JSON files.
     """
-    print_git_info("/ngen-app/ngen-cal_git_info.json")
+    print_git_info("/ngen-app/nwm-cal-mgr_git_info.json")
     print_git_info("/ngen-app/ngen_git_info.json")
     logger.info(" ")
