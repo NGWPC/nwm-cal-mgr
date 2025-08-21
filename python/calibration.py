@@ -13,10 +13,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
+
+from calib import General
 from calib.agent import Agent
-from calib.configuration import General, NoCalibModel
+from calib.configuration import NoCalibModel
 from calib.git_util import print_git_info_all
-from calib.search import dds, dds_set, gwo_search, pso_search, single_exec
+from calib.search import dds_set, pso_search, gwo_search, single_exec
 from calib.strategy import Algorithm
 
 LOG = logging.getLogger(__name__)
