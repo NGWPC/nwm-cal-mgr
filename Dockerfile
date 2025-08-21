@@ -5,10 +5,6 @@ FROM registry.sh.nextgenwaterprediction.com/ngwpc/nwm-ngen/ngen:${IMAGE_TAG}
 # Uncomment when building ngen locally
 # FROM ngen
 
-RUN --mount=type=secret,id=GITLAB_TOKEN \
-    set -eux; \
-    git config --global url."https://oauth2:$(cat /run/secrets/GITLAB_TOKEN)@gitlab.sh.nextgenwaterprediction.com/".insteadOf "https://gitlab.sh.nextgenwaterprediction.com/"
-
 COPY . /ngen-app/ngen-cal/
 
 COPY ./docker/run-ngen-cal.sh /ngen-app/bin/
@@ -20,29 +16,25 @@ RUN set -eux; \
 
 # Install numpy, netcdf4, hydrotools events, and nwis-client
 RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
+    pip3 install --upgrade pip && \
     pip3 install "numpy==1.26.4" "netcdf4<=1.6.3" && \
     pip3 install "hydrotools.events==1.1.5" "hydrotools.nwis-client==3.3.1"
 
-COPY requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
-    pip3 install -r ngen-cal/requirements.txt && \
-    rm ngen-cal/requirements.txt
+#COPY requirements.txt .
+#RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
+#    pip3 install -r ngen-cal/requirements.txt && \
+#    rm ngen-cal/requirements.txt
 
 WORKDIR /ngen-app/
 RUN set -eux; \
     # Install dependencies for createInput module
-    cd ngen-cal/python/createInput && \
-    touch src/*.py && \
+    cd /ngen-app/ngen-cal/python/calib && \
+#    touch src/*.py && \
     pip3 install . ; \
     \
     # Install dependencies for runCalibValid module
-    cd ../runCalibValid/ngen_cal && \
-    touch src/ngen/cal/*.py && \
-    pip3 install . ; \
-    \
-    # Install dependencies for ngen_conf module
-    cd ../ngen_conf && \
-    touch src/ngen/config/*.py && \
+    cd /ngen-app//ngen-cal/python/config && \
+#    touch src/ngen/cal/*.py && \
     pip3 install . ; \
     \
     # Clean up pip cache and remove .gitconfig

@@ -8,9 +8,11 @@ VALID_COMMANDS=("calibration" "validation" "validation_iteration" "create_input"
 # It is used by CerfServer directly when running in LOCAL mode.
 # It is used by the ngen-cal docker container when the server is running in DOCKER or PARALLEL_WORKS mode.
 
-CALIB_SCRIPT=/ngen-app/ngen-cal/python/runCalibValid/calibration.py
-VALID_SCRIPT=/ngen-app/ngen-cal/python/runCalibValid/validation.py
-VALID_ITERATION_SCRIPT=/ngen-app/ngen-cal/python/runCalibValid/validation_iteration.py
+CALIB_SCRIPT=/ngen-app/ngen-cal/python/calibration.py
+VALID_SCRIPT=/ngen-app/ngen-cal/python/validation.py
+VALID_ITERATION_SCRIPT=/ngen-app/ngen-cal/python/validation_iteration.py
+
+# I think we can get rid of this one
 CREATE_INPUT_SCRIPT=/ngen-app/ngen-python/lib/python3.10/site-packages/createInput/create_input.py
 
 # Set the umask so files and directories are created with 777 permissions
