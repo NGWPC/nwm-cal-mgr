@@ -4,11 +4,11 @@ Instructions on how to install, configure, and run calibration/validation are gi
 where [VENV_ROOT] and [NWM_ROOT] refer to the directory to install python venv and nwm-cal-mgr
 in your local workspace, respectively.
 
-1. clone nwm-cal-mgr from Gitlab
+1. clone nwm-cal-mgr from Github
 
 ```bash
 cd [NWM_ROOT]
-git clone -b development --recurse-submodules https://github.com/NGWPC/nwm-cal-mgr/tree/nwm-cal-mgr.git
+git clone -b development --recurse-submodules https://github.com/NGWPC/nwm-cal-mgr.git
 ```
 
 2. create python venv
@@ -37,7 +37,7 @@ pip install . #or use "pip install -e ." to install the package as an editable
 - clone mswm
 ```bash
 cd [NWM_ROOT]
-git clone -b development --recurse-submodules https://github.com/NGWPC/nwm-cal-mgr/tree/nwm-msw-mgr.git
+git clone -b development --recurse-submodules https://github.com/NGWPC/nwm-msw-mgr.git
 ```
 
 - install mswm
@@ -60,4 +60,17 @@ python -m mswm.manager build_default input.config
 3) run calibration
 ```bash
 python [NWM_ROOT]/nwm-cal-mgr/python/calibration.py [CALIB_CONFIG]
+```
+4) run validation
+```bash
+python [NWM_ROOT]/nwm-cal-mgr/python/validation.py [VALID_CONTROL_CONFIG]
+python [NWM_ROOT]/nwm-cal-mgr/python/validation.py [VALID_BEST_CONFIG]
+```
+[VALID_CONTROL_CONFIG] and [VALID_BEST_CONFIG] are the config files for validation runs with the control/default
+parameters and the best parameters, repectivly. These config files are produced at the end of calibration progress 
+(see the log file for paths to these files).
+
+5) run validation for an alternative iteration
+```bash
+python [NWM_ROOT]/nwm-cal-mgr/python/validation_iteration.py [CALIB_COFIG] [woker ID] [iteration number]
 ```
