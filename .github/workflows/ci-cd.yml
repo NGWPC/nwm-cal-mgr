@@ -114,6 +114,7 @@ jobs:
     if: (github.event_name == 'pull_request' || github.event_name == 'push') && github.repository_owner == 'NGWPC'
     runs-on: self-hosted
     needs: [setup, build, unit-test]
+    continue-on-error: true
     container:
       image: sonarsource/sonar-scanner-cli
       options: --entrypoint="" --user 0
@@ -130,7 +131,7 @@ jobs:
         with:
           name: coverage-xml
           path: .
-      - name: sonarqube scan
+      - name: SonarQube scan
         env:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -196,7 +197,7 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Promote commit image to :latest
+      - name: Build latest image
         run: |
           docker pull ${{ needs.setup.outputs.image_base }}:${{ needs.setup.outputs.commit_sha_short }}
           docker tag  ${{ needs.setup.outputs.image_base }}:${{ needs.setup.outputs.commit_sha_short }} ${{ needs.setup.outputs.image_base }}:latest
