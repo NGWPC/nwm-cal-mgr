@@ -2,7 +2,7 @@
 
 ARG IMAGE_TAG=latest
 # TODO: once ngen images are being built properly with latest tag, revert back
-FROM ghcr.io/ngwpc/ngen:github-ci-kevin
+FROM ghcr.io/ngwpc/ngen:pr-8-build
 # Uncomment when building ngen locally
 #FROM ngen
 
