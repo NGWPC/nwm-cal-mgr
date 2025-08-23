@@ -27,11 +27,11 @@ ngen_cerf = false
 
 auth_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzI3MzgwNDg4LCJpYXQiOjE3MjcyOTQwODgsImp0aSI6IjI3NzY2NDk5YWFkZjQ4Y2NiNDk5YTU4NWJkZDJkZGRkIiwidXNlcl9pZCI6Miwic2NvcGUiOiJuZ2VuIn0.6bM9O3lyGjDxZ7B2suDP-Kq56cQZ_8ZnYKxjxsJqFMg
 
-# Stream gage ID at basin outlet 
+# Stream gage ID at basin outlet
 
 basin = 01123000
 
-# List of models to include in the formulation 
+# List of models to include in the formulation
 
 # Note: t-route will be added if not selected; sloth will be added if cfe-s/cfe-x or lasam is selected.
 
@@ -56,7 +56,7 @@ formulation = lstm
 
 run_type = calib
 
-# Main directory to store input, output and other files  
+# Main directory to store input, output and other files
 
 main_dir = /home/mohammed.karim/Calibration/run
 
@@ -78,9 +78,9 @@ c2 = 2
 
 w = 0.7
 
-# Objective function (options: kge,nse,nnse,nselog,corr,csi,pod,rmse,mae,rsr,far,pkbias,pkte,evbias,pbias,lseg_fdc,hseg_fdc)   
+# Objective function (options: kge,nse,nnse,nselog,corr,csi,pod,rmse,mae,rsr,far,pkbias,pkte,evbias,pbias,lseg_fdc,hseg_fdc)
 
-objective_function = kge 
+objective_function = kge
 
 # Starting iteration number
 
@@ -148,17 +148,17 @@ streamflow_threshold = 3.88
 
 station_name = "Little River Near Hanover, CT"
 
-# Email address to receive the notification of run completion (optional) 
+# Email address to receive the notification of run completion (optional)
 
-user_email = 
+user_email =
 
 [DataFile]
 
-# Diretory for forcing data 
+# Diretory for forcing data
 
 forcing_dir = /home/mohammed.karim/Calibration/ngen/data/lstm/forcing/HUC01-test/
 
-# Diretory for streamflow observation  
+# Diretory for streamflow observation
 
 obs_dir = /home/mohammed.karim/work/data/streamflow_obs/
 
@@ -166,11 +166,11 @@ obs_dir = /home/mohammed.karim/work/data/streamflow_obs/
 
 nwmretro_file = /home/mohammed.karim/work/data/nwmv3_retro_streamflow/csv/CONUS/01123000_1979_2022.csv
 
-# Diretory for hydrofabric data   
+# Diretory for hydrofabric data
 
 hydrofab_file = /home/mohammed.karim/Calibration/ngen/data/geopackages/v2.2/gauge_01123000.gpkg
 
-# Diretories for module BMI files (currently only applicable to Topmodel)  
+# Diretories for module BMI files (currently only applicable to Topmodel)
 
 topmd_dir = /home/mohammed.karim/work/data/bmi_config/Topmodel
 
@@ -196,25 +196,25 @@ attributes_file = /home/mohammed.karim/work/data/conus_model_attributes.parquet
 
 calib_parameter_file = /home/mohammed.karim/Calibration/run/work/data/calib_params_comma_delimited
 #calib_parameter_file = /home/mohammed.karim/work/data/calib_params_lasam.txt
-# Diretories for module BMI config files (if commented out/blank, ngen-cal will create these files)
+# Diretories for module BMI config files (if commented out/blank, nwm-cal-mgr will create these files)
 topoflow_bmi_dir =
 noah-owp-modular_bmi_dir =
 #noah-owp-modular_bmi_dir =/home/mohammed.karim/s3/ngwpc-hydrofabric/2.2/CONUS/01123000/PARAMS/USGS/Noah-OWP-Modular/2024_Dec_17_03_07_50
 snow-17_bmi_dir =
-ueb_bmi_dir = 
+ueb_bmi_dir =
 pet_bmi_dir =
-smp_bmi_dir = 
-sft_bmi_dir = 
+smp_bmi_dir =
+sft_bmi_dir =
 #smp_bmi_dir = /home/mohammed.karim/s3/ngwpc-hydrofabric/2.2/CONUS/01123000/PARAMS/USGS/SMP/2024_Dec_17_20_18_42
 #sft_bmi_dir = /home/mohammed.karim/s3/ngwpc-hydrofabric/2.2/CONUS/01123000/PARAMS/USGS/SFT/2024_Dec_18_16_24_04
-cfe-s_bmi_dir = /home/mohammed.karim/s3/ngwpc-hydrofabric/2.2/CONUS/01123000/PARAMS/USGS/CFE-S/2025_Jan_21_22_00_09 
+cfe-s_bmi_dir = /home/mohammed.karim/s3/ngwpc-hydrofabric/2.2/CONUS/01123000/PARAMS/USGS/CFE-S/2025_Jan_21_22_00_09
 #/home/mohammed.karim/Calibration/ngen/data/bmi/c/cfe
-cfe-x_bmi_dir = 
+cfe-x_bmi_dir =
 topmodel_bmi_dir = /home/mohammed.karim/work/data/bmi_config/Topmodel
 sac-sma_bmi_dir =
 lasam_bmi_dir =
 t-route_bmi_dir =
-lstm_bmi_dir = /home/mohammed.karim/Calibration/run/work/lstm_bmi_data 
+lstm_bmi_dir = /home/mohammed.karim/Calibration/run/work/lstm_bmi_data
 
 # Executable file for running ngen BMI
 
