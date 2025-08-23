@@ -67,7 +67,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & push image
+      - name: Build & push image (with NGEN_IMAGE_TAG)
+        if: env.NGEN_IMAGE_TAG != ''
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -75,6 +76,15 @@ jobs:
           tags: ${{ needs.setup.outputs.image_base }}:${{ needs.setup.outputs.test_image_tag }}
           build-args: |
             NGEN_IMAGE_TAG=${{ env.NGEN_IMAGE_TAG }}
+
+      - name: Build & push image (no build-args)
+        if: env.NGEN_IMAGE_TAG == ''
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ needs.setup.outputs.image_base }}:${{ needs.setup.outputs.test_image_tag }}
+
 
   unit-test:
     name: unit-test
