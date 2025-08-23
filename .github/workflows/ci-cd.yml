@@ -74,7 +74,7 @@ jobs:
           push: true
           tags: ${{ needs.setup.outputs.image_base }}:${{ needs.setup.outputs.test_image_tag }}
           build-args: |
-            IMAGE_TAG=${{ needs.setup.outputs.test_image_tag }}
+            NGEN_IMAGE_TAG=${{ env.NGEN_IMAGE_TAG || 'latest' }}
 
   unit-test:
     name: unit-test
