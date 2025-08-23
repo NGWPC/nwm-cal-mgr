@@ -1,8 +1,7 @@
 # syntax=docker/dockerfile:1.4
 
 ARG IMAGE_TAG=latest
-# TODO: once ngen images are being built properly with latest tag, revert back
-FROM ghcr.io/ngwpc/ngen:pr-8-build
+FROM ghcr.io/ngwpc/ngen:${IMAGE_TAG}
 # Uncomment when building ngen locally
 #FROM ngen
 
