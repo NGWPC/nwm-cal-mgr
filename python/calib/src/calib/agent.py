@@ -181,8 +181,8 @@ class Agent(BaseAgent):
 
     def create_valid_cmd(self, valid_config_file) -> str:
         """Build command for validation run."""
-        arg1 = self.model.__root__.catchments.resolve()
-        arg2 = self.model.__root__.nexus.resolve()
+        arg1 = self.model.catchments.resolve()
+        arg2 = self.model.nexus.resolve()
         valid_args = '{} "all" {} "all" {}'.format(arg1, arg2, valid_config_file)
 
         return "{} {}".format(self.model.get_binary(), valid_args)
@@ -256,11 +256,11 @@ class Agent(BaseAgent):
         # serialize a copy of the model
         # FIXME ??? if you do self.model.resolve_paths() here, the duplicated agent
         # doesn't have fully qualified paths...but if you do it in constructor, it works fine...
-        data = self.model.__root__.copy(deep=True)
+        data = self.model.model_copy(deep=True)
         # return a new agent, which has a unique Model instance
         # and its own Job/workspace
         return Agent(
-            data.dict(by_alias=True),
+            data.model_dump(by_alias=True),
             self._workdir,
             self._general,
             log=False,
