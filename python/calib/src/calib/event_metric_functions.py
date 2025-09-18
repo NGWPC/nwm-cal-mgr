@@ -131,23 +131,31 @@ def separate_compound_events(events: pd.DataFrame, data: pd.Series) -> pd.DataFr
         # end times of new events
         end_times = [t1 - dt.timedelta(hours=1) for t1 in start_times[1:]] + [e1.end]
 
+        # make sure end_time is greater than start_time for every event
+        start_times1 = []
+        end_times1 = []
+        for s, e in zip(start_times, end_times):
+            if s < e:
+                start_times1 = start_times1 + [s]
+                end_times1 = end_times1 + [e]
+
         # recompute peak times based on start and end times identified
         peak_times = [
-            data1["value"].loc[start_times[i1] : end_times[i1]].idxmax()
-            for i1 in range(len(start_times))
+            data1["value"].loc[start_times1[i1] : end_times1[i1]].idxmax()
+            for i1 in range(len(start_times1))
         ]
 
         # recompute peak values
         peak_values = [
-            data1["value"].loc[start_times[i1] : end_times[i1]].max()
-            for i1 in range(len(start_times))
+            data1["value"].loc[start_times1[i1] : end_times1[i1]].max()
+            for i1 in range(len(start_times1))
         ]
 
         # new events from the decomposition
         df_event = pd.DataFrame(
             {
-                "start": start_times,
-                "end": end_times,
+                "start": start_times1,
+                "end": end_times1,
                 "peak": peak_times,
                 "peak_value": peak_values,
             }
