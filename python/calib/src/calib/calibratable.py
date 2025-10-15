@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, List, Optional
 import pandas as pd
 from pandas import Series, read_parquet  # type: ignore
 
+from mswm.edit_config import create_valid_realization_file, create_valid_config_file
+
 if TYPE_CHECKING:
     from datetime import datetime
     from pathlib import Path
@@ -357,7 +359,7 @@ class Evaluatable(ABC):
         self, agent: "Agent", params: "pd.DataFrame", valid_run_name: str
     ) -> None:
         """Create configuration files for validation run"""
-        return self.eval_params.create_valid_realization_file(
+        return create_valid_realization_file(
             agent, params, valid_run_name
         )
 

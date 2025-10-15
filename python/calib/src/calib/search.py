@@ -22,6 +22,8 @@ from .metric_functions import calculate_all_metrics, treat_values
 from .plot_output import plot_calib_output, plot_cost_func
 from .utils import complete_msg, pushd, report_to_ngencerf
 
+from mswm.edit_config import create_valid_realization_file
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -439,8 +441,8 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
             calibration_set.check_point(agent.job.workdir)
 
         for calibration_object in calibration_set.adjustables:
-            calibration_object.create_valid_realization_file(agent, calibration_object.adf, "valid_control")
-            calibration_object.create_valid_realization_file(agent, calibration_object.adf, "valid_best")
+            create_valid_realization_file(agent, calibration_object.eval_params, calibration_object.adf, "valid_control")
+            create_valid_realization_file(agent, calibration_object.eval_params, calibration_object.adf, "valid_best")
             calibration_object.write_run_complete_file(agent.run_name, agent.workdir)
             complete_msg(
                 calibration_object.basinID,
@@ -597,8 +599,8 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
         calibration_object.df[str(iterations)] = calibration_object.df["global_best"]
         calibration_object.df_fill(iterations)
         calibration_object.adf["global_best"] = calibration_object.adf[str(iterations)]
-        calibration_object.create_valid_realization_file(agent, calibration_object.adf, "valid_control")
-        calibration_object.create_valid_realization_file(agent, calibration_object.adf, "valid_best")
+        create_valid_realization_file(agent, calibration_object.eval_params, calibration_object.adf, "valid_control")
+        create_valid_realization_file(agent, calibration_object.eval_params, calibration_object.adf, "valid_best")
 
         # Indicate completion
         calibration_object.write_run_complete_file(agent.run_name, agent.workdir)
@@ -685,8 +687,8 @@ def gwo_search(start_iteration: int, iterations: int, agent) -> None:
         calibration_object.df[str(iterations)] = calibration_object.df["global_best"]
         calibration_object.df_fill(iterations)
         calibration_object.adf["global_best"] = calibration_object.adf[str(iterations)]
-        calibration_object.create_valid_realization_file(agent, calibration_object.adf, "valid_control")
-        calibration_object.create_valid_realization_file(agent, calibration_object.adf, "valid_best")
+        create_valid_realization_file(agent, calibration_object.eval_params, calibration_object.adf, "valid_control")
+        create_valid_realization_file(agent, calibration_object.eval_params, calibration_object.adf, "valid_best")
 
         # Indicate completion
         calibration_object.write_run_complete_file(agent.run_name, agent.workdir)
