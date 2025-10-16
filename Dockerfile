@@ -3,7 +3,7 @@
 ARG NGEN_IMAGE_TAG=latest
 FROM ghcr.io/ngwpc/ngen:${NGEN_IMAGE_TAG}
 # Uncomment when building ngen locally
-#FROM ngen
+#
 
 COPY . /ngen-app/nwm-cal-mgr/
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Any
 
 from pydantic import BaseModel, ConfigDict, DirectoryPath, Field, FilePath, conint, field_serializer
 
@@ -18,17 +18,22 @@ class Forcing(BaseModel):
 
         CSV = "CsvPerFeature"
         NetCDF = "NetCDF"
+        Lumped = "ForcingsEngineLumpedDataProvider"
 
     # required
-    file_pattern: Optional[Union[FilePath, str]]
+    file_pattern: Optional[Union[FilePath, str]] = None
     path: Union[DirectoryPath, FilePath]
-    # reasonable? default
     provider: Provider = Field(Provider.CSV)
+    params: Optional[Dict[str, Any]] = None
 
     def resolve_paths(self):
         if isinstance(self.file_pattern, Path):
             self.file_pattern = self.file_pattern.resolve()
         self.path = self.path.resolve()
+        if self.params:
+            for k, v in self.params.items():
+                if isinstance(v, str) and Path(v).exists():
+                    self.params[k] = Path(v).resolve()
 
 
 class Time(BaseModel):
