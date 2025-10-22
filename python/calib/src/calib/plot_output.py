@@ -144,20 +144,20 @@ def plot_calib_output(
         else:
             plf.plot_fdc_calib(df_merged_copy3, plotfile, title)
 
-        # Plot time series of streamflow and precipitation
-        if calibration_object.save_plot_iter_flag:
-            plotfile = os.path.join(
-                fig_path,
-                calibration_object.basinID + "_streamflow_precip_iteration_" + str("{:04d}").format(i) + ".png",
-            )
-        else:
-            plotfile = os.path.join(
-                fig_path,
-                calibration_object.basinID + "_streamflow_precip_iteration.png",
-            )
-        title = "Streamflow and Total Precipitation at Iteration = " + str(i) + "\n" + calibration_object.station_name
-        df_merged_copy4 = copy.deepcopy(df_merged)
-        plf.plot_streamflow_precipitation(df_merged_copy4, agent.df_precip, plotfile, title)
+        # # Plot time series of streamflow and precipitation
+        # if calibration_object.save_plot_iter_flag:
+        #     plotfile = os.path.join(
+        #         fig_path,
+        #         calibration_object.basinID + "_streamflow_precip_iteration_" + str("{:04d}").format(i) + ".png",
+        #     )
+        # else:
+        #     plotfile = os.path.join(
+        #         fig_path,
+        #         calibration_object.basinID + "_streamflow_precip_iteration.png",
+        #     )
+        # title = "Streamflow and Total Precipitation at Iteration = " + str(i) + "\n" + calibration_object.station_name
+        # df_merged_copy4 = copy.deepcopy(df_merged)
+        # plf.plot_streamflow_precipitation(df_merged_copy4, agent.df_precip, plotfile, title)
 
     if not single_exec:
         # Plot scatterplot between objective function and iteration
@@ -329,24 +329,24 @@ def plot_valid_output(
             )
             plf.plot_fdc_valid(df_merged_copy2, plotfile, title, time_period)
 
-        # Plot time series of streamflow and precipitation
-        df_merged_copy3 = copy.deepcopy(df_merged)
-        plotfile = os.path.join(fig_path, calibration_object.basinID + "_streamflow_precip_valid_run.png")
-        title = (
-            "Streamflow and Total Precipitation during Calibration and Validation Period "
-            + "\n"
-            + calibration_object.station_name
-        )
-        plf.plot_streamflow_precipitation(
-            df_merged_copy3,
-            agent.df_precip,
-            plotfile,
-            title,
-            calibration_object.evaluation_range[0],
-            calibration_object.evaluation_range[1],
-            calibration_object.valid_evaluation_range[0],
-            calibration_object.valid_evaluation_range[1],
-        )
+        # # Plot time series of streamflow and precipitation
+        # df_merged_copy3 = copy.deepcopy(df_merged)
+        # plotfile = os.path.join(fig_path, calibration_object.basinID + "_streamflow_precip_valid_run.png")
+        # title = (
+        #     "Streamflow and Total Precipitation during Calibration and Validation Period "
+        #     + "\n"
+        #     + calibration_object.station_name
+        # )
+        # plf.plot_streamflow_precipitation(
+        #     df_merged_copy3,
+        #     agent.df_precip,
+        #     plotfile,
+        #     title,
+        #     calibration_object.evaluation_range[0],
+        #     calibration_object.evaluation_range[1],
+        #     calibration_object.valid_evaluation_range[0],
+        #     calibration_object.valid_evaluation_range[1],
+        # )
 
     # Plot metrics
     mdf = pd.DataFrame()
