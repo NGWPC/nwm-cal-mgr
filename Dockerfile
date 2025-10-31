@@ -3,7 +3,7 @@
 ARG NGEN_IMAGE_TAG=latest
 FROM ghcr.io/ngwpc/ngen:${NGEN_IMAGE_TAG}
 # Uncomment when building ngen locally
-#FROM mswm
+#FROM ngen
 
 COPY . /ngen-app/nwm-cal-mgr/
 
@@ -31,6 +31,9 @@ RUN set -eux; \
     cd /ngen-app/nwm-cal-mgr/python/calib && \
 #    touch src/*.py && \
     pip3 install . ; \
+    \
+    # Install mswm package
+    pip3 install mswm@git+https://github.com/NGWPC/nwm-msw-mgr.git@jwade_NGWPC-8667_historical_bmi_forcing ; \
     \
     # Install dependencies for runCalibValid module
     cd /ngen-app/nwm-cal-mgr/python/config && \
