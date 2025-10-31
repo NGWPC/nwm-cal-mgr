@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, List, Optional
 import pandas as pd
 from pandas import Series, read_parquet  # type: ignore
 
-from mswm.edit_config import create_valid_realization_file, create_valid_config_file
+from mswm.edit_config import create_valid_realization_file
 
 if TYPE_CHECKING:
     from datetime import datetime

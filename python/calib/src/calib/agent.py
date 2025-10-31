@@ -237,11 +237,6 @@ class Agent(BaseAgent):
         """Calibration yaml file."""
         return self._yaml_file
 
-    # @property
-    # def df_precip(self) -> float:
-    #     """Precipitation time series."""
-    #     return self.model.df_precip
-
     @property
     def model_params(self) -> dict:
         """Model calibration parameters."""
