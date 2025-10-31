@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1.4
 
 ARG NGEN_IMAGE_TAG=latest
-FROM ghcr.io/ngwpc/ngen:${NGEN_IMAGE_TAG}
+#FROM ghcr.io/ngwpc/ngen:${NGEN_IMAGE_TAG}
 # Uncomment when building ngen locally
-#FROM mswm
+FROM mswm
 
 COPY . /ngen-app/nwm-cal-mgr/
 

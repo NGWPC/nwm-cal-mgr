@@ -3,6 +3,7 @@ hydrotools.events==1.1.5
 hydrotools.metrics==1.3.3
 hydrotools.nwis_client==3.3.1
 hypy@git+https://github.com/NGWPC/hypy.git@development#egg=hypy&subdirectory=python
+mswm@git+https://github.com/NGWPC/nwm-msw-mgr.git@jwade_NGWPC-8667_historical_bmi_forcing
 #hypy@git+https://gitlab.sh.nextgenwaterprediction.com/NGWPC/hypy.git@development#egg=hypy&subdirectory=python
 matplotlib
 netCDF4==1.6.3
