@@ -33,7 +33,7 @@ RUN set -eux; \
     pip3 install . ; \
     \
     # Install mswm package
-    pip3 install mswm@git+https://github.com/NGWPC/nwm-msw-mgr.git@jwade_NGWPC-8667_historical_bmi_forcing ; \
+    pip3 install mswm@git+https://github.com/NGWPC/nwm-msw-mgr.git@development ; \
     \
     # Install dependencies for runCalibValid module
     cd /ngen-app/nwm-cal-mgr/python/config && \
