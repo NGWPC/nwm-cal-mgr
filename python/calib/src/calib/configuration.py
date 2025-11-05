@@ -663,16 +663,10 @@ class NoCalibModel(ModelExec):
             logger.info(traceback.format_exc())
 
         try:
-            # Fix df_precip formatting to add a 'Time' column
-            df_precip_fixed = agent.df_precip.copy()
-            df_precip_fixed = df_precip_fixed.reset_index().rename(
-                columns={"index": "Time"}
-            )
 
             # Clone the agent with all fields + override df_precip
             agent_fixed = SimpleNamespace(
                 **vars(agent),
-                df_precip=df_precip_fixed,
                 valid_path=agent.valid_path,
                 valid_path_plot=agent.valid_path_plot,
             )
@@ -808,64 +802,6 @@ class NoCalibModel(ModelExec):
         df = pd.read_csv(path, index_col=0, parse_dates=True)
         df = df.rename(columns={df.columns[0]: "nwm_retro"})
         return df
-
-    @property
-    def df_precip(self):
-        """
-        Reads forcing precipitation data based on realization JSON.
-        Mimics logic from NgenBase in ngen.py.
-        """
-        import json
-        from functools import reduce
-
-        realization_path = self.realization
-        if not realization_path.exists():
-            raise FileNotFoundError(f"Realization file not found: {realization_path}")
-
-        with open(realization_path, "r") as f:
-            realization = json.load(f)
-
-        forcing_cfg = realization.get("global", {}).get("forcing", {})
-
-        forcing_path = forcing_cfg.get("path")
-        file_pattern = forcing_cfg.get("file_pattern", "*.csv")
-
-        start_date = realization.get("time").get("start_time")
-        end_date = realization.get("time").get("end_time")
-
-        flst = []
-        for ffile in glob.glob(os.path.join(forcing_path, "*.csv")):
-            fdata = pd.read_csv(ffile)
-            fdata_copy = fdata.copy()[["Time", "RAINRATE"]]
-            fdata_copy["Time"] = pd.DatetimeIndex(fdata_copy["Time"])
-            fdata_copy.set_index("Time", inplace=True)
-            fdata_copy = fdata_copy.loc[start_date:end_date]
-            flst.append(fdata_copy)
-
-        if not flst:
-            raise ValueError("No valid RAINRATE data found in forcing files.")
-
-        suffixes = [f"_{i}" for i in range(len(flst))]
-        flst = [flst[i].add_suffix(suffixes[i]) for i in range(len(flst))]
-        df_precip = reduce(
-            lambda left, right: pd.merge(
-                left, right, left_index=True, right_index=True
-            ),
-            flst,
-        )
-        dfp = df_precip.sum(axis=1) * 3600
-        dfp.name = "RAINRATE"
-        # self._precip = dfp.reset_index()
-
-        df_merged = reduce(
-            lambda x, y: pd.merge(x, y, left_index=True, right_index=True, how="outer"),
-            flst,
-        ).fillna(0)
-        df_precip = df_merged.sum(axis=1) * 3600.0  # Convert mm/hr to mm
-        # df_precip = df_precip.to_frame(name="Precip(mm)")
-        df_precip = df_precip.to_frame(name="RAINRATE")
-        df_precip.index.name = "Time"
-        return df_precip
 
     def write_cost_iter_file(self, i, path):
         # No-op for single-run NoCalibModel

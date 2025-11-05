@@ -188,35 +188,15 @@ class NgenBase(ModelExec):
             data = json.load(fp)
         self.ngen_realization = NgenRealization(**data)
 
-        # Read precipitation foricing
-        start_date = datetime.strftime(
-            self.ngen_realization.time.start_time, "%Y-%m-%d %H:%M:%S"
-        )
-        end_date = datetime.strftime(
-            self.ngen_realization.time.end_time, "%Y-%m-%d %H:%M:%S"
-        )
-        flst = []
-        for ffile in glob.glob(
-            os.path.join(self.ngen_realization.global_config.forcing.path, "*.csv")
-        ):
-            fdata = pd.read_csv(ffile)
-            fdata_copy = fdata.copy()[["Time", "RAINRATE"]]
-            fdata_copy["Time"] = pd.DatetimeIndex(fdata_copy["Time"])
-            fdata_copy.set_index("Time", inplace=True)
-            fdata_copy = fdata_copy.loc[start_date:end_date]
-            flst.append(fdata_copy)
+        if self.ngen_realization.global_config.forcing.provider == 'CsvPerFeature':
+            # Read precipitation forcing
+            start_date = datetime.strftime(
+                self.ngen_realization.time.start_time, "%Y-%m-%d %H:%M:%S"
+            )
+            end_date = datetime.strftime(
+                self.ngen_realization.time.end_time, "%Y-%m-%d %H:%M:%S"
+            )
 
-        suffixes = [f"_{i}" for i in range(len(flst))]
-        flst = [flst[i].add_suffix(suffixes[i]) for i in range(len(flst))]
-        df_precip = reduce(
-            lambda left, right: pd.merge(
-                left, right, left_index=True, right_index=True
-            ),
-            flst,
-        )
-        dfp = df_precip.sum(axis=1) * 3600
-        dfp.name = "RAINRATE"
-        self._precip = dfp.reset_index()
 
     @property
     def config_file(self) -> Path:
@@ -730,10 +710,6 @@ class Ngen(BaseModel, Configurable):
     @property
     def best_params(self):
         return self.strategy.eval_params.best_params
-
-    @property
-    def df_precip(self):
-        return self.strategy._precip
 
     @property
     def model_params(self):
