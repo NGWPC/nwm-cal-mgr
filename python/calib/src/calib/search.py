@@ -6,6 +6,7 @@ This module contains functions to perform parameter optimization using different
 
 import glob
 import logging
+import numbers
 import os
 import subprocess
 from datetime import datetime
@@ -155,26 +156,32 @@ def _evaluate(
         calibration_object.write_iteration_outputs(agent, metrics, metrics["objFunVal"])
         return metrics
 
+    # get objective function value from metrics
     metric_objective_function = metrics[calibration_object.objective.value.upper()]
-    obj_group1 = ["kge", "nse", "nnse", "nselog", "corr", "csi", "pod"]
-    obj_group2 = ["rmse", "mae", "rsr", "far", "pkbias", "pkte", "evbias"]
-    obj_group3 = ["pbias", "lseg_fdc", "hseg_fdc"]
-    if np.isnan(metric_objective_function):
+
+    # Ensure objective function is a valid numeric value
+    if not isinstance(metric_objective_function, numbers.Number) or np.isnan(
+        metric_objective_function
+    ):
         if calibration_object.target == "min":
-            score = np.inf
-            logger.info(
-                "Objective function cannot be calculated for this iteration. Set it to Inf"
+            score = 1e10  # use large finite value instead of Inf (to avoid potential issues with some optimizers like GWO and PSO)
+            logger.warning(
+                "Objective function invalid for this iteration; set score to large value for minimization"
             )
         elif calibration_object.target == "max":
-            score = -np.inf
-            logger.info(
-                "Objective function cannot be calculated for this iteration. Set it to -Inf"
+            score = -1e10  # use small finite value instead of -Inf (to avoid potential issues with some optimizers like GWO and PSO)
+            logger.warning(
+                "Objective function invalid for this iteration; set score to small value for maximization"
             )
         else:
             raise Exception(
                 f"Optimization target can only be min or max. {calibration_object.target} is not supported"
             )
     else:
+        obj_group1 = ["kge", "nse", "nnse", "nselog", "corr", "csi", "pod"]
+        obj_group2 = ["rmse", "mae", "rsr", "far", "pkbias", "pkte", "evbias"]
+        obj_group3 = ["pbias", "lseg_fdc", "hseg_fdc"]
+
         if calibration_object.eval_params.objective in obj_group1:
             score = (
                 1 - metric_objective_function
