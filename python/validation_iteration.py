@@ -18,6 +18,7 @@ from calib.agent import Agent
 from calib.configuration import General
 from calib.git_util import print_git_info_all
 from calib.validation_run import run_valid_ctrl_best
+from mswm.edit_config import create_valid_realization_file
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,12 @@ def main(general: General, model_conf, worker: str, iteration: int):
             calibration_object.adf.loc[:, general.name] = df1[iteration].to_list()
 
             # create the realization file (with the alternative parameters) and the validation config file
-            calibration_object.create_valid_realization_file(agent, calibration_object.adf, general.name)
+            create_valid_realization_file(
+                agent,
+                calibration_object.eval_params,
+                calibration_object.adf,
+                general.name,
+            )
 
     # create t-route config file for the validation run
     configfl = os.path.join(agent.valid_path, os.path.basename(str(agent.realization_file)))
