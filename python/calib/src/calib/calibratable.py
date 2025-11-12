@@ -12,8 +12,6 @@ from typing import TYPE_CHECKING, List, Optional
 import pandas as pd
 from pandas import Series, read_parquet  # type: ignore
 
-from mswm.edit_config import create_valid_realization_file
-
 if TYPE_CHECKING:
     from datetime import datetime
     from pathlib import Path
@@ -354,14 +352,6 @@ class Evaluatable(ABC):
     ) -> Path:
         """Write cost and position history plus gloal best position into csv files"""
         return self.eval_params.write_hist_file(optimizer_result, agent, params_lst)
-
-    def create_valid_realization_file(
-        self, agent: "Agent", params: "pd.DataFrame", valid_run_name: str
-    ) -> None:
-        """Create configuration files for validation run"""
-        return create_valid_realization_file(
-            agent, params, valid_run_name
-        )
 
     def write_run_complete_file(self, run_name: str, path: Path) -> None:
         """Write empty file if calibration or validation run is completed"""
