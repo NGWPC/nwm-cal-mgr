@@ -190,6 +190,9 @@ def main(general: General, model_conf, log_path_overwrite: str | None = None, wo
     elif agent.model.strategy.strategy == "uniform":
         func(start_iteration, general.iterations, agent)
 
+    elif agent.model.strategy.strategy == "grouped":
+        func(start_iteration, general.iterations, agent)
+
 
 def cli():
     """Command-line interface entry point for nwm-calibration."""
