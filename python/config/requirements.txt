@@ -1,2 +1,2 @@
-pydantic==2.11.4
+pydantic~=2.11.9
 typing_extensions
