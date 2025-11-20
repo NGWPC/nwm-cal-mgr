@@ -275,7 +275,6 @@ class NgenBase(ModelExec):
             args = '{} "all" {} "all" {}'.format(
                 Path(catchments).resolve(),
                 Path(nexus).resolve(),
-                #Path(realization).name,
                 Path(realization).resolve()
             )
             values["args"] = args
