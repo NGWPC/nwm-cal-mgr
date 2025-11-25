@@ -90,7 +90,7 @@ class BMIParams(BaseModel):
         """
         output_map = values.get("output_map", {})
         output_headers = values.get("output_header_fields", [])
-        output_vars = values.get("output_variabless", [])
+        output_vars = values.get("output_variables", [])
 
         if output_map:
             if output_vars:
@@ -107,8 +107,6 @@ class BMIParams(BaseModel):
                     output_headers.append(k)
             values["output_vars"] = output_vars
             values["output_headers"] = output_headers
-
-        logger.info(f"DEBUG: output_variables: {values.get('output_variables')}")
 
         return values
 
