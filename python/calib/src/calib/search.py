@@ -41,6 +41,19 @@ managed by a calibration agent.
 __iteration_counter = 1
 
 
+def _get_evaluatable_objs(calibration_object):
+    """
+    Get a list of evaluatable objects from either a single Adjustable (NgenUniform)
+    of a CalibrationSet with nested adjustables (NgenGrouped)
+    """
+    if hasattr(calibration_object, 'adjustables') and calibration_object.adjustables:
+        # CalibrationSet with nested adjustables
+        return calibration_object.adjustables
+    else:
+        # Single Adjustable
+        return [calibration_object]
+
+
 def _execute(meta: "Agent", i: int = None) -> None:
     """Execute model run via BMI.
 
@@ -488,7 +501,8 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
     calibration_sets = agent.model.adjustables
     init = start_iteration - 1 if start_iteration > 0 else start_iteration
     for calibration_set in calibration_sets:
-        for calibration_object in calibration_set.adjustables:
+        evaluatable_objects = _get_evaluatable_objs(calibration_set)
+        for calibration_object in evaluatable_objects:
             calibration_object.df["sigma"] = neighborhood_size * (
                 calibration_object.df["max"] - calibration_object.df["min"]
             )
@@ -512,7 +526,7 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
 
         for i in range(start_iteration, iterations + 1):
             inclusion_probability = 1 - log(i) / log(iterations)
-            for calibration_object in calibration_set.adjustables:
+            for calibration_object in evaluatable_objects:
                 dds_update(i, inclusion_probability, calibration_object, agent)
 
             logger.info(f"Running {agent.cmd} for iteration {i}")
@@ -521,7 +535,7 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
                 _evaluate(i, calibration_set, agent, first_iter_for_agent=False)
             calibration_set.check_point(agent.job.workdir)
 
-        for calibration_object in calibration_set.adjustables:
+        for calibration_object in evaluatable_objects:
             create_valid_realization_file(
                 agent,
                 calibration_object.eval_params,

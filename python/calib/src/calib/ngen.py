@@ -101,12 +101,13 @@ def _map_params_to_realization(
                 for m in module.modules:
                     model_name = m.params.model_name
                     # Only process if model is in calibratable params
+                    print(f"Checking if {model_name} in params: {model_name in params}")
                     if model_name in params:
                         dfs.append(_params_as_df(params, m.params.model_name))
-                else:
-                    model_name = module.model_name
-                    if model_name in params:
-                        dfs.append(_params_as_df(params, module.model_name))
+            else:
+                model_name = module.model_name
+                if model_name in params:
+                    dfs.append(_params_as_df(params, module.model_name))
 
         if dfs:
             return pd.concat(dfs)
@@ -682,8 +683,6 @@ class NgenGrouped(NgenBase):
     """
 
     strategy: Literal[NgenStrategy.grouped]
-    # groups: Dict[str, Dict] = Field(...)
-
     formulation_groups: Dict[str, List[str]] = {}
     grp_to_cat: Dict[str, List[str]] = {}
     grp_params_map: Dict[str, Any] = {}
@@ -740,6 +739,7 @@ class NgenGrouped(NgenBase):
                     model_name = mod.params.model_name
                     model_names.add(model_name)
             self.grp_models[grp_name] = model_names
+            print(f"model_names: {grp_name}: {model_names}")
 
     def _get_params_for_grp(self, grp_name: str) -> Dict[str, List[Parameter]]:
         """"
@@ -749,12 +749,14 @@ class NgenGrouped(NgenBase):
         # Retrieve modules for a given group that are calibratable
         cal_models = (self.grp_models.get(grp_name, set()) & set(self.params.keys()))
 
+        print(f"cal_models: {cal_models}")
+        print(f"self.params: {self.params}")
+
         # Filter parameters to calibratable models in group
         params_for_grp = {}
         for model_name in cal_models:
             if model_name in self.params:
                 params_for_grp[model_name] = self.params[model_name]
-
         return params_for_grp
 
     def _map_group_params(self) -> None:
@@ -772,8 +774,15 @@ class NgenGrouped(NgenBase):
             params_for_grp = self._get_params_for_grp(grp_name)
             params_dict = {model: params for model, params in params_for_grp.items()}
 
+            print(f"params_for_grp: {params_for_grp}")
+            print(f"params_dict: {params_dict}")
+
             # Map params to realization format
-            self.grp_params_map[grp_name] = _map_params_to_realization(params_dict, self.ngen_realization, grp_name)
+            params_df = _map_params_to_realization(params_dict, self.ngen_realization, grp_name)
+            print(f"params_df: {params_df}")
+            params_df.reset_index(drop=True, inplace=True)
+            params_df["fac"] = range(len(params_df))
+            self.grp_params_map[grp_name] = params_df
 
     def _find_basin_gage_nexus(self) -> Optional[tuple]:
         """
@@ -832,9 +841,11 @@ class NgenGrouped(NgenBase):
         try:
             # Get catchments draining to nexus
             gage_nexus_id = eval_nexus.id
-            self._wb_lst = list(
-                self._catchment_hydro_fabric.query("toid==@gage_nexus_id").index
-            )
+            self._wb_lst = [
+                x.split("-")[1]
+                for x in list(self._catchment_hydro_fabric.query("toid==@gage_nexus_id").index)
+            ]
+
         except (KeyError, Exception) as e:
             # Include all catchments in wb_lst as fallback
             self._wb_lst = list(self._catchment_hydro_fabric.index)
@@ -843,13 +854,16 @@ class NgenGrouped(NgenBase):
         # Construct calibration set for group
         for grp_name, grp_catchments in self.grp_to_cat.items():
             grp_params = self.grp_params_map[grp_name]
-            catchments = []
+            print(f"{grp_name}: {grp_params}")
+            adjustables = []
 
             # Process nexus/adjustable object for each catchment
             for cat_id in grp_catchments:
                 try:
-                    fabric = self._catchment_hydro_fabric.loc[cat_id]
+                    hydro_cat_id = cat_id.replace("cat", "wb") if "cat" in cat_id else cat_id
+                    fabric = self._catchment_hydro_fabric.loc[hydro_cat_id]
                 except KeyError:
+                    print(f"KeyError: {hydro_cat_id}")
                     continue
 
                 try:
@@ -858,8 +872,8 @@ class NgenGrouped(NgenBase):
                     raise RuntimeError(f"No nexus found for catchment {cat_id}")
 
                 # Create adjustable catchment object
-                nexus = Nexus(nexus_data.name, None, cat_id)
-                catchments.append(
+                nexus = Nexus(nexus_data.name, None, hydro_cat_id)
+                adjustables.append(
                     AdjustableCatchment(
                         self.workdir,
                         cat_id,
@@ -872,9 +886,15 @@ class NgenGrouped(NgenBase):
             grp_eval_params = self.eval_params.model_copy()
             grp_eval_params.id = grp_name
 
+            # for adj in adjustables:
+            #     print(f"adj df columns: {adj.df.columns.tolist()}")
+            #     print(f"adj df index: {adj.df.index.tolist()}")
+            #     print(f"adj df fac: {adj.df['fac'].tolist()}")
+            #     print(f"adj df: {adj.df}")
+
             self._catchments.append(
                 CalibrationSet(
-                    adjustables=catchments,
+                    adjustables=adjustables,
                     eval_nexus=eval_nexus,
                     routing_output=self.routing_output,
                     start_time=start_t,
