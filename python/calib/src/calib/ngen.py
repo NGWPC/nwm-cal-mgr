@@ -101,7 +101,6 @@ def _map_params_to_realization(
                 for m in module.modules:
                     model_name = m.params.model_name
                     # Only process if model is in calibratable params
-                    print(f"Checking if {model_name} in params: {model_name in params}")
                     if model_name in params:
                         dfs.append(_params_as_df(params, m.params.model_name))
             else:
@@ -318,7 +317,7 @@ class NgenBase(ModelExec):
         return values
 
     def update_config(
-        self, i: int, params: "pd.DataFrame", id: str = None, path=Path("./"), **kwargs
+        self, i: int, params: "pd.DataFrame", id: str = None, **kwargs
     ):
         """_summary_
 
@@ -333,9 +332,9 @@ class NgenBase(ModelExec):
             module = self.ngen_realization.global_config.formulations[0].params
         else:  # update specific catchment or formulation group
             # Try to update catchment specific config
-            if hasattr(self.ngen_realization, 'catchments') and id in self.ngen_realization.catchments:
+            if hasattr(self.ngen_realization, 'formulations') and id in self.ngen_realization.catchments:
                 module = self.ngen_realization.catchments[id].formulations[0].params
-            elif hasattr(self.ngen_realization, 'formulation_groups') and id in self.ngen_realization.formulation_groups:
+            elif hasattr(self.ngen_realization, 'formulation_groups'):
                 formulation_configs = self.ngen_realization.formulation_groups[id]
                 if not formulation_configs or len(formulation_configs) == 0:
                     raise ValueError(f"No formulation configuration found for group '{id}'")
@@ -375,6 +374,15 @@ class NgenBase(ModelExec):
             p = groups.get_group(module.model_name)
             module.model_params = p[str(i)].to_dict()
 
+    def write_realization_file(self, path: Path = Path("./")) -> None:
+        """
+        Write the current ngen_realization to realization file.
+        Separate realization writing function allows grouped parameters to be updated in sequence
+        and then written out after all updates are complete.
+
+        Args:
+            path: Path to realization file output
+        """
         def safe_model_dump_json(
             model: BaseModel, *, by_alias=True, exclude_none=True, indent=4
         ) -> str:
@@ -739,7 +747,6 @@ class NgenGrouped(NgenBase):
                     model_name = mod.params.model_name
                     model_names.add(model_name)
             self.grp_models[grp_name] = model_names
-            print(f"model_names: {grp_name}: {model_names}")
 
     def _get_params_for_grp(self, grp_name: str) -> Dict[str, List[Parameter]]:
         """"
@@ -748,9 +755,6 @@ class NgenGrouped(NgenBase):
 
         # Retrieve modules for a given group that are calibratable
         cal_models = (self.grp_models.get(grp_name, set()) & set(self.params.keys()))
-
-        print(f"cal_models: {cal_models}")
-        print(f"self.params: {self.params}")
 
         # Filter parameters to calibratable models in group
         params_for_grp = {}
@@ -774,12 +778,8 @@ class NgenGrouped(NgenBase):
             params_for_grp = self._get_params_for_grp(grp_name)
             params_dict = {model: params for model, params in params_for_grp.items()}
 
-            print(f"params_for_grp: {params_for_grp}")
-            print(f"params_dict: {params_dict}")
-
             # Map params to realization format
             params_df = _map_params_to_realization(params_dict, self.ngen_realization, grp_name)
-            print(f"params_df: {params_df}")
             params_df.reset_index(drop=True, inplace=True)
             params_df["fac"] = range(len(params_df))
             self.grp_params_map[grp_name] = params_df
@@ -791,8 +791,6 @@ class NgenGrouped(NgenBase):
 
         # Search for gage in the crosswalk
         for id_key, nwis in self._x_walk.items():
-            print(f"id_key:  {id_key}")
-            print(f"nwis: {nwis}")
             if not nwis and nwis == "":
                 continue
 
@@ -854,7 +852,6 @@ class NgenGrouped(NgenBase):
         # Construct calibration set for group
         for grp_name, grp_catchments in self.grp_to_cat.items():
             grp_params = self.grp_params_map[grp_name]
-            print(f"{grp_name}: {grp_params}")
             adjustables = []
 
             # Process nexus/adjustable object for each catchment
@@ -876,7 +873,7 @@ class NgenGrouped(NgenBase):
                 adjustables.append(
                     AdjustableCatchment(
                         self.workdir,
-                        cat_id,
+                        grp_name,
                         nexus,
                         grp_params
                     )
@@ -885,12 +882,6 @@ class NgenGrouped(NgenBase):
             # Create calibration set for each group
             grp_eval_params = self.eval_params.model_copy()
             grp_eval_params.id = grp_name
-
-            # for adj in adjustables:
-            #     print(f"adj df columns: {adj.df.columns.tolist()}")
-            #     print(f"adj df index: {adj.df.index.tolist()}")
-            #     print(f"adj df fac: {adj.df['fac'].tolist()}")
-            #     print(f"adj df: {adj.df}")
 
             self._catchments.append(
                 CalibrationSet(

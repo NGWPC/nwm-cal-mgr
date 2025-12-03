@@ -254,9 +254,73 @@ class CalibrationSet(Evaluatable):
     def observed(self, df):
         self._observed = df
 
+    def save_calib_output(
+        self,
+        i,
+        output_iter_file: "Path",
+        last_output_file: "Path",
+        calib_path1: "Path",
+        calib_path2: "Path",
+        calib_path3: Path = None,
+        save_output_iter_flag=False,
+    ) -> None:
+        """Save model output from calibration run.
+
+        Parameters:
+        ----------
+        i : iteration
+        output_iter_file : output file at each iteration
+        last_output_file : last output file
+        calib_path1 : directory to store streamflow file at each iteration
+        calib_path2 : current agent job directory
+        calib_path3 : directory to store catchment and nexsus output plus other output files, default None
+        save_output_iter_flag : whether to save output at each iteration
+
+        """
+        if os.path.exists(self._output_file):
+            flow_output = self._output.reset_index()
+            flow_output = flow_output.rename(columns={"index": "Time"})
+            if i == 0 or save_output_iter_flag:
+                filename_iter = os.path.join(
+                    calib_path1, output_iter_file + str("{:04d}").format(i) + ".csv"
+                )
+                flow_output.to_csv(filename_iter, index=False)
+            flow_output.to_csv(last_output_file, index=False)
+
+            shutil.move(
+                self._output_file,
+                os.path.join(
+                    os.path.dirname(last_output_file),
+                    "{}_last".format(self._output_file),
+                ),
+            )
+        if calib_path3 is None:
+            calib_path3 = calib_path2
+        for csvfl in glob.glob(os.path.join(calib_path2, "nex*.csv")):
+            shutil.move(csvfl, calib_path3 + "/" + os.path.basename(csvfl))
+        for csvfl in glob.glob(os.path.join(calib_path2, "cat*.csv")):
+            shutil.move(csvfl, calib_path3 + "/" + os.path.basename(csvfl))
+        if len(glob.glob(os.path.join(calib_path2, "*.out"))) > 0:
+            for outfl in glob.glob(os.path.join(calib_path2, "*.out")):
+                shutil.move(outfl, calib_path3 + "/" + os.path.basename(outfl))
+
+    def save_best_output(self, best_output_file: "Path", best_save_flag=False) -> None:
+        """Save the output at the best iteration
+
+        Parameters:
+        ----------
+        best_output_file : Best output file name
+        best_save_flag : Whether save output as best output
+
+        """
+        if self._output is not None and best_save_flag:
+            flow_output = self._output.reset_index()
+            flow_output = flow_output.rename(columns={"index": "Time"})
+            flow_output.to_csv(best_output_file, index=False)
+
     def save_output(self, i) -> None:
         """Save the last output to output for iteration i."""
-        if os.path.exists(elf._output_file):
+        if os.path.exists(self._output_file):
             shutil.move(self._output_file, "{}_last".format(self._output_file))
 
     def check_point(self, path: "Path") -> None:
@@ -322,69 +386,69 @@ class UniformCalibrationSet(CalibrationSet, Adjustable):
         # FIXME re-enable this once more complete
         shutil.move(self._output_file, "{}_last".format(self._output_file))
 
-    def save_calib_output(
-        self,
-        i,
-        output_iter_file: "Path",
-        last_output_file: "Path",
-        calib_path1: "Path",
-        calib_path2: "Path",
-        calib_path3: Path = None,
-        save_output_iter_flag=False,
-    ) -> None:
-        """Save model output from calibration run.
+    # def save_calib_output(
+    #     self,
+    #     i,
+    #     output_iter_file: "Path",
+    #     last_output_file: "Path",
+    #     calib_path1: "Path",
+    #     calib_path2: "Path",
+    #     calib_path3: Path = None,
+    #     save_output_iter_flag=False,
+    # ) -> None:
+    #     """Save model output from calibration run.
 
-        Parameters:
-        ----------
-        i : iteration
-        output_iter_file : output file at each iteration
-        last_output_file : last output file
-        calib_path1 : directory to store streamflow file at each iteration
-        calib_path2 : current agent job directory
-        calib_path3 : directory to store catchment and nexsus output plus other output files, default None
-        save_output_iter_flag : whether to save output at each iteration
+    #     Parameters:
+    #     ----------
+    #     i : iteration
+    #     output_iter_file : output file at each iteration
+    #     last_output_file : last output file
+    #     calib_path1 : directory to store streamflow file at each iteration
+    #     calib_path2 : current agent job directory
+    #     calib_path3 : directory to store catchment and nexsus output plus other output files, default None
+    #     save_output_iter_flag : whether to save output at each iteration
 
-        """
-        if os.path.exists(self._output_file):
-            flow_output = self._output.reset_index()
-            flow_output = flow_output.rename(columns={"index": "Time"})
-            if i == 0 or save_output_iter_flag:
-                filename_iter = os.path.join(
-                    calib_path1, output_iter_file + str("{:04d}").format(i) + ".csv"
-                )
-                flow_output.to_csv(filename_iter, index=False)
-            flow_output.to_csv(last_output_file, index=False)
+    #     """
+    #     if os.path.exists(self._output_file):
+    #         flow_output = self._output.reset_index()
+    #         flow_output = flow_output.rename(columns={"index": "Time"})
+    #         if i == 0 or save_output_iter_flag:
+    #             filename_iter = os.path.join(
+    #                 calib_path1, output_iter_file + str("{:04d}").format(i) + ".csv"
+    #             )
+    #             flow_output.to_csv(filename_iter, index=False)
+    #         flow_output.to_csv(last_output_file, index=False)
 
-            shutil.move(
-                self._output_file,
-                os.path.join(
-                    os.path.dirname(last_output_file),
-                    "{}_last".format(self._output_file),
-                ),
-            )
-        if calib_path3 is None:
-            calib_path3 = calib_path2
-        for csvfl in glob.glob(os.path.join(calib_path2, "nex*.csv")):
-            shutil.move(csvfl, calib_path3 + "/" + os.path.basename(csvfl))
-        for csvfl in glob.glob(os.path.join(calib_path2, "cat*.csv")):
-            shutil.move(csvfl, calib_path3 + "/" + os.path.basename(csvfl))
-        if len(glob.glob(os.path.join(calib_path2, "*.out"))) > 0:
-            for outfl in glob.glob(os.path.join(calib_path2, "*.out")):
-                shutil.move(outfl, calib_path3 + "/" + os.path.basename(outfl))
+    #         shutil.move(
+    #             self._output_file,
+    #             os.path.join(
+    #                 os.path.dirname(last_output_file),
+    #                 "{}_last".format(self._output_file),
+    #             ),
+    #         )
+    #     if calib_path3 is None:
+    #         calib_path3 = calib_path2
+    #     for csvfl in glob.glob(os.path.join(calib_path2, "nex*.csv")):
+    #         shutil.move(csvfl, calib_path3 + "/" + os.path.basename(csvfl))
+    #     for csvfl in glob.glob(os.path.join(calib_path2, "cat*.csv")):
+    #         shutil.move(csvfl, calib_path3 + "/" + os.path.basename(csvfl))
+    #     if len(glob.glob(os.path.join(calib_path2, "*.out"))) > 0:
+    #         for outfl in glob.glob(os.path.join(calib_path2, "*.out")):
+    #             shutil.move(outfl, calib_path3 + "/" + os.path.basename(outfl))
 
-    def save_best_output(self, best_output_file: "Path", best_save_flag=False) -> None:
-        """Save the output at the best iteration
+    # def save_best_output(self, best_output_file: "Path", best_save_flag=False) -> None:
+    #     """Save the output at the best iteration
 
-        Parameters:
-        ----------
-        best_output_file : Best output file name
-        best_save_flag : Whether save output as best output
+    #     Parameters:
+    #     ----------
+    #     best_output_file : Best output file name
+    #     best_save_flag : Whether save output as best output
 
-        """
-        if self._output is not None and best_save_flag:
-            flow_output = self._output.reset_index()
-            flow_output = flow_output.rename(columns={"index": "Time"})
-            flow_output.to_csv(best_output_file, index=False)
+    #     """
+    #     if self._output is not None and best_save_flag:
+    #         flow_output = self._output.reset_index()
+    #         flow_output = flow_output.rename(columns={"index": "Time"})
+    #         flow_output.to_csv(best_output_file, index=False)
 
     def save_valid_output(
         self,
