@@ -288,7 +288,9 @@ def dds_update(
         neighborhood = calibration_object.variables.sample(n=1)
 
     # Generate new parameter set by perturbng the best parameters
-    calibration_object.df[str(iteration)] = calibration_object.df[agent.best_params]
+    calibration_object.df[str(iteration)] = calibration_object.df[
+        agent.best_params
+    ].copy()
     for n in neighborhood:
         new = calibration_object.df.loc[
             n, agent.best_params
