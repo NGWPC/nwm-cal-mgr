@@ -333,6 +333,18 @@ class UniformCalibrationSet(CalibrationSet, Adjustable):
         valid_path3 : Subdrirectory under valid_path2 to store output files
 
         """
+        # log an error message if any of the validation output paths (valid_path1, valid_path2, or valid_path3)
+        # does not exist during runtime (should have been created earlier)
+        for valid_path in [valid_path1, valid_path2, valid_path3]:
+            if not os.path.exists(valid_path):
+                msg = (
+                    f"Inaccessible output location during validation. "
+                    f"Output path does not exist: {valid_path} "
+                    f"for basin {basinid} and run {run_name}"
+                )
+                logger.error(msg)
+                raise FileNotFoundError(msg)
+
         if os.path.exists(self._output_file):
             flow_output = self._output.reset_index()
             flow_output = flow_output.rename(columns={"index": "Time"})
@@ -344,6 +356,7 @@ class UniformCalibrationSet(CalibrationSet, Adjustable):
                 self._output_file,
                 os.path.join(valid_path2, "{}_".format(self._output_file) + run_name),
             )
+
         for csvfl in glob.glob(os.path.join(valid_path2, "nex*.csv")):
             shutil.move(
                 csvfl,
