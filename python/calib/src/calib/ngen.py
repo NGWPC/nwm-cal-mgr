@@ -328,20 +328,35 @@ class NgenBase(ModelExec):
             **kwards: Additional arguments
         """
 
-        if id is None:  # Update global
-            module = self.ngen_realization.global_config.formulations[0].params
+        if id is None:
+            if hasattr(self.ngen_realization, 'formulation_groups'):
+                # Update grouped realization
+                for grp_name in self.ngen_realization.formulation_groups.keys():
+                    formulation_configs = self.ngen_realization.formulation_groups[grp_name]
+                    if not formulation_configs or len(formulation_configs) == 0:
+                        raise ValueError(f"No formulation configuration found for group '{grp_name}'")
+                    module = formulation_configs[0].params
+                    self.apply_params_to_module(i, params, module)
+            else:
+                # Update global config
+                module = self.ngen_realization.catchments[id].formulations[0].params
+                self.apply_params_to_module(i, params, module)
         else:  # update specific catchment or formulation group
-            # Try to update catchment specific config
-            if hasattr(self.ngen_realization, 'formulations') and id in self.ngen_realization.catchments:
+            if hasattr(self.ngen_realization, 'catchments') and id in self.ngen_realization.catchments:
                 module = self.ngen_realization.catchments[id].formulations[0].params
             elif hasattr(self.ngen_realization, 'formulation_groups'):
                 formulation_configs = self.ngen_realization.formulation_groups[id]
                 if not formulation_configs or len(formulation_configs) == 0:
-                    raise ValueError(f"No formulation configuration found for group '{id}'")
+                    raise ValueError(f"No formulation configuration found for '{id}'")
                 module = formulation_configs[0].params
             else:
                 raise ValueError(f"Could not find configuration for id: {id}")
 
+            # Apply params to module
+            self.apply_params_to_module(i, params, module)
+
+    def apply_params_to_module(self, i: int, params: "pd.DataFrame", module) -> None:
+        """Apply updated parameters to a module"""
         if hasattr(module, "modules"):
             modules = [m.params.model_name for m in module.modules]
         else:
@@ -363,6 +378,8 @@ class NgenBase(ModelExec):
                             par2["param"] = "smcmax"
                         params = pd.concat([params, par2])
 
+        print(f"DEBUG: modules: {modules}")
+        print(f"DEBUG: params: {params}")
         groups = params.set_index("param").groupby("model")
         if isinstance(module, MultiBMI):
             for m in module.modules:
@@ -371,8 +388,9 @@ class NgenBase(ModelExec):
                     p = groups.get_group(name)
                     m.params.model_params = p[str(i)].to_dict()
         else:
-            p = groups.get_group(module.model_name)
-            module.model_params = p[str(i)].to_dict()
+            if module.model_name in groups.groups:
+                p = groups.get_group(module.model_name)
+                module.model_params = p[str(i)].to_dict()
 
     def write_realization_file(self, path: Path = Path("./")) -> None:
         """

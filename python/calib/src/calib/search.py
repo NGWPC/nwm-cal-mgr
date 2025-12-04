@@ -277,11 +277,7 @@ def _evaluate(
     # Save params - combine from all groups into single file
     combined_params = []
     for cal_set in calibration_sets:
-        for cal_obj in cal_set.adjustables:
-            print(f"DEBUG: cal_obj.df.columns: {cal_obj.adf.columns.tolist()}")
-            print(f"DEBUG: str(i): {str(i)}")
-            print(f"DEBUG: cal_obj.df: {cal_obj.df}")
-            combined_params.append(cal_obj.df[[str(i), "param"]])
+        combined_params.append(cal_set.adjustables[0].df[[str(i), "param"]])
     combined_params_df = pd.concat(combined_params, ignore_index=True)
     primary_obj.write_param_iter_file(i, combined_params_df)
 
@@ -551,6 +547,7 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
     for i in range(start_iteration, iterations + 1):
         inclusion_probability = 1 - log(i) / log(iterations)
         for calibration_set in calibration_sets:
+            evaluatable_objects = _get_evaluatable_objs(calibration_set)
             for calibration_object in evaluatable_objects:
                 dds_update(i, inclusion_probability, calibration_object, agent)
 
@@ -564,39 +561,37 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
         for calibration_set in calibration_sets:
             calibration_set.check_point(agent.job.workdir)
 
-    # # Create validation files with parameters from all groups
-    # primary_set = calibration_sets[0]
-    # primary_obj = primary_set.adjustables[0] if primary_set.adjustables else None
+    # Create validation files with parameters from all groups
+    primary_set = calibration_sets[0]
+    primary_obj = primary_set.adjustables[0] if primary_set.adjustables else None
 
-    # if primary_set.adjustables:
-    #     # Collect all parameters from all groups
-    #     group_adfs = []
-    #     for calibration_set in calibration_sets:
-    #         group_adjustables = [cal_obj.adf for cal_obj in calibration_set.adjustables]
-    #         if group_adjustables:
-    #             group_adf = pd.concat(group_adjustables, ignore_index=True)
-    #             group_adfs.append(group_adf)
-    #     combined_adf_df = pd.concat(group_adfs, axis=1)
+    if primary_set.adjustables:
+        # Collect parameters from all groups
+        group_adfs = []
+        for calibration_set in calibration_sets:
+            group_adfs.append(calibration_set.adjustables[0].adf)
+        combined_adf = pd.concat(group_adfs, axis=1)
+        print(f"DEBUG: combined_params_df: {combined_adf}")
 
-        # create_valid_realization_file(
-        #     agent,
-        #     primary_set.eval_params,
-        #     combined_adf_df,
-        #     "valid_control",
-        # )
-        # create_valid_realization_file(
-        #     agent,
-        #     primary_set.eval_params,
-        #     combined_adf_df,
-        #     "valid_best",
-        # )
-        # primary_obj.write_run_complete_file(agent.run_name, agent.workdir)
-        # complete_msg(
-        #     primary_obj.basinID,
-        #     agent.run_name,
-        #     agent.workdir,
-        #     primary_obj.user,
-        # )
+        create_valid_realization_file(
+            agent,
+            primary_set.eval_params,
+            combined_adf,
+            "valid_control",
+        )
+        create_valid_realization_file(
+            agent,
+            primary_set.eval_params,
+            combined_adf,
+            "valid_best",
+        )
+        primary_obj.write_run_complete_file(agent.run_name, agent.workdir)
+        complete_msg(
+            primary_obj.basinID,
+            agent.run_name,
+            agent.workdir,
+            primary_obj.user,
+        )
 
 
 def compute(
