@@ -150,9 +150,9 @@ def main(general: General, model_conf, log_path_overwrite: str | None = None, wo
             start_iteration = agent.restart()
         func = dds_set  # FIXME what about explicit/dds
     elif general.strategy.algorithm == Algorithm.pso:  # TODO how to restart PSO?
-        if agent.model.strategy.strategy != "uniform":
-            LOG.warning("Can only use PSO with the uniform model strategy")
-            return
+        # if agent.model.strategy.strategy != "uniform":
+        #     LOG.warning("Can only use PSO with the uniform model strategy")
+        #     return
         if general.restart:
             LOG.warning("Restart not supported for PSO search, starting at 0")
         func = pso_search
