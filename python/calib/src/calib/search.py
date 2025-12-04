@@ -578,8 +578,6 @@ def cost_func(
     costs = np.fromiter(pool.imap(func, zip(params, agents)), dtype=float)
     __iteration_counter = __iteration_counter + 1
 
-    print(f"Completed iteration {__iteration_counter - 1} with costs: {costs}")
-
     return costs
 
 
