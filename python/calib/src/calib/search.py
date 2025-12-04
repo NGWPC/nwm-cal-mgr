@@ -563,15 +563,16 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
 
     # Create validation files with parameters from all groups
     primary_set = calibration_sets[0]
-    primary_obj = primary_set.adjustables[0] if primary_set.adjustables else None
+    # primary_obj = primary_set.adjustables[0] if primary_set.adjustables else None
 
     if primary_set.adjustables:
         # Collect parameters from all groups
         group_adfs = []
         for calibration_set in calibration_sets:
             group_adfs.append(calibration_set.adjustables[0].adf)
-        combined_adf = pd.concat(group_adfs, axis=1)
-        print(f"DEBUG: combined_params_df: {combined_adf}")
+        combined_adf = pd.concat(group_adfs, ignore_index=True)
+        print(f"DEBUG: combined_adf cols: {combined_adf.columns.tolist()}")
+        print(f"DEBUG: combined_adf: {combined_adf}")
 
         create_valid_realization_file(
             agent,
@@ -585,12 +586,12 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
             combined_adf,
             "valid_best",
         )
-        primary_obj.write_run_complete_file(agent.run_name, agent.workdir)
+        primary_set.write_run_complete_file(agent.run_name, agent.workdir)
         complete_msg(
-            primary_obj.basinID,
+            primary_set.basinID,
             agent.run_name,
             agent.workdir,
-            primary_obj.user,
+            primary_set.user,
         )
 
 

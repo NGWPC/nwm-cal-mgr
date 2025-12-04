@@ -378,8 +378,6 @@ class NgenBase(ModelExec):
                             par2["param"] = "smcmax"
                         params = pd.concat([params, par2])
 
-        print(f"DEBUG: modules: {modules}")
-        print(f"DEBUG: params: {params}")
         groups = params.set_index("param").groupby("model")
         if isinstance(module, MultiBMI):
             for m in module.modules:
