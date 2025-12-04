@@ -578,6 +578,8 @@ def cost_func(
     costs = np.fromiter(pool.imap(func, zip(params, agents)), dtype=float)
     __iteration_counter = __iteration_counter + 1
 
+    print(f"Completed iteration {__iteration_counter - 1} with costs: {costs}")
+
     return costs
 
 
@@ -771,8 +773,15 @@ def gwo_search(start_iteration: int, iterations: int, agent) -> None:
         )
         cf = partial(cost_func, calibration_object, agents, agent_1st, _pool)
 
-        # Perform optimization
-        cost, pos = optimizer.optimize(cf, iters=iterations, n_processes=None)
+        if iterations < 1:
+            msg = "iterations must be >= 1 for GWO."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        # Perform optimization with one fewer iterations than requested since GlobalBestGWO.optimize()
+        # (in gwo_global_best.py) does an extra iteration during its initialization
+        cost, pos = optimizer.optimize(cf, iters=iterations - 1, n_processes=None)
+
         calibration_object.df.loc[:, "global_best"] = pos
         calibration_object.check_point(agent.workdir)
         logger.info("Best params with cost {}:".format(cost))
