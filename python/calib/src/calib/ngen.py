@@ -325,7 +325,7 @@ class NgenBase(ModelExec):
             i (int): _description_
             params (pd.DataFrame): _description_
             id (str): _description_
-            **kwards: Additional arguments
+            **kwargs: Additional arguments
         """
 
         if id is None:
@@ -355,7 +355,7 @@ class NgenBase(ModelExec):
             # Apply params to module
             self.apply_params_to_module(i, params, module)
 
-    def apply_params_to_module(self, i: int, params: "pd.DataFrame", module) -> None:
+    def apply_params_to_module(self, i: Union[int, str], params: "pd.DataFrame", module) -> None:
         """Apply updated parameters to a module"""
         if hasattr(module, "modules"):
             modules = [m.params.model_name for m in module.modules]

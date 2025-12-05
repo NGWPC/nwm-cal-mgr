@@ -172,6 +172,7 @@ def _evaluate(
         primary_obj = calibration_object
 
     # Calculate objective function and metrics using first calibration set
+    primary_obj._output = None
     metrics = _calc_metrics(
         primary_obj.output,
         primary_obj.observed,
@@ -551,6 +552,11 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
             evaluatable_objects = _get_evaluatable_objs(calibration_set)
             for calibration_object in evaluatable_objects:
                 dds_update(i, inclusion_probability, calibration_object, agent)
+                agent.update_config(
+                    i,
+                    calibration_object.adf[[str(i), "param", "model"]],
+                    calibration_object.id
+                )
 
         # Write realization file with all updated parameters
         agent.model.strategy.write_realization_file(path=Path(agent.job.workdir))
@@ -564,36 +570,32 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
 
     # Create validation files with parameters from all groups
     primary_set = calibration_sets[0]
-    # primary_obj = primary_set.adjustables[0] if primary_set.adjustables else None
 
-    if primary_set.adjustables:
-        # Collect parameters from all groups
-        group_adfs = []
-        for calibration_set in calibration_sets:
-            group_adfs.append(calibration_set.adjustables[0].adf)
-        combined_adf = pd.concat(group_adfs, ignore_index=True)
-        print(f"DEBUG: combined_adf cols: {combined_adf.columns.tolist()}")
-        print(f"DEBUG: combined_adf: {combined_adf}")
+    # Collect parameters from all groups
+    group_adfs = []
+    for calibration_set in calibration_sets:
+        group_adfs.append(calibration_set.adjustables[0].adf)
+    combined_adf = pd.concat(group_adfs, ignore_index=True)
 
-        create_valid_realization_file(
-            agent,
-            primary_set.eval_params,
-            combined_adf,
-            "valid_control",
-        )
-        create_valid_realization_file(
-            agent,
-            primary_set.eval_params,
-            combined_adf,
-            "valid_best",
-        )
-        primary_set.write_run_complete_file(agent.run_name, agent.workdir)
-        complete_msg(
-            primary_set.basinID,
-            agent.run_name,
-            agent.workdir,
-            primary_set.user,
-        )
+    create_valid_realization_file(
+        agent,
+        primary_set.eval_params,
+        combined_adf,
+        "valid_control",
+    )
+    create_valid_realization_file(
+        agent,
+        primary_set.eval_params,
+        combined_adf,
+        "valid_best",
+    )
+    primary_set.write_run_complete_file(agent.run_name, agent.workdir)
+    complete_msg(
+        primary_set.basinID,
+        agent.run_name,
+        agent.workdir,
+        primary_set.user,
+    )
 
 
 def compute(
@@ -612,8 +614,6 @@ def compute(
     params = input[0]
     agent = input[1]
 
-    print(f"DEUBG: compute: iteration={iteration}")
-    print(f"DEUBG: compute: params={params}")
     # determine whether it is the first iteration for the agent
     agent_name = (
         os.path.basename(agent.job.workdir).replace("ngen_", "").replace("_worker", "")
@@ -625,24 +625,26 @@ def compute(
     # Update all groups with new parameters
     idx = 0
     for cal_set in calibration_sets:
+        group_dims = len(cal_set.adjustables[0].df)
+        param_values = params[idx:idx + group_dims]
         for cal_obj in cal_set.adjustables:
-            group_dims = len(cal_obj.df)
-            param_values = params[idx:idx+group_dims]
-            print(f"DEUBG: compute: cal_obj.id={cal_obj.id}")
-            print(f"DEUBG: compute: param_values={param_values}")
-            cal_obj.df[str(iteration)] = params[idx:idx + group_dims]
-            idx += group_dims
+            cal_obj.df[str(iteration)] = param_values
 
-    # Execute run with the updated parameter set and evaluate objective function
-    with pushd(agent.job.workdir):
-        for cal_set in calibration_sets:
+        # Apply updated parameters to realization
+        for cal_obj in cal_set.adjustables:
             agent.update_config(
                 iteration,
                 cal_obj.df[[str(iteration), "param", "model"]],
                 cal_obj.id
             )
+
         # Write realization file with all updated parameters
         agent.model.strategy.write_realization_file(path=Path(agent.job.workdir))
+
+        idx += group_dims
+
+    # Execute run with the updated parameter set and evaluate objective function
+    with pushd(agent.job.workdir):
         _execute(agent, iteration)
         cost = _evaluate(iteration, calibration_sets, agent, first_iter_for_agent)
         for cal_set in calibration_sets:
@@ -710,7 +712,7 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
 
     # TODO warn about potential loss of data when particles > pool
     _pool = pool.Pool(pool_size)
-    agents = [agent] + [copy.deepcopy(agent) for i in range(num_particles - 1)]
+    agents = [agent] + [agent.duplicate() for i in range(num_particles - 1)]
     default_options = {"c1": 0.5, "c2": 0.3, "w": 0.9}
     options = agent.parameters.get("options", default_options)
 
@@ -780,27 +782,31 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
 
     # Perform optimization
     # For pyswarm, DO NOT use the embedded multi-processing -- it is impossible to track the mapping of an agent to the params
-    #cost, pos = optimizer.optimize(cf, iters=iterations, n_processes=None)
-    cost, pos = optimizer.optimize(cf, iters=iterations, n_processes=1)
+    cost, pos = optimizer.optimize(cf, iters=iterations, n_processes=None)
 
     # Update best position across all groups
     idx = 0
     for calibration_set in calibration_sets:
         for calibration_object in calibration_set.adjustables:
             group_dims = len(calibration_object.df)
-            calibration_object.df.loc[:, "global_best"] = pos[idx:idx + group_dims].values
-            idx += group_dims
+            calibration_object.df.loc[:, "global_best"] = pos[idx:idx + group_dims]
             logger.info(calibration_object.df[["param", "global_best"]].set_index("param"))
             calibration_object.check_point(agent.workdir)
+        idx += group_dims
     logger.info("Best params with cost {}:".format(cost))
 
+    # Get df from each group and stack parameters
+    group_dfs = []
+    for calibration_set in calibration_sets:
+        group_dfs.append(calibration_set.adjustables[0].df)
+    combined_df = pd.concat(group_dfs, ignore_index=True)
+
     # Save and plot history
-    # cost_hist_file = calibration_object.write_hist_file(optimizer, agent, list(calibration_object.df['param']))
-    cost_hist_file = calibration_sets[0].adjustables[0].write_hist_file(
-        optimizer, agent, calibration_sets[0].adjustables[0].df
+    cost_hist_file = calibration_sets[0].write_hist_file(
+        optimizer, agent, combined_df
     )
 
-    plot_cost_func(calibration_sets[0].adjustables[0], agent, cost_hist_file, agent.algorithm)
+    plot_cost_func(calibration_sets[0], agent, cost_hist_file, agent.algorithm)
 
     # Create configuration files for validation run
     # calibration_object.create_valid_realization_file(agent, calibration_object.df)
@@ -817,18 +823,18 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
     group_adfs = []
     for calibration_set in calibration_sets:
         if calibration_set.adjustables:
-            group_adfs.appends(calibration_set.adjustables[0].adf)
+            group_adfs.append(calibration_set.adjustables[0].adf)
     combined_adf = pd.concat(group_adfs, ignore_index=True)
 
     create_valid_realization_file(
         agent,
-        calibration_object.eval_params,
+        primary_set.eval_params,
         combined_adf,
         "valid_control",
     )
     create_valid_realization_file(
         agent,
-        calibration_object.eval_params,
+        primary_set.eval_params,
         combined_adf,
         "valid_best"
     )

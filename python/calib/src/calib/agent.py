@@ -247,17 +247,30 @@ class Agent(BaseAgent):
         return self.model.realization_file
 
     def duplicate(self, restart_flag=False, agent_counter=0) -> "Agent":
-        # serialize a copy of the model
-        # FIXME ??? if you do self.model.resolve_paths() here, the duplicated agent
-        # doesn't have fully qualified paths...but if you do it in constructor, it works fine...
-        data = self.model.model_copy(deep=True)
-        # return a new agent, which has a unique Model instance
-        # and its own Job/workspace
-        return Agent(
-            data.model_dump(by_alias=True),
+        """Create a duplicate agent with independent workspace"""
+        # Create minimal model config just to create worker
+        # TODO: This reinitializes the NgenUniform/NgenGrouped code for each particle in PSO, which isn't efficient
+        minimal_model = {
+            "type": self.model.model_type,
+            "strategy": self.model.model_strategy,
+            "catchments": self.model.strategy.catchments,
+            "params": self.model.strategy.params,
+            "nexus": self.model.strategy.nexus,
+            "crosswalk": self.model.strategy.crosswalk,
+            "realization": self.model.strategy.realization
+        }
+
+        # Create new agent with minimal model
+        new_agent = Agent(
+            minimal_model,
             self._workdir,
             self._general,
             log=False,
             restart=restart_flag,
-            agent_counter=agent_counter,
+            agent_counter=agent_counter
         )
+
+        # Replace model with shared reference to original model
+        new_agent._model = self._model
+
+        return new_agent

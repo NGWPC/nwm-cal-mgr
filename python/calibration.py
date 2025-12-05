@@ -155,6 +155,9 @@ def main(general: General, model_conf, log_path_overwrite: str | None = None, wo
         #     return
         if general.restart:
             LOG.warning("Restart not supported for PSO search, starting at 0")
+        # STOP TKINTER THREADING ISSUE
+        import matplotlib
+        matplotlib.use('Agg')
         func = pso_search
     elif general.strategy.algorithm == Algorithm.gwo:
         if agent.model.strategy.strategy != "uniform":
