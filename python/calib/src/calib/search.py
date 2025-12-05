@@ -172,7 +172,6 @@ def _evaluate(
         primary_obj = calibration_object
 
     # Calculate objective function and metrics using first calibration set
-    primary_obj._output = None
     metrics = _calc_metrics(
         primary_obj.output,
         primary_obj.observed,
