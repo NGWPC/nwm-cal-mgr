@@ -65,6 +65,7 @@ def _execute(meta: "Agent", i: int = None) -> None:
     i : Current iteration, default None
 
     """
+
     # This is a critical file used by the server to identify which worker goes with which validation run
     if i is None:
         # Only do this for validation jobs
@@ -179,6 +180,7 @@ def _evaluate(
         primary_obj.threshold,
         primary_obj.peak_flow_threshold,
     )
+
     #  Handle single-run execution output writing for NoCalibModel
     if agent.run_single_iteration:
         primary_obj.write_iteration_outputs(agent, metrics, metrics["objFunVal"])
@@ -516,6 +518,8 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
     if start_iteration > iterations:
         raise ValueError("start_iteration must be <= iterations")
 
+    logger.info(f"DEBUG: agent.model.args={agent.model.strategy.args}")
+
     neighborhood_size = agent.parameters.get("neighborhood", 0.2)
     calibration_sets = agent.model.adjustables
     init = start_iteration - 1 if start_iteration > 0 else start_iteration
@@ -532,6 +536,9 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
                 calibration_object.adf[[str(init), "param", "model"]],
                 calibration_object.id,
             )
+
+    # Write realization file to worker directory
+    agent.model.strategy.write_realization_file(path=Path(agent.job.workdir))
 
     if start_iteration == 0:
         if calibration_set.output is None:

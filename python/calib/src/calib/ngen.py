@@ -275,7 +275,7 @@ class NgenBase(ModelExec):
             args = '{} "all" {} "all" {}'.format(
                 Path(catchments).resolve(),
                 Path(nexus).resolve(),
-                Path(realization).resolve()
+                Path(realization).name
             )
             values["args"] = args
         else:
@@ -434,6 +434,8 @@ class NgenBase(ModelExec):
                         json.dumps(obj)
                         return obj
                     except TypeError:
+                        if isinstance(obj, type):
+                            return f"{obj.__module__}.{obj.__qualname__}"
                         return str(obj)  # fallback to string
 
             safe_dict = convert(model)
