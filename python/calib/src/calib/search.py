@@ -918,9 +918,11 @@ def gwo_search(start_iteration: int, iterations: int, agent) -> None:
             _execute(agent, start_iteration)
 
         with pushd(agent.job.workdir):
+            logger.info("Evaulating iteration 0")
             _evaluate(
                 0, calibration_sets, agent, first_iter_for_agent=True, info=True
             )
+            logger.info("Finished evaluating iteration 0")
 
         for calibration_set in calibration_sets:
             calibration_set.check_point(agent.job.workdir)
