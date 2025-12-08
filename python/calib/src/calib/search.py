@@ -733,13 +733,14 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
                 "Running {} to produce initial simulation".format(agent.cmd)
             )
             for calibration_set in calibration_sets:
-                for calibration_object in calibration_set.adjustables:
-                    calibration_object.df_fill(start_iteration)
-                    agent.update_config(
-                        start_iteration,
-                        calibration_object.adf[[str(start_iteration), "param", "model"]],
-                        calibration_object.id,
-                    )
+                # Only update first catchment in group
+                calibration_object = calibration_set.adjustables[0]
+                calibration_object.df_fill(start_iteration)
+                agent.update_config(
+                    start_iteration,
+                    calibration_object.adf[[str(start_iteration), "param", "model"]],
+                    calibration_object.id,
+                )
             # Write realization file with all updated parameters
             agent.model.strategy.write_realization_file(path=Path(agent.job.workdir))
             _execute(agent, start_iteration)
@@ -792,14 +793,14 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
     # For pyswarm, DO NOT use the embedded multi-processing -- it is impossible to track the mapping of an agent to the params
     cost, pos = optimizer.optimize(cf, iters=iterations, n_processes=None)
 
-    # Update best position across all groups
+    # Update best position across all groups (only for first cal_obj in each group)
     idx = 0
     for calibration_set in calibration_sets:
-        for calibration_object in calibration_set.adjustables:
-            group_dims = len(calibration_object.df)
-            calibration_object.df.loc[:, "global_best"] = pos[idx:idx + group_dims]
-            logger.info(calibration_object.df[["param", "global_best"]].set_index("param"))
-            calibration_object.check_point(agent.workdir)
+        calibration_object = calibration_set.adjustables[0]
+        group_dims = len(calibration_object.df)
+        calibration_object.df.loc[:, "global_best"] = pos[idx:idx + group_dims]
+        logger.info(calibration_object.df[["param", "global_best"]].set_index("param"))
+        calibration_object.check_point(agent.workdir)
         idx += group_dims
     logger.info("Best params with cost {}:".format(cost))
 
@@ -819,10 +820,10 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
     # Create configuration files for validation run
     # calibration_object.create_valid_realization_file(agent, calibration_object.df)
     for calibration_set in calibration_sets:
-        for calibration_object in calibration_set.adjustables:
-            calibration_object.df[str(iterations)] = calibration_object.df["global_best"]
-            calibration_object.df_fill(iterations)
-            calibration_object.adf["global_best"] = calibration_object.adf[str(iterations)]
+        calibration_object = calibration_set.adjustables[0]
+        calibration_object.df[str(iterations)] = calibration_object.df["global_best"]
+        calibration_object.df_fill(iterations)
+        calibration_object.adf["global_best"] = calibration_object.adf[str(iterations)]
 
     # Create validation files with parameters from all groups
     primary_set = calibration_sets[0]
