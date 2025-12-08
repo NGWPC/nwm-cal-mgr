@@ -150,9 +150,9 @@ def main(general: General, model_conf, log_path_overwrite: str | None = None, wo
             start_iteration = agent.restart()
         func = dds_set  # FIXME what about explicit/dds
     elif general.strategy.algorithm == Algorithm.pso:  # TODO how to restart PSO?
-        # if agent.model.strategy.strategy != "uniform":
-        #     LOG.warning("Can only use PSO with the uniform model strategy")
-        #     return
+        if agent.model.strategy.strategy not in ["uniform", "grouped"]:
+            LOG.warning("Can only use PSO with the uniform or grouped model strategy")
+            return
         if general.restart:
             LOG.warning("Restart not supported for PSO search, starting at 0")
         # STOP TKINTER THREADING ISSUE
@@ -160,8 +160,8 @@ def main(general: General, model_conf, log_path_overwrite: str | None = None, wo
         matplotlib.use('Agg')
         func = pso_search
     elif general.strategy.algorithm == Algorithm.gwo:
-        if agent.model.strategy.strategy != "uniform":
-            LOG.warning("Can only use GWO with the uniform model strategy")
+        if agent.model.strategy.strategy not in ["uniform", "grouped"]:
+            LOG.warning("Can only use GWO with the uniform or grouped model strategy")
             return
         if general.restart:
             start_iteration = agent.restart()

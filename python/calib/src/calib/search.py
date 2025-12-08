@@ -346,9 +346,7 @@ def dds_update(
         neighborhood = calibration_object.variables.sample(n=1)
 
     # Generate new parameter set by perturbng the best parameters
-    calibration_object.df[str(iteration)] = calibration_object.df[
-        agent.best_params
-    ].copy()
+    calibration_object.df[str(iteration)] = calibration_object.df[agent.best_params].copy()
     for n in neighborhood:
         new = calibration_object.df.loc[
             n, agent.best_params
@@ -897,83 +895,125 @@ def gwo_search(start_iteration: int, iterations: int, agent) -> None:
         for agent in agents:
             if len(glob.glob(os.path.join(agent.job.workdir, "*.log"))) != 1:
                 agent.restart()
-    for calibration_object in agent.model.adjustables:
-        # Produce the baseline simulation output for first agent
-        if start_iteration == 0:
-            if calibration_object.output is None:
-                logger.info(
-                    "Running {} to produce initial simulation".format(agent.cmd)
-                )
-                # agent.update_config(start_iteration, calibration_object.df[[str(start_iteration), 'param', 'model']], calibration_object.id)
+
+    calibration_sets = agent.model.adjustables
+
+    # Produce the baseline simulation output for first agent
+    if start_iteration == 0:
+        if calibration_sets[0].output is None:
+            logger.info(
+                "Running {} to produce initial simulation".format(agent.cmd)
+            )
+            # agent.update_config(start_iteration, calibration_object.df[[str(start_iteration), 'param', 'model']], calibration_object.id)
+            for calibration_set in calibration_sets:
+                calibration_object = calibration_set.adjustables[0]
                 calibration_object.df_fill(start_iteration)
                 agent.update_config(
                     start_iteration,
                     calibration_object.adf[[str(start_iteration), "param", "model"]],
                     calibration_object.id,
                 )
-                # Write realization file with all updated parameters
-                agent.model.strategy.write_realization_file(path=Path(agent.job.workdir))
-                _execute(agent, start_iteration)
-            with pushd(agent.job.workdir):
-                _evaluate(
-                    0, calibration_object, agent, first_iter_for_agent=True, info=True
-                )
-            calibration_object.check_point(agent.job.workdir)
-        bounds = calibration_object.bounds
-        bounds = (bounds[0].values, bounds[1].values)
+            # Write realization file with all updated parameters
+            agent.model.strategy.write_realization_file(path=Path(agent.job.workdir))
+            _execute(agent, start_iteration)
 
-        # Initialize swarms
-        optimizer = GlobalBestGWO(
-            n_particles=num_particles,
-            dimensions=len(calibration_object.df),
-            bounds=bounds,
-            start_iter=start_iteration,
-            calib_path=agent.calib_path,
-            basinid=calibration_object.basinID,
-        )
-        cf = partial(cost_func, calibration_object, agents, agent_1st, _pool)
+        with pushd(agent.job.workdir):
+            _evaluate(
+                0, calibration_sets, agent, first_iter_for_agent=True, info=True
+            )
 
-        if iterations < 1:
-            msg = "iterations must be >= 1 for GWO."
-            logger.error(msg)
-            raise ValueError(msg)
+        for calibration_set in calibration_sets:
+            calibration_set.check_point(agent.job.workdir)
 
-        # Perform optimization with one fewer iterations than requested since GlobalBestGWO.optimize()
-        # (in gwo_global_best.py) does an extra iteration during its initialization
-        cost, pos = optimizer.optimize(cf, iters=iterations - 1, n_processes=None)
+    # Get bounds from all groups
+    all_bounds = []
+    all_dims = 0
+    for calibration_set in calibration_sets:
+        bounds = calibration_set.adjustables[0].bounds
+        all_bounds.append((bounds[0].values, bounds[1].values))
+        all_dims += len(calibration_set.adjustables[0].df)
 
-        calibration_object.df.loc[:, "global_best"] = pos
+    # Flatten bounds
+    lower_bounds = np.concatenate([b[0] for b in all_bounds])
+    upper_bounds = np.concatenate([b[1] for b in all_bounds])
+    bounds = (lower_bounds, upper_bounds)
+
+    # Initialize swarms
+    optimizer = GlobalBestGWO(
+        n_particles=num_particles,
+        dimensions=all_dims,
+        bounds=bounds,
+        start_iter=start_iteration,
+        calib_path=agent.calib_path,
+        basinid=calibration_sets[0].basinID,
+    )
+    cf = partial(cost_func, calibration_sets=calibration_sets, agents=agents, agent_1st=agent_1st, pool=_pool)
+
+    if iterations < 1:
+        msg = "iterations must be >= 1 for GWO."
+        logger.error(msg)
+        raise ValueError(msg)
+
+    # Perform optimization with one fewer iterations than requested since GlobalBestGWO.optimize()
+    # (in gwo_global_best.py) does an extra iteration during its initialization
+    cost, pos = optimizer.optimize(cf, iters=iterations - 1, n_processes=None)
+
+    # Update global best across all groups
+    idx = 0
+    for calibration_set in calibration_sets:
+        calibration_object = calibration_set.adjustables[0]
+        group_dims = len(calibration_object.df)
+        calibration_object.df.loc[:, "global_best"] = pos[idx:idx + group_dims]
         calibration_object.check_point(agent.workdir)
-        logger.info("Best params with cost {}:".format(cost))
-        # logger.info(calibration_object.df[['param','global_best']].set_index('param'))
+        idx += group_dims
+    logger.info("Best params with cost {}:".format(cost))
 
-        # Save and plot history
-        # cost_hist_file = calibration_object.write_hist_file(optimizer, agent, list(calibration_object.df['param']))
-        cost_hist_file = calibration_object.write_hist_file(
-            optimizer, agent, calibration_object.df
-        )
-        plot_cost_func(calibration_object, agent, cost_hist_file, agent.algorithm)
+    # Save and plot history
+    group_dfs = []
+    for calibration_set in calibration_sets:
+        group_dfs.append(calibration_set.adjustables[0].df)
+    combined_df = pd.concat(group_dfs, ignore_index=True)
 
-        # Create configuration files for validation run
-        # calibration_object.create_valid_realization_file(agent, calibration_object.df)
+    cost_hist_file = calibration_sets[0].write_hist_file(
+        optimizer, agent, combined_df
+    )
+    plot_cost_func(calibration_sets[0], agent, cost_hist_file, agent.algorithm)
+
+    # Create configuration files for validation run
+    for calibration_set in calibration_sets:
+        calibration_object = calibration_set.adjustables[0]
         calibration_object.df[str(iterations)] = calibration_object.df["global_best"]
         calibration_object.df_fill(iterations)
         calibration_object.adf["global_best"] = calibration_object.adf[str(iterations)]
-        create_valid_realization_file(
-            agent,
-            calibration_object.eval_params,
-            calibration_object.adf,
-            "valid_control",
-        )
-        create_valid_realization_file(
-            agent, calibration_object.eval_params, calibration_object.adf, "valid_best"
-        )
 
-        # Indicate completion
-        calibration_object.write_run_complete_file(agent.run_name, agent.workdir)
-        complete_msg(
-            calibration_object.basinID,
-            agent.run_name,
-            agent.workdir,
-            calibration_object.user,
-        )
+    # Create validation files with parameters from all groups
+    primary_set = calibration_sets[0]
+
+    # Get adf from each group and stack parameters
+    group_adfs = []
+    for calibration_set in calibration_sets:
+        if calibration_set.adjustables:
+            group_adfs.append(calibration_set.adjustables[0].adf)
+    combined_adf = pd.concat(group_adfs, ignore_index=True)
+
+    create_valid_realization_file(
+        agent,
+        primary_set.eval_params,
+        combined_adf,
+        "valid_control",
+    )
+    create_valid_realization_file(
+        agent,
+        primary_set.eval_params,
+        combined_adf,
+        "valid_best"
+    )
+
+    # Indicate completion
+    primary_set.write_run_complete_file(agent.run_name, agent.workdir)
+    complete_msg(
+        primary_set.basinID,
+        agent.run_name,
+        agent.workdir,
+        primary_set.user,
+    )
