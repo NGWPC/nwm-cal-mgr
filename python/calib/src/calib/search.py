@@ -556,13 +556,15 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
         inclusion_probability = 1 - log(i) / log(iterations)
         for calibration_set in calibration_sets:
             evaluatable_objects = _get_evaluatable_objs(calibration_set)
-            for calibration_object in evaluatable_objects:
-                dds_update(i, inclusion_probability, calibration_object, agent)
-                agent.update_config(
-                    i,
-                    calibration_object.adf[[str(i), "param", "model"]],
-                    calibration_object.id
-                )
+            # Generate new parameters once per group
+            calibration_object = evaluatable_objects[0]
+            dds_update(i, inclusion_probability, calibration_object, agent)
+            logger.critical(f"After dds_update: calibration_object.df[{i}] = {calibration_object.df[str(i)].values}")
+            agent.update_config(
+                i,
+                calibration_object.adf[[str(i), "param", "model"]],
+                calibration_object.id
+            )
 
         # Write realization file with all updated parameters
         agent.model.strategy.write_realization_file(path=Path(agent.job.workdir))
