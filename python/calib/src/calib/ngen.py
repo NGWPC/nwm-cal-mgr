@@ -327,9 +327,8 @@ class NgenBase(ModelExec):
             id (str): _description_
             **kwargs: Additional arguments
         """
-
         if id is None:
-            if hasattr(self.ngen_realization, 'formulation_groups'):
+            if hasattr(self.ngen_realization, 'formulation_groups') and self.ngen_realization.formulation_groups:
                 # Update grouped realization
                 for grp_name in self.ngen_realization.formulation_groups.keys():
                     formulation_configs = self.ngen_realization.formulation_groups[grp_name]
@@ -339,7 +338,7 @@ class NgenBase(ModelExec):
                     self.apply_params_to_module(i, params, module)
             else:
                 # Update global config
-                module = self.ngen_realization.catchments[id].formulations[0].params
+                module = self.ngen_realization.global_config.formulations[0].params
                 self.apply_params_to_module(i, params, module)
         else:  # update specific catchment or formulation group
             if hasattr(self.ngen_realization, 'catchments') and id in self.ngen_realization.catchments:
@@ -357,6 +356,7 @@ class NgenBase(ModelExec):
 
     def apply_params_to_module(self, i: Union[int, str], params: "pd.DataFrame", module) -> None:
         """Apply updated parameters to a module"""
+
         if hasattr(module, "modules"):
             modules = [m.params.model_name for m in module.modules]
         else:

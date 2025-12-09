@@ -516,22 +516,13 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
     if start_iteration > iterations:
         raise ValueError("start_iteration must be <= iterations")
 
-    logger.info(f"DEBUG: agent.model.args={agent.model.strategy.args}")
-
     neighborhood_size = agent.parameters.get("neighborhood", 0.2)
     calibration_sets = agent.model.adjustables
     init = start_iteration - 1 if start_iteration > 0 else start_iteration
     # Update parameters for all groups before each run
-    print(f"Calibration_sets: {calibration_sets}")
     for calibration_set in calibration_sets:
-        print(f"Calibration_set: {calibration_set}")
         evaluatable_objects = _get_evaluatable_objs(calibration_set)
-        print(f"Evaluatable_objects: {evaluatable_objects}")
         for calibration_object in evaluatable_objects:
-            print(f"calibration_object: {calibration_object}")
-            for adj in calibration_object.adjustables:
-                print(f"calibration_object.adjustables: {adj}")
-
             calibration_object.df["sigma"] = neighborhood_size * (
                 calibration_object.df["max"] - calibration_object.df["min"]
             )
