@@ -53,7 +53,7 @@ def _get_evaluatable_objs(calibration_object):
         return calibration_object.adjustables
     else:
         # Single Adjustable
-        return [calibration_object]
+        return calibration_object
 
 
 def _execute(meta: "Agent", i: int = None) -> None:
@@ -522,9 +522,16 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
     calibration_sets = agent.model.adjustables
     init = start_iteration - 1 if start_iteration > 0 else start_iteration
     # Update parameters for all groups before each run
+    print(f"Calibration_sets: {calibration_sets}")
     for calibration_set in calibration_sets:
+        print(f"Calibration_set: {calibration_set}")
         evaluatable_objects = _get_evaluatable_objs(calibration_set)
+        print(f"Evaluatable_objects: {evaluatable_objects}")
         for calibration_object in evaluatable_objects:
+            print(f"calibration_object: {calibration_object}")
+            for adj in calibration_object.adjustables:
+                print(f"calibration_object.adjustables: {adj}")
+
             calibration_object.df["sigma"] = neighborhood_size * (
                 calibration_object.df["max"] - calibration_object.df["min"]
             )
@@ -557,7 +564,6 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
             # Generate new parameters once per group
             calibration_object = evaluatable_objects[0]
             dds_update(i, inclusion_probability, calibration_object, agent)
-            logger.critical(f"After dds_update: calibration_object.df[{i}] = {calibration_object.df[str(i)].values}")
             agent.update_config(
                 i,
                 calibration_object.adf[[str(i), "param", "model"]],
