@@ -79,11 +79,11 @@ def run_valid_ctrl_best(agent):
 
     # Get first evaluatable object
     primary_set = calibration_sets[0]
-    evaluatable_objects = _get_evaluatable_objs(primary_set)
-    if isinstance(evaluatable_objects, list):
-        calibration_object = evaluatable_objects[0]
-    else:
-        calibration_object = evaluatable_objects
+    # evaluatable_objects = _get_evaluatable_objs(primary_set)
+    # if isinstance(evaluatable_objects, list):
+    #     calibration_object = evaluatable_objects[0]
+    # else:
+        # calibration_object = evaluatable_objects
 
     # Run validation simulation
     with pushd(agent.job.workdir):
@@ -91,7 +91,6 @@ def run_valid_ctrl_best(agent):
         _execute(agent)
 
     # Calculate metric using first calibration object
-    print(f"DEBUG: calibration_object: {calibration_object}")
     with pushd(agent.job.workdir):
         time_period = {
             "calib": primary_set.evaluation_range,
@@ -127,7 +126,7 @@ def run_valid_ctrl_best(agent):
                 metrics.to_csv(metric_out_file, index=False)
 
         # Save and move output
-        calibration_object.save_valid_output(
+        primary_set.save_valid_output(
             primary_set.basinID,
             agent.run_name,
             agent.valid_path,
@@ -144,7 +143,7 @@ def run_valid_ctrl_best(agent):
                 runs.append(agent.run_name)
             logger.info(f"Generating plots comparing {runs}")
 
-            plot_valid_output(calibration_object, agent, runs, time_period)
+            plot_valid_output(primary_set, agent, runs, time_period)
 
         # Indicate completion
         primary_set.write_run_complete_file(agent.run_name, agent.workdir)
