@@ -643,7 +643,7 @@ class NgenUniform(NgenBase):
     params: Mapping[str, Parameters]  # required in this case...
 
     def __init__(self, **kwargs):
-        ##Let pydantic work its magic
+        # Let pydantic work its magic
         super().__init__(**kwargs)
 
         # Check if params is provided and non-empty
@@ -684,6 +684,7 @@ class NgenUniform(NgenBase):
         nexus_id = self._catchment_hydro_fabric.loc[
             self._x_walk.index[0].replace("cat", "wb")
         ]["toid"]
+
         self._wb_lst = [
             x.split("-")[1]
             for x in list(self._catchment_hydro_fabric.query("toid==@nexus_id").index)
@@ -861,7 +862,6 @@ class NgenGrouped(NgenBase):
                 x.split("-")[1]
                 for x in list(self._catchment_hydro_fabric.query("toid==@gage_nexus_id").index)
             ]
-
         except (KeyError, Exception) as e:
             # Include all catchments in wb_lst as fallback
             self._wb_lst = list(self._catchment_hydro_fabric.index)

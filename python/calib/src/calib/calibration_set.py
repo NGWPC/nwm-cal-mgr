@@ -304,6 +304,64 @@ class CalibrationSet(Evaluatable):
             for outfl in glob.glob(os.path.join(calib_path2, "*.out")):
                 shutil.move(outfl, calib_path3 + "/" + os.path.basename(outfl))
 
+    def save_valid_output(
+        self,
+        basinid: str,
+        run_name: str,
+        valid_path1: "Path",
+        valid_path2: "Path",
+        valid_path3: "Path",
+    ) -> None:
+        """Save model output from validation run.
+
+        Parameters:
+        ----------
+        run_name : Control or best run
+        valid_path1 : Validation run main directory
+        valid_path2 : Validation run job work directory
+        valid_path3 : Subdrirectory under valid_path2 to store output files
+
+        """
+        if os.path.exists(self._output_file):
+            flow_output = self._output.reset_index()
+            flow_output = flow_output.rename(columns={"index": "Time"})
+            filename_valid = os.path.join(
+                valid_path1, basinid + "_output_" + run_name + ".csv"
+            )
+            flow_output.to_csv(filename_valid, index=False)
+            shutil.move(
+                self._output_file,
+                os.path.join(valid_path2, "{}_".format(self._output_file) + run_name),
+            )
+        for csvfl in glob.glob(os.path.join(valid_path2, "nex*.csv")):
+            shutil.move(
+                csvfl,
+                valid_path3
+                + "/"
+                + os.path.basename(csvfl).split(".")[0]
+                + "_{}".format(run_name)
+                + ".csv",
+            )
+        for csvfl in glob.glob(os.path.join(valid_path2, "cat*.csv")):
+            shutil.move(
+                csvfl,
+                valid_path3
+                + "/"
+                + os.path.basename(csvfl).split(".")[0]
+                + "_{}".format(run_name)
+                + ".csv",
+            )
+        if len(glob.glob(os.path.join(valid_path2, "*.out"))) > 0:
+            for outfl in glob.glob(os.path.join(valid_path2, "*.out")):
+                shutil.move(
+                    outfl,
+                    valid_path3
+                    + "/"
+                    + os.path.basename(outfl).split(".")[0]
+                    + "_{}".format(run_name)
+                    + ".out",
+                )
+
     def save_best_output(self, best_output_file: "Path", best_save_flag=False) -> None:
         """Save the output at the best iteration
 
@@ -386,6 +444,7 @@ class UniformCalibrationSet(CalibrationSet, Adjustable):
         # FIXME re-enable this once more complete
         shutil.move(self._output_file, "{}_last".format(self._output_file))
 
+<<<<<<< HEAD
     # def save_calib_output(
     #     self,
     #     i,
@@ -521,6 +580,8 @@ class UniformCalibrationSet(CalibrationSet, Adjustable):
                     + ".out",
                 )
 
+=======
+>>>>>>> ba371f5 (Final validation run updates)
     # Update handled in meta, TODO remove this method???
     def update_params(self, iteration: int) -> None:
         pass

@@ -79,11 +79,6 @@ def run_valid_ctrl_best(agent):
 
     # Get first evaluatable object
     primary_set = calibration_sets[0]
-    # evaluatable_objects = _get_evaluatable_objs(primary_set)
-    # if isinstance(evaluatable_objects, list):
-    #     calibration_object = evaluatable_objects[0]
-    # else:
-        # calibration_object = evaluatable_objects
 
     # Run validation simulation
     with pushd(agent.job.workdir):
@@ -99,7 +94,6 @@ def run_valid_ctrl_best(agent):
         }
 
         outputs = [primary_set.output]
-        print(f"DEBUG: outputs={outputs}")
         runs = [agent.run_name]
         if agent.run_name != "valid_control":
             if agent.nwmflow is not None:
@@ -153,17 +147,4 @@ def run_valid_ctrl_best(agent):
             agent.workdir,
             primary_set.user,
         )
-
-
-def _get_evaluatable_objs(calibration_object):
-    """
-    Get a list of evaluatable objects from either a single Adjustable (NgenUniform)
-    of a CalibrationSet with nested adjustables (NgenGrouped)
-    """
-    if hasattr(calibration_object, 'adjustables') and calibration_object.adjustables:
-        # CalibrationSet with nested adjustables
-        return calibration_object.adjustables
-    else:
-        # Single Adjustable
-        return calibration_object
 
