@@ -115,6 +115,14 @@ def plot_streamflow(
     ax.grid(True, color="0.8", linewidth=0.4)
     ax.legend(loc="upper right", fontsize=12, frameon=False)
 
+    # if path to save plot does not exist, issue an error since the path should have been created beforehand
+    if not os.path.exists(os.path.dirname(plotfile)):
+        msg = (
+            f"Inaccessible output location during calibration. "
+            f"Path {os.path.dirname(plotfile)} does not exist."
+        )
+        logger.error(msg)
+        raise FileNotFoundError(msg)
     fig.savefig(plotfile)
     plt.close()
 
