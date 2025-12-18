@@ -102,7 +102,8 @@ def log_level_set(log_path_overwrite: str | None = None):
         )
 
 
-def main(general: General, model_conf, log_path_overwrite: str | None = None):
+def main(general: General, model_conf, log_path_overwrite: str | None = None, worker_name: str | None = None):
+    """If worker_name is not provided, a random string will be used when generating the worker directory"""
     # Seed the random number generators if requested
     if general.random_seed is not None:
         import random
@@ -124,7 +125,7 @@ def main(general: General, model_conf, log_path_overwrite: str | None = None):
     start_iteration = 0
 
     # Initialize the starting agent
-    agent = Agent(model_conf, general.calib_path, general, general.log, general.restart)
+    agent = Agent(model_conf, general.calib_path, general, general.log, general.restart, worker_name=worker_name)
 
     # set environment variable for ngencerf backend
     os.environ["NGEN_RESULTS_DIR"] = str(Path(agent.workdir).parent.parent)
@@ -196,7 +197,13 @@ if __name__ == "__main__":
     parser.add_argument("--log_path_overwrite", required=False, type=str, help="""
         If provided, this file path will be used for logging (the file will be overwritten).
         If not provided, a log file path will be decided by the program.""")
-
+    parser.add_argument(
+        "--worker_name",
+        required=False,
+        type=str,
+        help="""If provided, the worker directory will use this static prefix (for development, not for production environment).
+        If not provided, the worker directory will include a random string, to support concurrent runs.""",
+    )
     args = parser.parse_args()
 
     with open(args.config_file) as file:
@@ -207,4 +214,9 @@ if __name__ == "__main__":
     # Change directory to workdir
     os.chdir(general.workdir)
 
-    main(general, conf["model"], log_path_overwrite=args.log_path_overwrite)
+    main(
+        general,
+        conf["model"],
+        log_path_overwrite=args.log_path_overwrite,
+        worker_name=args.worker_name,
+    )
