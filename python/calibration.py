@@ -103,7 +103,16 @@ def log_level_set(log_path_overwrite: str | None = None):
 
 
 def main(general: General, model_conf, log_path_overwrite: str | None = None, worker_name: str | None = None):
-    """If worker_name is not provided, a random string will be used when generating the worker directory"""
+    """
+    If worker_name is not provided, a random string will be used when generating the worker directory.
+    The random string is necessary when running non-DDS algorithms, since those leverage multiple workers.
+    Therefore, worker_name should not be provided (or should be None) when using any algorithm besides DDS.
+    """
+    if worker_name is not None and general.strategy.algorithm != Algorithm.dds:
+        raise ValueError(
+            f"Static worker_name provision is only compatible with algorithm {Algorithm.dds}, but algorithm {general.strategy.algorithm} was provided."
+        )
+
     # Seed the random number generators if requested
     if general.random_seed is not None:
         import random
