@@ -57,6 +57,7 @@ class BMIParams(BaseModel):
     # strictly optional fields (null/none) by default
     output_vars: Optional[Sequence[Union[str, Mapping[str, str]]]] = Field(None, alias="output_variables")
     output_headers: Optional[Sequence[str]] = Field(None, alias="output_header_fields")
+    output_units: Optional[Sequence[str]] = Field(None, alias="output_units")
     model_params: Optional[Mapping[str, str]]
 
     # non exposed fields, derived from fields and used to build up and validate certain components
@@ -91,6 +92,7 @@ class BMIParams(BaseModel):
         output_map = values.get("output_map", {})
         output_headers = values.get("output_header_fields", [])
         output_vars = values.get("output_variables", [])
+        output_units = values.get("output_units", [])
 
         if output_map:
             if output_vars:
@@ -99,14 +101,17 @@ class BMIParams(BaseModel):
                 )
             output_vars = []
             output_headers = []
+            output_units = []
             for k, v in output_map.items():
                 output_vars.append(k)
                 if v != "":
                     output_headers.append(v)
                 else:
                     output_headers.append(k)
+                output_units.append("")
             values["output_vars"] = output_vars
             values["output_headers"] = output_headers
+            values["output_units"] = output_units
 
         return values
 
