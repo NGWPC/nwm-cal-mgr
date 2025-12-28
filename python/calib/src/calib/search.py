@@ -126,11 +126,10 @@ def _evaluate(
     agent: "Agent",
     first_iter_for_agent: bool,
     info: bool = False,
-) -> float:
-    """Calculate objective function and evaluation metrics.
-    Save calibration output and generate plots during iteration.
+) -> Tuple[float, bool]:
+    """Calculate objective function and evaluation metrics, save calibration output and generate plots during iteration.
 
-    parameters
+    Parameters
     ----------
     i : current iteration
     calibration_object : Adjustable object
@@ -140,8 +139,10 @@ def _evaluate(
     info : whether to print objective, best objective and best parameter to screen, default False
 
     Returns
-    ----------
-    Objection funciton at current iteration
+    -------
+    Tuple containing:
+    1) score : Objective function value
+    2) early_stop_flag : whether to stop early based on objective function trend
 
     """
     # Calculate objective function and metrics
@@ -207,7 +208,10 @@ def _evaluate(
             )
 
     # Update based on latest objective function and write log files
-    calibration_object.update(i, score, log=True, algorithm=agent.algorithm)
+    should_stop_early = calibration_object.update(
+        i, score, log=True, algorithm=agent.algorithm
+    )
+
     if info:
         logger.info(
             "Current score {}\nBest score {}".format(
@@ -263,7 +267,7 @@ def _evaluate(
     # report info back to server if running from ngenCERF GUI
     report_to_ngencerf(agent, iteration=i, first_iter=first_iter_for_agent)
 
-    return score
+    return score, should_stop_early
 
 
 def dds_update(
@@ -487,9 +491,18 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
 
             logger.info(f"Running {agent.cmd} for iteration {i}")
             _execute(agent, i)
+            should_stop_early = False
             with pushd(agent.job.workdir):
-                _evaluate(i, calibration_set, agent, first_iter_for_agent=False)
+                score, should_stop_early = _evaluate(
+                    i, calibration_set, agent, first_iter_for_agent=False
+                )
             calibration_set.check_point(agent.job.workdir)
+
+            if should_stop_early:
+                logger.info(
+                    f"Early stopping at iteration {i}: best objective stabilized"
+                )
+                break
 
         for calibration_object in calibration_set.adjustables:
             create_valid_realization_file(

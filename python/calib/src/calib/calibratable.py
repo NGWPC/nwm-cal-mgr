@@ -221,7 +221,7 @@ class Evaluatable(ABC):
         """
         return self.eval_params.target
 
-    def update(self, i: int, score: float, log: bool, algorithm: str) -> None:
+    def update(self, i: int, score: float, log: bool, algorithm: str) -> bool:
         """_summary_
 
         Args:
@@ -232,7 +232,7 @@ class Evaluatable(ABC):
         Returns:
             _type_: _description_
         """
-        self.eval_params.update(i, score, log, algorithm)
+        return self.eval_params.update(i, score, log, algorithm)
 
     @property
     def best_params(self) -> str:
