@@ -205,6 +205,7 @@ def plot_calib_output(
             calibration_object.metric_iter_file,
             plotfile,
             "objFunVal",
+            calibration_object.objfunc_str,
             int(float(calibration_object.best_params)),
             title,
         )
@@ -254,6 +255,7 @@ def plot_calib_output(
         plf.scatterplot_objfun_metric(
             calibration_object.metric_iter_file,
             plotfile,
+            calibration_object.objfunc_str,
             int(float(calibration_object.best_params)),
             title,
         )
@@ -460,4 +462,11 @@ def plot_cost_func(
         + calibration_object.station_name
     )
     # plf.plot_cost_hist(cost_hist_file, plotfile, title)
-    plf.plot_cost_hist(cost_hist_file, plotfile, title, algorithm, calib_iter)
+    plf.plot_cost_hist(
+        cost_hist_file,
+        plotfile,
+        calibration_object.objfunc_str,
+        title,
+        algorithm,
+        calib_iter,
+    )

@@ -84,6 +84,7 @@ class EvaluationOptions(BaseModel):
     _full_eval_range: Tuple[datetime, datetime] = None
     objective: Optional[Union[Objective, ImportString]] = Objective.kge
     target: Union[Literal["min"], Literal["max"], float] = "min"
+    objfunc_str: Optional[str] = "1-KGE"
     _best_score: float
     _best_params_iteration: str = "0"
     _best_save_flag: bool = None
