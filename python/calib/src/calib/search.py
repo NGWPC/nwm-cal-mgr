@@ -188,23 +188,37 @@ def _evaluate(
                 if calibration_object.target == "min"
                 else metric_objective_function
             )
+            calibration_object.objfunc_str = (
+                "1-" + calibration_object.eval_params.objective.upper()
+                if calibration_object.target == "min"
+                else calibration_object.eval_params.objective.upper()
+            )
         elif calibration_object.eval_params.objective in obj_group2:
             score = (
                 metric_objective_function
                 if calibration_object.target == "min"
-                else 1 - metric_objective_function
+                else -metric_objective_function
+            )
+            calibration_object.objfunc_str = (
+                calibration_object.eval_params.objective.upper()
+                if calibration_object.target == "min"
+                else "-" + calibration_object.eval_params.objective.upper()
             )
         elif calibration_object.eval_params.objective in obj_group3:
             score = (
                 abs(metric_objective_function)
                 if calibration_object.target == "min"
-                else 1 - abs(metric_objective_function)
+                else -abs(metric_objective_function)
+            )
+            calibration_object.objfunc_str = (
+                "abs(" + calibration_object.eval_params.objective.upper() + ")"
+                if calibration_object.target == "min"
+                else "-abs(" + calibration_object.eval_params.objective.upper() + ")"
             )
         else:
-            raise Exception(
-                calibration_object.eval_params.objective
-                + " is not supported for objective function"
-            )
+            msg = f"Objective function {calibration_object.eval_params.objective} is not supported"
+            logger.error(msg)
+            raise Exception(msg)
 
     # Update based on latest objective function and write log files
     calibration_object.update(i, score, log=True, algorithm=agent.algorithm)
