@@ -72,7 +72,6 @@ def run_valid_ctrl_best(agent):
 
     # Handle both grouped and uniform calibrations
     calibration_sets = agent.model.adjustables
-    print(f"DEBUG: calibration_objects: {calibration_sets}")
     if not isinstance(calibration_sets, list):
         # Uniform calibration - wrap in list
         calibration_sets = [calibration_sets]
