@@ -629,7 +629,6 @@ def calculate_all_metrics(
 
     """
 
-    print(f"threshold_event: {threshold_event}")
     metric_name = {
         "pearson_corr": "CORR",
         "mean_abs_error": "MAE",

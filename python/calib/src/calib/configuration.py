@@ -330,7 +330,10 @@ class NoCalibModel(ModelExec):
             df_all = pd.merge(obs_df, sim_df, left_index=True, right_index=True)
 
             metrics = mf.calculate_all_metrics(
-                df_all[obs_flow_col], df_all[sim_streamflow_col]
+                df_all[obs_flow_col],
+                df_all[sim_streamflow_col],
+                self.eval_params.threshold,
+                self.eval_params.peak_flow_threshold / 100.0,
             )
             metrics_df = pd.DataFrame([metrics])
             metrics_df.insert(0, "iteration", 0, True)

@@ -93,8 +93,8 @@ def _calc_metrics(
     simulated_hydrograph : Time series of simulated streamflow
     observed_hydrograph : Time series of observed streamflow
     eval_range : Evaluation time period for calibration run
-    threshold : Streamflow threshold for calculating categorical scores
-    peak_flow_threshold : Peak flow threshold (non-exceedance probability) for calculating event-based metrics
+    threshold : Streamflow threshold (m3/s)for calculating categorical scores
+    peak_flow_threshold : Peak flow threshold (in percentile) for calculating event-based metrics
 
     Returns
     ----------
@@ -119,7 +119,9 @@ def _calc_metrics(
     obsflow = df["obs_flow"]
     simflow = df["sim_flow"]
 
-    return calculate_all_metrics(obsflow, simflow, threshold, peak_flow_threshold)
+    return calculate_all_metrics(
+        obsflow, simflow, threshold, peak_flow_threshold / 100.0
+    )
 
 
 def _evaluate(
