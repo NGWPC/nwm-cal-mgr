@@ -480,6 +480,7 @@ def categorical_score(
     y_pred : Modeled values or simulations
     threshold : threshold value
 
+
     Returns
     -------
     Dictionary of  categorical score values
@@ -628,6 +629,7 @@ def calculate_all_metrics(
 
     """
 
+    print(f"threshold_event: {threshold_event}")
     metric_name = {
         "pearson_corr": "CORR",
         "mean_abs_error": "MAE",
