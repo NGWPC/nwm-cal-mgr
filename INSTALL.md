@@ -19,20 +19,14 @@ cd [VENV_ROOT]
 source venv/bin/activate
 pip install --upgrade pip
 ```
-3. install package **calib**
+3. install **nwm-cal-mgr** package (includes calib, config, and CLI executables)
 
 ```bash
-cd [NWM_ROOT]/nwm-cal-mgr/python/calib
-pip install . #or use "pip install -e ." to install the package as an editable 
-```
-4. install package **config**
-
-```bash
-cd [NWM_ROOT]/nwm-cal-mgr/python/config
-pip install . #or use "pip install -e ." to install the package as an editable 
+cd [NWM_ROOT]/nwm-cal-mgr
+pip install . #or use "pip install -e ." to install the package as an editable
 ```
 
-5. install dependency **mswm**
+4. install dependency **mswm**
 
 - clone mswm
 ```bash
@@ -59,12 +53,12 @@ python -m mswm.manager build_default input.config
 ```
 3) run calibration
 ```bash
-python [NWM_ROOT]/nwm-cal-mgr/python/calibration.py [CALIB_CONFIG]
+calibration [CALIB_CONFIG]
 ```
 4) run validation
 ```bash
-python [NWM_ROOT]/nwm-cal-mgr/python/validation.py [VALID_CONTROL_CONFIG]
-python [NWM_ROOT]/nwm-cal-mgr/python/validation.py [VALID_BEST_CONFIG]
+validation [VALID_CONTROL_CONFIG]
+validation [VALID_BEST_CONFIG]
 ```
 [VALID_CONTROL_CONFIG] and [VALID_BEST_CONFIG] are the config files for validation runs with the control/default
 parameters and the best parameters, repectivly. These config files are produced at the end of calibration progress 
@@ -72,5 +66,5 @@ parameters and the best parameters, repectivly. These config files are produced 
 
 5) run validation for an alternative iteration
 ```bash
-python [NWM_ROOT]/nwm-cal-mgr/python/validation_iteration.py [CALIB_COFIG] [woker ID] [iteration number]
+validation_iteration [CALIB_COFIG] [woker ID] [iteration number]
 ```
