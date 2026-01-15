@@ -101,7 +101,8 @@ def main(general: General, model_conf, worker: str, iteration: int):
     logger.info("Validation completed")
 
 
-if __name__ == "__main__":
+def cli():
+    """Command-line interface entry point for nwm-validation-iteration."""
     print_git_info_all()
 
     # Create the command line parser
@@ -121,3 +122,7 @@ if __name__ == "__main__":
     general.name = "valid_" + args.worker_id + "_iter" + str(args.iter_no)
 
     main(general, conf["model"], args.worker_id, args.iter_no)
+
+
+if __name__ == "__main__":
+    cli()
