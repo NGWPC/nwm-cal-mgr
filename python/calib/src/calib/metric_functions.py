@@ -9,6 +9,7 @@ from typing import Dict, Optional, Union
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 import logging
+from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -502,7 +503,7 @@ def event_based_metrics(
     y_true: pd.Series,
     y_pred: pd.Series,
     threshold: Optional[float] = 0.9,
-    aggregation: Optional[str] = "median",
+    aggregation: Optional[str] = "mean",
 ) -> Dict[str, float]:
     """Compute event-based metrics, including 1) absolute peak flow bias (PKBIAS), 2)absolute peak timing error (PKTE), and
     3) absolute event volume bias (EVBIAS).
@@ -684,7 +685,7 @@ def calculate_all_metrics(
             elif f.__name__ == "pbias_fdc":
                 result.update(f(y_true, y_pred))
             elif f.__name__ == "event_based_metrics":
-                result.update(f(y_true, y_pred, threshold_event))
+                result.update(f(y_true, y_pred, y_true.quantile(threshold_event)))
             else:
                 result.update({metric_name[f.__name__]: f(y_true, y_pred)})
 
