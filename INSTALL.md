@@ -42,6 +42,10 @@ pip install .
 
 ### Usage
 
+After installation, the scripts can be executed in two ways:
+- As CLI commands: `calibration`, `validation`, `validation_iteration`
+- Directly with Python: `python [NWM_ROOT]/nwm-cal-mgr/python/[script].py`
+
 1) set up input configuration (e.g., input.config)
 
 Refer to one of the sample input config files in [sample_input_config](https://github.com/NGWPC/nwm-cal-mgr/tree/nwm-cal-mgr/sample_input_config) to 
@@ -49,16 +53,18 @@ set up your configuration for calibration/validation.
 
 2) run model setup workflow (nwm-msw-mgr) to produce input files
 ```bash
-python -m mswm.manager build_default input.config
+python -m mswm.manager build_calib input.config
 ```
 3) run calibration
 ```bash
 calibration [CALIB_CONFIG]
+# or: python [NWM_ROOT]/nwm-cal-mgr/python/calibration.py [CALIB_CONFIG]
 ```
 4) run validation
 ```bash
 validation [VALID_CONTROL_CONFIG]
 validation [VALID_BEST_CONFIG]
+# or: python [NWM_ROOT]/nwm-cal-mgr/python/validation.py [CONFIG]
 ```
 [VALID_CONTROL_CONFIG] and [VALID_BEST_CONFIG] are the config files for validation runs with the control/default
 parameters and the best parameters, repectivly. These config files are produced at the end of calibration progress 
@@ -67,4 +73,5 @@ parameters and the best parameters, repectivly. These config files are produced 
 5) run validation for an alternative iteration
 ```bash
 validation_iteration [CALIB_COFIG] [woker ID] [iteration number]
+# or: python [NWM_ROOT]/nwm-cal-mgr/python/validation_iteration.py [CALIB_COFIG] [woker ID] [iteration number]
 ```
