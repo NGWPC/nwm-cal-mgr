@@ -685,7 +685,7 @@ def calculate_all_metrics(
             elif f.__name__ == "pbias_fdc":
                 result.update(f(y_true, y_pred))
             elif f.__name__ == "event_based_metrics":
-                result.update(f(y_true, y_pred, y_true.quantile(threshold_event)))
+                result.update(f(y_true, y_pred, threshold_event))
             else:
                 result.update({metric_name[f.__name__]: f(y_true, y_pred)})
 
