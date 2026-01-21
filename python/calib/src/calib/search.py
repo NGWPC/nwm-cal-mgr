@@ -159,6 +159,36 @@ def _evaluate(
     # get objective function value from metrics
     metric_objective_function = metrics[calibration_object.objective.value.upper()]
 
+    # objective function grouping
+    obj_group1 = ["kge", "nse", "nnse", "nselog", "corr", "csi", "pod"]
+    obj_group2 = ["rmse", "mae", "rsr", "far", "pkbias", "pkte", "evbias"]
+    obj_group3 = ["pbias", "lseg_fdc", "hseg_fdc"]
+
+    # determine objective function string for plots axis label based on target and objective function
+    obj_func = calibration_object.eval_params.objective
+    if obj_func in obj_group1:
+        calibration_object.objfunc_str = (
+            "1-" + obj_func.upper()
+            if calibration_object.target == "min"
+            else obj_func.upper()
+        )
+    elif obj_func in obj_group2:
+        calibration_object.objfunc_str = (
+            obj_func.upper()
+            if calibration_object.target == "min"
+            else "-" + obj_func.upper()
+        )
+    elif obj_func in obj_group3:
+        calibration_object.objfunc_str = (
+            "abs(" + obj_func.upper() + ")"
+            if calibration_object.target == "min"
+            else "-abs(" + obj_func.upper() + ")"
+        )
+    else:
+        msg = f"Objective function {obj_func} is not supported"
+        logger.error(msg)
+        raise Exception(msg)
+
     # Ensure objective function is a valid numeric value
     if not isinstance(metric_objective_function, numbers.Number) or np.isnan(
         metric_objective_function
@@ -178,33 +208,28 @@ def _evaluate(
                 f"Optimization target can only be min or max. {calibration_object.target} is not supported"
             )
     else:
-        obj_group1 = ["kge", "nse", "nnse", "nselog", "corr", "csi", "pod"]
-        obj_group2 = ["rmse", "mae", "rsr", "far", "pkbias", "pkte", "evbias"]
-        obj_group3 = ["pbias", "lseg_fdc", "hseg_fdc"]
-
-        if calibration_object.eval_params.objective in obj_group1:
+        if obj_func in obj_group1:
             score = (
                 1 - metric_objective_function
                 if calibration_object.target == "min"
                 else metric_objective_function
             )
-        elif calibration_object.eval_params.objective in obj_group2:
+        elif obj_func in obj_group2:
             score = (
                 metric_objective_function
                 if calibration_object.target == "min"
-                else 1 - metric_objective_function
+                else -metric_objective_function
             )
-        elif calibration_object.eval_params.objective in obj_group3:
+        elif obj_func in obj_group3:
             score = (
                 abs(metric_objective_function)
                 if calibration_object.target == "min"
-                else 1 - abs(metric_objective_function)
+                else -abs(metric_objective_function)
             )
         else:
-            raise Exception(
-                calibration_object.eval_params.objective
-                + " is not supported for objective function"
-            )
+            msg = f"Objective function {obj_func} is not supported"
+            logger.error(msg)
+            raise Exception(msg)
 
     # Update based on latest objective function and write log files
     calibration_object.update(i, score, log=True, algorithm=agent.algorithm)
@@ -288,7 +313,9 @@ def dds_update(
         neighborhood = calibration_object.variables.sample(n=1)
 
     # Generate new parameter set by perturbng the best parameters
-    calibration_object.df[str(iteration)] = calibration_object.df[agent.best_params]
+    calibration_object.df[str(iteration)] = calibration_object.df[
+        agent.best_params
+    ].copy()
     for n in neighborhood:
         new = calibration_object.df.loc[
             n, agent.best_params
@@ -769,8 +796,15 @@ def gwo_search(start_iteration: int, iterations: int, agent) -> None:
         )
         cf = partial(cost_func, calibration_object, agents, agent_1st, _pool)
 
-        # Perform optimization
-        cost, pos = optimizer.optimize(cf, iters=iterations, n_processes=None)
+        if iterations < 1:
+            msg = "iterations must be >= 1 for GWO."
+            logger.error(msg)
+            raise ValueError(msg)
+
+        # Perform optimization with one fewer iterations than requested since GlobalBestGWO.optimize()
+        # (in gwo_global_best.py) does an extra iteration during its initialization
+        cost, pos = optimizer.optimize(cf, iters=iterations - 1, n_processes=None)
+
         calibration_object.df.loc[:, "global_best"] = pos
         calibration_object.check_point(agent.workdir)
         logger.info("Best params with cost {}:".format(cost))
