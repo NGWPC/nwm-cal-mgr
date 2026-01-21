@@ -91,6 +91,7 @@ class EvaluationOptions(BaseModel):
     id: Optional[str] = None
     basinID: Optional[str] = None
     threshold: Optional[float] = None
+    peak_flow_threshold: Optional[float] = 90.0
     site_name: Optional[str] = None
     streamflow_name: Optional[str] = "sim_flow"
     save_output_iteration: Optional[bool] = False
