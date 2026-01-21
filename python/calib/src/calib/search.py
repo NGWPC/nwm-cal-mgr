@@ -84,6 +84,7 @@ def _calc_metrics(
     observed_hydrograph: pd.Series,
     eval_range: Tuple[datetime, datetime] = None,
     threshold: Optional[float] = None,
+    peak_flow_threshold: Optional[float] = 90.0,
 ) -> Dict[str, float]:
     """Calculate statistical metrics.
 
@@ -92,7 +93,8 @@ def _calc_metrics(
     simulated_hydrograph : Time series of simulated streamflow
     observed_hydrograph : Time series of observed streamflow
     eval_range : Evaluation time period for calibration run
-    threshold : Streamflow threshold for calculating categorical scores
+    threshold : Streamflow threshold (m3/s)for calculating categorical scores
+    peak_flow_threshold : Peak flow threshold (in percentile) for calculating event-based metrics
 
     Returns
     ----------
@@ -117,7 +119,9 @@ def _calc_metrics(
     obsflow = df["obs_flow"]
     simflow = df["sim_flow"]
 
-    return calculate_all_metrics(obsflow, simflow, threshold)
+    return calculate_all_metrics(
+        obsflow, simflow, threshold, peak_flow_threshold / 100.0
+    )
 
 
 def _evaluate(
@@ -150,6 +154,7 @@ def _evaluate(
         calibration_object.observed,
         calibration_object.evaluation_range,
         calibration_object.threshold,
+        calibration_object.peak_flow_threshold,
     )
     #  Handle single-run execution output writing for NoCalibModel
     if agent.run_single_iteration:
