@@ -37,7 +37,7 @@ def main(general: General, model_conf, worker: str, iteration: int):
     file1 = Path(
         agent.calib_path,
         "ngen_" + worker + "_worker",
-        conf["model"]["eval_params"]["basinID"] + "_params_iteration.csv",
+        model_conf["eval_params"]["basinID"] + "_params_iteration.csv",
     )
     if not os.path.exists(file1):
         raise FileNotFoundError("File does not exist: " + str(file1))
