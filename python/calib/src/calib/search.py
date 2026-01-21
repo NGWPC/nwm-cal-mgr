@@ -159,6 +159,36 @@ def _evaluate(
     # get objective function value from metrics
     metric_objective_function = metrics[calibration_object.objective.value.upper()]
 
+    # objective function grouping
+    obj_group1 = ["kge", "nse", "nnse", "nselog", "corr", "csi", "pod"]
+    obj_group2 = ["rmse", "mae", "rsr", "far", "pkbias", "pkte", "evbias"]
+    obj_group3 = ["pbias", "lseg_fdc", "hseg_fdc"]
+
+    # determine objective function string for plots axis label based on target and objective function
+    obj_func = calibration_object.eval_params.objective
+    if obj_func in obj_group1:
+        calibration_object.objfunc_str = (
+            "1-" + obj_func.upper()
+            if calibration_object.target == "min"
+            else obj_func.upper()
+        )
+    elif obj_func in obj_group2:
+        calibration_object.objfunc_str = (
+            obj_func.upper()
+            if calibration_object.target == "min"
+            else "-" + obj_func.upper()
+        )
+    elif obj_func in obj_group3:
+        calibration_object.objfunc_str = (
+            "abs(" + obj_func.upper() + ")"
+            if calibration_object.target == "min"
+            else "-abs(" + obj_func.upper() + ")"
+        )
+    else:
+        msg = f"Objective function {obj_func} is not supported"
+        logger.error(msg)
+        raise Exception(msg)
+
     # Ensure objective function is a valid numeric value
     if not isinstance(metric_objective_function, numbers.Number) or np.isnan(
         metric_objective_function
@@ -178,33 +208,28 @@ def _evaluate(
                 f"Optimization target can only be min or max. {calibration_object.target} is not supported"
             )
     else:
-        obj_group1 = ["kge", "nse", "nnse", "nselog", "corr", "csi", "pod"]
-        obj_group2 = ["rmse", "mae", "rsr", "far", "pkbias", "pkte", "evbias"]
-        obj_group3 = ["pbias", "lseg_fdc", "hseg_fdc"]
-
-        if calibration_object.eval_params.objective in obj_group1:
+        if obj_func in obj_group1:
             score = (
                 1 - metric_objective_function
                 if calibration_object.target == "min"
                 else metric_objective_function
             )
-        elif calibration_object.eval_params.objective in obj_group2:
+        elif obj_func in obj_group2:
             score = (
                 metric_objective_function
                 if calibration_object.target == "min"
-                else 1 - metric_objective_function
+                else -metric_objective_function
             )
-        elif calibration_object.eval_params.objective in obj_group3:
+        elif obj_func in obj_group3:
             score = (
                 abs(metric_objective_function)
                 if calibration_object.target == "min"
-                else 1 - abs(metric_objective_function)
+                else -abs(metric_objective_function)
             )
         else:
-            raise Exception(
-                calibration_object.eval_params.objective
-                + " is not supported for objective function"
-            )
+            msg = f"Objective function {obj_func} is not supported"
+            logger.error(msg)
+            raise Exception(msg)
 
     # Update based on latest objective function and write log files
     calibration_object.update(i, score, log=True, algorithm=agent.algorithm)

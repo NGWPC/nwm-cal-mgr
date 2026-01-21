@@ -191,7 +191,8 @@ def main(general: General, model_conf, log_path_overwrite: str | None = None, wo
         func(start_iteration, general.iterations, agent)
 
 
-if __name__ == "__main__":
+def cli():
+    """Command-line interface entry point for nwm-calibration."""
     print_git_info_all()
 
     # Create the command line parser
@@ -229,3 +230,7 @@ if __name__ == "__main__":
         log_path_overwrite=args.log_path_overwrite,
         worker_name=args.worker_name,
     )
+
+
+if __name__ == "__main__":
+    cli()
