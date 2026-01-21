@@ -109,9 +109,9 @@ def main(general: General, model_conf, log_path_overwrite: str | None = None, wo
     Therefore, worker_name should not be provided (or should be None) when using any algorithm besides DDS.
     """
     if worker_name is not None and general.strategy.algorithm != Algorithm.dds:
-        raise ValueError(
-            f"Static worker_name provision is only compatible with algorithm {Algorithm.dds}, but algorithm {general.strategy.algorithm} was provided."
-        )
+        msg = f"Static worker_name provision is only compatible with algorithm {Algorithm.dds}, but algorithm {general.strategy.algorithm} was provided."
+        LOG.fatal(msg)
+        raise ValueError(msg)
 
     # Seed the random number generators if requested
     if general.random_seed is not None:
