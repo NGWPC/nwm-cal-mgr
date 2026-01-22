@@ -86,6 +86,7 @@ class Agent(BaseAgent):
         log: bool = False,
         restart: bool = False,
         agent_counter=0,
+        worker_name: str | None = None,
     ):
         """Construct attributes for the Agent class."""
         self._workdir = workdir
@@ -117,12 +118,10 @@ class Agent(BaseAgent):
             if len(workdirs) > 1 and self._algorithm == "pso":
                 logger.warning("More than one existing {} workdir, cannot restart")
             else:
-                self._job = JobMeta(
-                    worker_prefix, workdir, workdirs[agent_counter], log=log
-                )
+                self._job = JobMeta(worker_prefix, workdir, workdirs[agent_counter], log=log, worker_name=worker_name)
 
         if self._job is None:
-            self._job = JobMeta(worker_prefix, workdir, log=log)
+            self._job = JobMeta(worker_prefix, workdir, log=log, worker_name=worker_name)
 
         if "calib" in self._run_name:
             self._calib_path_output = os.path.join(self._job.workdir, "Output_Calib")
