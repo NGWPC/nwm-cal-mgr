@@ -18,6 +18,7 @@ import netCDF4
 import pandas as pd
 from hypy.nexus import Nexus
 from pandas import DataFrame  # type: ignore
+from pandas.api.types import is_numeric_dtype, is_object_dtype, is_string_dtype
 
 from .calibratable import Adjustable, Evaluatable
 
@@ -79,14 +80,14 @@ class CalibrationSet(Evaluatable):
                 obs.columns = cols
 
                 # function to detect time column
-                def detect_time_column(df: pd.DataFrame):
+                def detect_time_column(df: pd.DataFrame, time_col: str = "time"):
                     for col in df.columns:
-                        if df[col].dtype == object:
+                        if is_object_dtype(df[col]) or is_string_dtype(df[col]):
                             parsed = pd.to_datetime(df[col], errors="coerce")
                             if parsed.notna().all():
-                                if col.lower() != "time":
+                                if col.lower() != time_col:
                                     logger.info(
-                                        f"Using '{col}' as time column for streamflow observation file"
+                                        f"Using '{col}' as 'time' column for streamflow observation file"
                                     )
                                 return col
 
@@ -94,13 +95,32 @@ class CalibrationSet(Evaluatable):
                     logger.error(msg)
                     raise ValueError(msg)
 
+                # function to detect flow column
+                def detect_flow_column(df: pd.DataFrame, flow_col: str = "obs_flow"):
+                    for col in df.columns:
+                        if is_numeric_dtype(df[col]):
+                            if col.lower() != flow_col:
+                                logger.info(
+                                    f"Using '{col}' as 'obs_flow' column for streamflow observation file"
+                                )
+                            return col
+
+                    msg = "No column in streamflow observation file contains numeric flow values"
+                    logger.error(msg)
+                    raise ValueError(msg)
+
                 # if 'time' column not present, try to detect it
                 time_col = "time" if "time" in obs.columns else detect_time_column(obs)
 
-                # Normalize to canonical name (value_date, i.e., datetime of observation value) used elsewhere
+                # Normalize to canonical name "value_date" (i.e., datetime of observation value) used elsewhere
                 obs = obs.rename(columns={time_col: "value_date"})
 
-                # obs["value_date"] = pd.DatetimeIndex(obs["value_date"])
+                # if 'obs_flow' column not present, try to detect it
+                flow_col = (
+                    "obs_flow" if "obs_flow" in obs.columns else detect_flow_column(obs)
+                )
+                obs = obs.rename(columns={flow_col: "obs_flow"})
+
                 obs["value_date"] = pd.to_datetime(obs["value_date"], errors="raise")
                 self._observed = obs.set_index("value_date")
             else:
