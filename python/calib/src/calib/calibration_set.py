@@ -75,7 +75,33 @@ class CalibrationSet(Evaluatable):
             if os.path.exists(obsflow_file):
                 logger.info(f"Read observed streamflow from: {obsflow_file}")
                 obs = pd.read_csv(obsflow_file)
-                obs["value_date"] = pd.DatetimeIndex(obs["value_date"])
+                cols = obs.columns.str.lower()
+                obs.columns = cols
+
+                # function to detect time column
+                def detect_time_column(df: pd.DataFrame):
+                    for col in df.columns:
+                        if df[col].dtype == object:
+                            parsed = pd.to_datetime(df[col], errors="coerce")
+                            if parsed.notna().all():
+                                if col.lower() != "time":
+                                    logger.info(
+                                        f"Using '{col}' as time column for streamflow observation file"
+                                    )
+                                return col
+
+                    msg = "No column in streamflow observation file contains fully valid datetimes"
+                    logger.error(msg)
+                    raise ValueError(msg)
+
+                # if 'time' column not present, try to detect it
+                time_col = "time" if "time" in obs.columns else detect_time_column(obs)
+
+                # Normalize to canonical name (value_date, i.e., datetime of observation value) used elsewhere
+                obs = obs.rename(columns={time_col: "value_date"})
+
+                # obs["value_date"] = pd.DatetimeIndex(obs["value_date"])
+                obs["value_date"] = pd.to_datetime(obs["value_date"], errors="raise")
                 self._observed = obs.set_index("value_date")
             else:
                 logger.error(
