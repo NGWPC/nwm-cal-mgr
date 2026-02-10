@@ -195,23 +195,23 @@ def _evaluate(
     obj_group3 = ["pbias", "lseg_fdc", "hseg_fdc"]
 
     # determine objective function string for plots axis label based on target and objective function
-    obj_func = calibration_object.eval_params.objective
+    obj_func = primary_obj.eval_params.objective
     if obj_func in obj_group1:
-        calibration_object.objfunc_str = (
+        primary_obj.objfunc_str = (
             "1-" + obj_func.upper()
-            if calibration_object.target == "min"
+            if primary_obj.target == "min"
             else obj_func.upper()
         )
     elif obj_func in obj_group2:
-        calibration_object.objfunc_str = (
+        primary_obj.objfunc_str = (
             obj_func.upper()
-            if calibration_object.target == "min"
+            if primary_obj.target == "min"
             else "-" + obj_func.upper()
         )
     elif obj_func in obj_group3:
-        calibration_object.objfunc_str = (
+        primary_obj.objfunc_str = (
             "abs(" + obj_func.upper() + ")"
-            if calibration_object.target == "min"
+            if primary_obj.target == "min"
             else "-abs(" + obj_func.upper() + ")"
         )
     else:
@@ -239,19 +239,19 @@ def _evaluate(
             )
     else:
 
-        if primary_obj.eval_params.objective in obj_group1:
+        if obj_func in obj_group1:
             score = (
                 1 - metric_objective_function
                 if primary_obj.target == "min"
                 else metric_objective_function
             )
-        elif primary_obj.eval_params.objective in obj_group2:
+        elif obj_func in obj_group2:
             score = (
                 metric_objective_function
                 if primary_obj.target == "min"
                 else 1 - metric_objective_function
             )
-        elif primary_obj.eval_params.objective in obj_group3:
+        elif obj_func in obj_group3:
             score = (
                 abs(metric_objective_function)
                 if primary_obj.target == "min"
@@ -259,7 +259,7 @@ def _evaluate(
             )
         else:
             raise Exception(
-                primary_obj.eval_params.objective + " is not supported for objective function"
+                obj_func + " is not supported for objective function"
             )
 
     # Update based on latest objective function and write log files
