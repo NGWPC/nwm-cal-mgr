@@ -413,6 +413,11 @@ class NgenBase(ModelExec):
                     for k, v in obj.__dict__.items():
                         if exclude_none and v is None:
                             continue
+                        # Skip empty dicts and lists
+                        if isinstance(v, dict) and len(v) == 0:
+                            continue
+                        if isinstance(v, list) and len(v) == 0:
+                            continue
                         # Use alias if requested
                         field = obj.model_fields.get(k)
                         key = field.alias if by_alias and field and field.alias else k
@@ -420,11 +425,17 @@ class NgenBase(ModelExec):
                     return data
                 # Handle dicts
                 elif isinstance(obj, dict):
-                    return {
-                        k: convert(v)
-                        for k, v in obj.items()
-                        if not (exclude_none and v is None)
-                    }
+                    result = {}
+                    for k, v in obj.items():
+                        if exclude_none and v is None:
+                            continue
+                        # Skip empty dicts and lists
+                        if isinstance(v, dict) and len(v) == 0:
+                            continue
+                        if isinstance(v, list) and len(v) == 0:
+                            continue
+                        result[k] = convert(v)
+                    return result
                 # Handle lists, tuples, sets
                 elif isinstance(obj, (list, tuple, set)):
                     return [convert(v) for v in obj]
