@@ -1,9 +1,31 @@
 # syntax=docker/dockerfile:1.4
 
+ARG ORG=ngwpc
 ARG NGEN_IMAGE_TAG=latest
-FROM ghcr.io/ngwpc/ngen:${NGEN_IMAGE_TAG}
+ARG NGEN_IMAGE=ghcr.io/ngwpc/ngen:${NGEN_IMAGE_TAG}
+FROM ${NGEN_IMAGE}
 # Uncomment when building ngen locally
 #FROM ngen
+
+# OCI Metadata Arguments
+ARG NGEN_IMAGE
+ARG BASE_IMAGE_DIGEST="unknown"
+ARG BASE_IMAGE_REVISION="unknown"
+ARG IMAGE_SOURCE="unknown"
+ARG IMAGE_VENDOR="unknown"
+ARG IMAGE_VERSION="unknown"
+ARG IMAGE_REVISION="unknown"
+ARG IMAGE_CREATED="unknown"
+
+# OCI Standard Labels
+LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
+    org.opencontainers.image.base.digest="${BASE_IMAGE_DIGEST}" \
+    io.ngwpc.image.base.revision="${BASE_IMAGE_REVISION}" \
+    org.opencontainers.image.source="${IMAGE_SOURCE}" \
+    org.opencontainers.image.vendor="${IMAGE_VENDOR}" \
+    org.opencontainers.image.version="${IMAGE_VERSION}" \
+    org.opencontainers.image.revision="${IMAGE_REVISION}" \
+    org.opencontainers.image.created="${IMAGE_CREATED}"
 
 COPY . /ngen-app/nwm-cal-mgr/
 
