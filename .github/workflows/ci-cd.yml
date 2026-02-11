@@ -176,26 +176,36 @@ jobs:
       - name: run unit tests (with coverage xml)
         run: |
           echo "Running Unit Tests..."
-          cd /ngen-app/nwm-cal-mgr
-          echo "Current Git commit hash:" && git rev-parse HEAD
-          echo "Last commit log:" && git log -1 --oneline
 
-          # ensure coverage plugin is available
-          python -m pip install -U pip pytest pytest-cov coverage
+          # mount current directory to /host_output to retrieve coverage.xml
+          docker run --rm \
+            -v $(pwd):/host_output \
+            --entrypoint /bin/bash \
+            ${{ needs.setup.outputs.image_base }}:${{ needs.setup.outputs.test_image_tag }} \
+            -c "set -e
+                cd /ngen-app/nwm-cal-mgr
+                echo "Running inside container...
 
-          # ensure coverage paths are relative so sonar can match files after checkout
-          printf "[run]\nrelative_files = True\n" > .coveragerc
+                # ensure coverage plugin is available
+                python -m pip install -U pip pytest pytest-cov coverage
 
-          # run tests and write coverage.xml at repo root inside the container
-          pytest --log-cli-level 0 \
-                --cov=python \
-                --cov-report=xml:coverage.xml \
-                ./python/calib/tests/
+                # ensure coverage paths are relative so sonar can match files after checkout
+                printf "[run]\nrelative_files = True\n" > .coveragerc
+
+                # run tests and write coverage.xml at repo root inside the container
+                pytest --log-cli-level 0 \
+                      --cov=python \
+                      --cov-report=xml:coverage.xml \
+                      ./python/calib/tests/
+
+                # Copy the result OUT to the mounted volume
+                cp coverage.xml /host_output/coverage.xml"
+
       - name: upload coverage.xml
         uses: actions/upload-artifact@v6
         with:
           name: coverage-xml
-          path: /ngen-app/nwm-cal-mgr/coverage.xml
+          path: ./coverage.xml
           if-no-files-found: error
 
 # run container security scan using Trivy
