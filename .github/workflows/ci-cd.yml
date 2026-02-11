@@ -243,7 +243,6 @@ jobs:
       - setup
       - codeql-scan
       - build
-      - unit-test
       - container-scanning
     steps:
       - name: Tag image with alias and latest
