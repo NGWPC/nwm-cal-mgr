@@ -48,6 +48,7 @@ RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
 #    rm nwm-cal-mgr/requirements.txt
 
 WORKDIR /ngen-app/
+ARG MSW_MGR_VERSION=development
 RUN set -eux; \
     # Install dependencies for createInput module
     cd /ngen-app/nwm-cal-mgr/python/calib && \
@@ -55,7 +56,7 @@ RUN set -eux; \
     pip3 install . ; \
     \
     # Install mswm package
-    pip3 install mswm@git+https://github.com/NGWPC/nwm-msw-mgr.git@development ; \
+    pip3 install mswm@git+https://github.com/NGWPC/nwm-msw-mgr.git@${MSW_MGR_VERSION} ; \
     \
     # Install dependencies for runCalibValid module
     cd /ngen-app/nwm-cal-mgr/python/config && \
