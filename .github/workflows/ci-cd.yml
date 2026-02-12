@@ -23,6 +23,10 @@ on:
         description: 'NGEN_IMAGE_TAG'
         required: false
         type: string
+      MSW_MGR_VERSION:
+        description: 'MSW_MGR_VERSION'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -167,6 +171,7 @@ jobs:
           build-args: |
             ORG=${{ needs.setup.outputs.org }}
             NGEN_IMAGE_TAG=${{ inputs.NGEN_IMAGE_TAG || 'latest' }}
+            MSW_MGR_VERSION=${{ inputs.MSW_MGR_VERSION || 'development' }}
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
             IMAGE_VENDOR=${{ github.repository_owner }}
             IMAGE_VERSION=${{ needs.setup.outputs.clean_ref }}
