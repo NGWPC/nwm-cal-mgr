@@ -48,7 +48,7 @@ RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
 #    rm nwm-cal-mgr/requirements.txt
 
 WORKDIR /ngen-app/
-ARG MSW_MGR_VERSION=jwade_NGWPC-7192_icefabric
+ARG MSW_MGR_VERSION=development
 RUN set -eux; \
     # Install dependencies for createInput module
     cd /ngen-app/nwm-cal-mgr/python/calib && \
