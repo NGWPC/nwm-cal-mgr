@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence, Dict
+from typing import Any, Mapping, Optional, Sequence, Dict, Union
 
 from pydantic import BaseModel, Field, field_serializer
 
@@ -38,7 +38,7 @@ class NgenRealization(BaseModel):
     routing: Optional[Routing] = None
     formulation_groups: Optional[Dict[str, Sequence[Formulation]]] = Field(default_factory=dict)
     forcing_groups: Dict[str, Forcing] = Field(default_factory=dict)
-    catchments: Optional[Mapping[str, "CatchmentGroup"]] = Field(default_factory=dict)
+    catchments: Optional[Mapping[str, Union[CatchmentRealization, CatchmentGroup]]] = Field(default_factory=dict)
 
     class Config:
         validate_by_name = True
@@ -62,6 +62,12 @@ class NgenRealization(BaseModel):
         # Resolve forcing groups
         for grp, forcing in self.forcing_groups.items():
             forcing.resolve_paths()
+
+        # Resolve catchment formulations
+        if self.catchments:
+            for catchment_id, catchment_config in self.catchments.items():
+                if isinstance(catchment_config, CatchmentRealization):
+                    catchment_config.resolve_paths()
 
         if self.routing:
             self.routing.resolve_paths()
