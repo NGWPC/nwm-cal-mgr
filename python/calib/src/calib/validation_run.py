@@ -70,71 +70,80 @@ def run_valid_ctrl_best(agent):
         else:
             agent.nwmflow = None
 
-    # Calculate metrics
-    for calibration_object in agent.model.adjustables:
-        with pushd(agent.job.workdir):
-            logger.info(f"Running simulation for {agent.run_name}")
-            _execute(agent)
-            time_period = {
-                "calib": calibration_object.evaluation_range,
-                "valid": calibration_object.valid_evaluation_range,
-                "full": calibration_object.full_evaluation_range,
-            }
+    # Handle both grouped and uniform calibrations
+    calibration_sets = agent.model.adjustables
+    if not isinstance(calibration_sets, list):
+        # Uniform calibration - wrap in list
+        calibration_sets = [calibration_sets]
 
-            outputs = [calibration_object.output]
-            runs = [agent.run_name]
-            if agent.run_name != "valid_control":
-                if agent.nwmflow is not None:
-                    outputs.append(agent.nwmflow)
-                    runs.append("nwm_retro")
+    # Get first evaluatable object
+    primary_set = calibration_sets[0]
 
-            for out1, run1 in zip(outputs, runs):
-                metrics = pd.DataFrame()
-                # logger.info(f"Computing metrics for out1 : {out1}, run1: {run1}")
-                for key, value in time_period.items():
-                    result = _calc_metrics(
-                        out1,
-                        calibration_object.observed,
-                        value,
-                        calibration_object.threshold,
-                        calibration_object.peak_flow_threshold,
-                    )
-                    tmp = {**{"run": run1, "period": key}, **result}
-                    metrics = pd.concat(
-                        [metrics, pd.DataFrame([tmp])], ignore_index=True
-                    )
-                    metric_out_file = os.path.join(
-                        agent.workdir,
-                        "{}".format(calibration_object.basinID)
-                        + "_metrics_{}.csv".format(run1),
-                    )
-                    metrics.to_csv(metric_out_file, index=False)
+    # Run validation simulation
+    with pushd(agent.job.workdir):
+        logger.info(f"Running simulation for {agent.run_name}")
+        _execute(agent)
 
-            # Save and move output
-            calibration_object.save_valid_output(
-                calibration_object.basinID,
-                agent.run_name,
-                agent.valid_path,
-                agent.job.workdir,
-                agent.valid_path_output,
-            )
+    # Calculate metric using first calibration object
+    with pushd(agent.job.workdir):
+        time_period = {
+            "calib": primary_set.evaluation_range,
+            "valid": primary_set.valid_evaluation_range,
+            "full": primary_set.full_evaluation_range,
+        }
 
-            # plot the validation plots (for valid_best or validation with alternative parameters)
-            if agent.run_name != "valid_control":
-                runs = ["valid_control", "valid_best"]
-                if agent.nwmflow is not None:
-                    runs.append("nwm_retro")
-                if agent.run_name != "valid_best":
-                    runs.append(agent.run_name)
-                logger.info(f"Generating plots comparing {runs}")
+        outputs = [primary_set.output]
+        runs = [agent.run_name]
+        if agent.run_name != "valid_control":
+            if agent.nwmflow is not None:
+                outputs.append(agent.nwmflow)
+                runs.append("nwm_retro")
 
-                plot_valid_output(calibration_object, agent, runs, time_period)
+        for out1, run1 in zip(outputs, runs):
+            metrics = pd.DataFrame()
+            # logger.info(f"Computing metrics for out1 : {out1}, run1: {run1}")
+            for key, value in time_period.items():
+                result = _calc_metrics(
+                    out1,
+                    primary_set.observed,
+                    value,
+                    primary_set.threshold,
+                    primary_set.peak_flow_threshold,
+                )
+                tmp = {**{"run": run1, "period": key}, **result}
+                metrics = pd.concat([metrics, pd.DataFrame([tmp])], ignore_index=True)
+                metric_out_file = os.path.join(
+                    agent.workdir,
+                    "{}".format(primary_set.basinID) + "_metrics_{}.csv".format(run1),
+                )
+                metrics.to_csv(metric_out_file, index=False)
 
-            # Indicate completion
-            calibration_object.write_run_complete_file(agent.run_name, agent.workdir)
-            complete_msg(
-                calibration_object.basinID,
-                agent.run_name,
-                agent.workdir,
-                calibration_object.user,
-            )
+        # Save and move output
+        primary_set.save_valid_output(
+            primary_set.basinID,
+            agent.run_name,
+            agent.valid_path,
+            agent.job.workdir,
+            agent.valid_path_output,
+        )
+
+        # plot the validation plots (for valid_best or validation with alternative parameters)
+        if agent.run_name != "valid_control":
+            runs = ["valid_control", "valid_best"]
+            if agent.nwmflow is not None:
+                runs.append("nwm_retro")
+            if agent.run_name != "valid_best":
+                runs.append(agent.run_name)
+            logger.info(f"Generating plots comparing {runs}")
+
+            plot_valid_output(primary_set, agent, runs, time_period)
+
+        # Indicate completion
+        primary_set.write_run_complete_file(agent.run_name, agent.workdir)
+        complete_msg(
+            primary_set.basinID,
+            agent.run_name,
+            agent.workdir,
+            primary_set.user,
+        )
+
