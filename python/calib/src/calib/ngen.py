@@ -90,7 +90,9 @@ def _map_params_to_realization(
     # Map params to grouped realization
     elif hasattr(realization, "formulation_groups"):
         if group_name is None:
-            raise ValueError("Must provide 'group_name' for grouped realization parameter mapping")
+            raise ValueError(
+                "Must provide 'group_name' for grouped realization parameter mapping"
+            )
 
         group_formulations = realization.formulation_groups[group_name]
         dfs = []
@@ -215,7 +217,10 @@ class NgenBase(ModelExec):
             data = json.load(fp)
         self.ngen_realization = NgenRealization(**data)
 
-        if hasattr(self.ngen_realization.global_config, "forcing") and self.ngen_realization.global_config.forcing.provider == 'CsvPerFeature':
+        if (
+            hasattr(self.ngen_realization.global_config, "forcing")
+            and self.ngen_realization.global_config.forcing.provider == "CsvPerFeature"
+        ):
             # Read precipitation forcing
             start_date = datetime.strftime(
                 self.ngen_realization.time.start_time, "%Y-%m-%d %H:%M:%S"
@@ -275,7 +280,7 @@ class NgenBase(ModelExec):
             args = '{} "all" {} "all" {}'.format(
                 Path(catchments).resolve(),
                 Path(nexus).resolve(),
-                Path(realization).name
+                Path(realization).name,
             )
             values["args"] = args
         else:
@@ -286,7 +291,7 @@ class NgenBase(ModelExec):
             # This prevent inserting redundant mpirun command in situations
             # such as cloning a Ngen object from another Ngen object
             if not binary.startswith("mpirun -n"):
-                binary = f"mpirun -n {parallel} {binary}"
+                binary = f"mpirun -n {parallel} --bind-to core --map-by slot:PE=2 --report-bindings {binary}"
             if not custom_args:
                 # only append this if args weren't already custom defined by user
                 args += f" {partitions}"
@@ -316,9 +321,7 @@ class NgenBase(ModelExec):
             raise ValueError("Must provide partitions if using parallel")
         return values
 
-    def update_config(
-        self, i: int, params: "pd.DataFrame", id: str = None, **kwargs
-    ):
+    def update_config(self, i: int, params: "pd.DataFrame", id: str = None, **kwargs):
         """_summary_
 
         Args:
@@ -328,12 +331,19 @@ class NgenBase(ModelExec):
             **kwargs: Additional arguments
         """
         if id is None:
-            if hasattr(self.ngen_realization, 'formulation_groups') and self.ngen_realization.formulation_groups:
+            if (
+                hasattr(self.ngen_realization, "formulation_groups")
+                and self.ngen_realization.formulation_groups
+            ):
                 # Update grouped realization
                 for grp_name in self.ngen_realization.formulation_groups.keys():
-                    formulation_configs = self.ngen_realization.formulation_groups[grp_name]
+                    formulation_configs = self.ngen_realization.formulation_groups[
+                        grp_name
+                    ]
                     if not formulation_configs or len(formulation_configs) == 0:
-                        raise ValueError(f"No formulation configuration found for group '{grp_name}'")
+                        raise ValueError(
+                            f"No formulation configuration found for group '{grp_name}'"
+                        )
                     module = formulation_configs[0].params
                     self.apply_params_to_module(i, params, module)
             else:
@@ -341,9 +351,12 @@ class NgenBase(ModelExec):
                 module = self.ngen_realization.global_config.formulations[0].params
                 self.apply_params_to_module(i, params, module)
         else:  # update specific catchment or formulation group
-            if hasattr(self.ngen_realization, 'catchments') and id in self.ngen_realization.catchments:
+            if (
+                hasattr(self.ngen_realization, "catchments")
+                and id in self.ngen_realization.catchments
+            ):
                 module = self.ngen_realization.catchments[id].formulations[0].params
-            elif hasattr(self.ngen_realization, 'formulation_groups'):
+            elif hasattr(self.ngen_realization, "formulation_groups"):
                 formulation_configs = self.ngen_realization.formulation_groups[id]
                 if not formulation_configs or len(formulation_configs) == 0:
                     raise ValueError(f"No formulation configuration found for '{id}'")
@@ -354,7 +367,9 @@ class NgenBase(ModelExec):
             # Apply params to module
             self.apply_params_to_module(i, params, module)
 
-    def apply_params_to_module(self, i: Union[int, str], params: "pd.DataFrame", module) -> None:
+    def apply_params_to_module(
+        self, i: Union[int, str], params: "pd.DataFrame", module
+    ) -> None:
         """Apply updated parameters to a module"""
 
         if hasattr(module, "modules"):
@@ -399,6 +414,7 @@ class NgenBase(ModelExec):
         Args:
             path: Path to realization file output
         """
+
         def safe_model_dump_json(
             model: BaseModel, *, by_alias=True, exclude_none=True, indent=4
         ) -> str:
@@ -743,23 +759,25 @@ class NgenGrouped(NgenBase):
         """
         Extract formulation groups from realization file and map catchments to formulation groups
         """
-        if not hasattr(self.ngen_realization, 'formulation_groups'):
+        if not hasattr(self.ngen_realization, "formulation_groups"):
             raise ValueError(
                 "Realization file must contain 'formulation_groups' section for grouped strategy"
             )
 
-        if not hasattr(self.ngen_realization, 'catchments'):
+        if not hasattr(self.ngen_realization, "catchments"):
             raise ValueError(
                 "Realization file must contain 'catchments' section for grouped strategy"
             )
 
         # Retrieve formulations for each group
         for grp_name in self.ngen_realization.formulation_groups.keys():
-            self.formulation_groups[grp_name] = self.ngen_realization.formulation_groups[grp_name]
+            self.formulation_groups[grp_name] = (
+                self.ngen_realization.formulation_groups[grp_name]
+            )
 
         # Build catchment-to-group mapping
         for catchment_id, catchment_config in self.ngen_realization.catchments.items():
-            if hasattr(catchment_config, 'formulations'):
+            if hasattr(catchment_config, "formulations"):
                 grp_name = catchment_config.formulations
                 if grp_name not in self.formulation_groups:
                     raise ValueError(
@@ -779,12 +797,12 @@ class NgenGrouped(NgenBase):
             self.grp_models[grp_name] = model_names
 
     def _get_params_for_grp(self, grp_name: str) -> Dict[str, List[Parameter]]:
-        """"
+        """ "
         Retrieve parameters for a specific formulation group
         """
 
         # Retrieve modules for a given group that are calibratable
-        cal_models = (self.grp_models.get(grp_name, set()) & set(self.params.keys()))
+        cal_models = self.grp_models.get(grp_name, set()) & set(self.params.keys())
 
         # Filter parameters to calibratable models in group
         params_for_grp = {}
@@ -799,9 +817,10 @@ class NgenGrouped(NgenBase):
         """
 
         for grp_name in self.formulation_groups.keys():
-
             # Retrieve catchments for formulation group
-            cat_in_grp = [cat_id for cat_id, grp in self.cat_to_grp.items() if grp == grp_name]
+            cat_in_grp = [
+                cat_id for cat_id, grp in self.cat_to_grp.items() if grp == grp_name
+            ]
             self.grp_to_cat[grp_name] = cat_in_grp
 
             # Retrieve parameters for formulation group
@@ -809,7 +828,9 @@ class NgenGrouped(NgenBase):
             params_dict = {model: params for model, params in params_for_grp.items()}
 
             # Map params to realization format
-            params_df = _map_params_to_realization(params_dict, self.ngen_realization, grp_name)
+            params_df = _map_params_to_realization(
+                params_dict, self.ngen_realization, grp_name
+            )
             params_df.reset_index(drop=True, inplace=True)
             params_df["fac"] = range(len(params_df))
             self.grp_params_map[grp_name] = params_df
@@ -856,9 +877,7 @@ class NgenGrouped(NgenBase):
         # Find single basin gage nexus for all groups
         basin_gage = self._find_basin_gage_nexus()
         if not basin_gage:
-            raise RuntimeError(
-                "No gage found in crosswalk for evaluation"
-            )
+            raise RuntimeError("No gage found in crosswalk for evaluation")
         eval_nexus, nwis_id = basin_gage
 
         # Generate timestamped routing output file
@@ -871,7 +890,9 @@ class NgenGrouped(NgenBase):
             gage_nexus_id = eval_nexus.id
             self._wb_lst = [
                 x.split("-")[1]
-                for x in list(self._catchment_hydro_fabric.query("toid==@gage_nexus_id").index)
+                for x in list(
+                    self._catchment_hydro_fabric.query("toid==@gage_nexus_id").index
+                )
             ]
         except (KeyError, Exception) as e:
             # Include all catchments in wb_lst as fallback
@@ -886,7 +907,9 @@ class NgenGrouped(NgenBase):
             # Process nexus/adjustable object for each catchment
             for cat_id in grp_catchments:
                 try:
-                    hydro_cat_id = cat_id.replace("cat", "wb") if "cat" in cat_id else cat_id
+                    hydro_cat_id = (
+                        cat_id.replace("cat", "wb") if "cat" in cat_id else cat_id
+                    )
                     fabric = self._catchment_hydro_fabric.loc[hydro_cat_id]
                 except KeyError:
                     print(f"KeyError: {hydro_cat_id}")
@@ -900,12 +923,7 @@ class NgenGrouped(NgenBase):
                 # Create adjustable catchment object
                 nexus = Nexus(nexus_data.name, None, hydro_cat_id)
                 adjustables.append(
-                    AdjustableCatchment(
-                        self.workdir,
-                        grp_name,
-                        nexus,
-                        grp_params
-                    )
+                    AdjustableCatchment(self.workdir, grp_name, nexus, grp_params)
                 )
 
             # Create calibration set for each group
@@ -925,6 +943,7 @@ class NgenGrouped(NgenBase):
                     wb_lst=self._wb_lst,
                 )
             )
+
 
 # class Ngen(BaseModel, Configurable, smart_union=True):
 #    __root__: Union[NgenExplicit, NgenIndependent, NgenUniform] = Field(discriminator="strategy")
