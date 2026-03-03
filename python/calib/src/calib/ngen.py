@@ -7,7 +7,6 @@ This module contains methods to read and save formulation configurations.
 import json
 from datetime import datetime
 from enum import Enum
-from functools import reduce
 
 json.encoder.FLOAT_REPR = str  # lambda x: format(x, '%.09f')
 import logging
@@ -146,6 +145,7 @@ class NgenBase(ModelExec):
     # private, not validated
     _catchments: Sequence["CalibrationCatchment"] = []
     _catchment_hydro_fabric: gpd.GeoDataFrame
+    _flowpath_hydro_fabric: gpd.GeoDataFrame
     _nexus_hydro_fabric: gpd.GeoDataFrame
     _x_walk: pd.Series
     _precip: gpd.GeoDataFrame
@@ -170,7 +170,7 @@ class NgenBase(ModelExec):
         # Make a copy of the config file, just in case
         shutil.copy(self.realization, str(self.realization) + "_original")
 
-        # Reading catchments and nexus
+        # Reading catchments, flowpaths, and nexus
         try:
             self._catchment_hydro_fabric = gpd.read_file(
                 self.catchments, layer="divides"
@@ -180,7 +180,18 @@ class NgenBase(ModelExec):
                 f"Failed to read catchment hydro fabric from {self.catchments}: {e}"
             )
 
-        self._catchment_hydro_fabric.set_index("id", inplace=True)
+        self._catchment_hydro_fabric.set_index("div_id", inplace=True)
+
+        try:
+            self._flowpath_hydro_fabric = gpd.read_file(
+                self.catchments, layer="flowpaths"
+            )
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to read flowpath hydro fabric from {self.catchments}: {e}"
+            )
+
+        self._flowpath_hydro_fabric.set_index("div_id", inplace=True)
 
         try:
             self._nexus_hydro_fabric = gpd.read_file(self.nexus, layer="nexus")
@@ -189,7 +200,7 @@ class NgenBase(ModelExec):
                 f"Failed to read nexus hydro fabric from {self.nexus}: {e}"
             )
 
-        self._nexus_hydro_fabric.set_index("id", inplace=True)
+        self._nexus_hydro_fabric.set_index("nex_id", inplace=True)
 
         # Handle crosswalk file
         self._x_walk = pd.Series(dtype=object)
@@ -202,7 +213,13 @@ class NgenBase(ModelExec):
                         if not isinstance(gage, str):
                             gage = gage[0]
                         if gage != "":
-                            self._x_walk[id] = gage
+                            # Convert ids to integers to match NHF format
+                            try:
+                                self._x_walk[int(id)] = gage
+                            except ValueError:
+                                raise ValueError(
+                                    f"Crosswalk contains non-integer nexus ID: '{id}'"
+                                )
         except FileNotFoundError:
             raise FileNotFoundError(f"Crosswalk file '{self.crosswalk}' not found.")
         except json.JSONDecodeError:
@@ -214,15 +231,6 @@ class NgenBase(ModelExec):
         with open(self.realization) as fp:
             data = json.load(fp)
         self.ngen_realization = NgenRealization(**data)
-
-        if hasattr(self.ngen_realization.global_config, "forcing") and self.ngen_realization.global_config.forcing.provider == 'CsvPerFeature':
-            # Read precipitation forcing
-            start_date = datetime.strftime(
-                self.ngen_realization.time.start_time, "%Y-%m-%d %H:%M:%S"
-            )
-            end_date = datetime.strftime(
-                self.ngen_realization.time.end_time, "%Y-%m-%d %H:%M:%S"
-            )
 
     @property
     def config_file(self) -> Path:
@@ -493,7 +501,8 @@ class NgenExplicit(NgenBase):
                         )
                     )
                 try:
-                    nexus_data = self._nexus_hydro_fabric.loc[fabric["toid"]]
+                    dn_nexus_id = self._flowpath_hydro_fabric.loc[id]["dn_nex_id"]
+                    nexus_data = self._nexus_hydro_fabric.loc[dn_nexus_id]
                 except KeyError:
                     raise (
                         RuntimeError(
@@ -512,7 +521,7 @@ class NgenExplicit(NgenBase):
                 }
                 params = _map_params_to_realization(params, catchment)
                 # TODO define these extra params in the realization config and parse them out explicity per catchment, cause why not?
-                eval_params = self.eval_params.copy()
+                eval_params = self.eval_params.model_copy()
                 eval_params.id = id
                 self._catchments.append(
                     CalibrationCatchment(
@@ -565,7 +574,7 @@ class NgenIndependent(NgenBase):
         catchments = []
         eval_nexus = []
         catchment_realizations = {}
-        g_conf = self.ngen_realization.global_config.copy(deep=True).dict(by_alias=True)
+        g_conf = self.ngen_realization.global_config.model_copy(deep=True).model_dump(by_alias=True)
         for id in self._catchment_hydro_fabric.index:
             # Copy the global configuration into each catchment
             catchment_realizations[id] = CatchmentRealization(**g_conf)
@@ -588,23 +597,17 @@ class NgenIndependent(NgenBase):
             catchment,
         ) in self.ngen_realization.catchments.items():  # data['catchments'].items():
             try:
-                fabric = self._catchment_hydro_fabric.loc[id]
-            except KeyError:  # This probaly isn't strictly required since we built these from the index
-                continue
-            try:
-                nexus_data = self._nexus_hydro_fabric.loc[fabric["toid"]]
+                dn_nexus_id = self._flowpath_hydro_fabric.loc[id]["dn_nex_id"]
+                nexus_data = self._nexus_hydro_fabric.loc[dn_nexus_id]
             except KeyError:
                 raise (
                     RuntimeError("No suitable nexus found for catchment {}".format(id))
                 )
             nwis = None
             try:
-                nwis = self._x_walk.loc[id.replace("cat", "wb")]
+                nwis = self._x_walk.loc[id]
             except KeyError:
-                try:
-                    nwis = self._x_walk.loc[id]
-                except KeyError:
-                    nwis = None
+                nwis = None
             if nwis is not None:
                 # establish the hydro location for the observation nexus associated with this catchment
                 location = NWISLocation(nwis, nexus_data.name, nexus_data.geometry)
@@ -668,19 +671,20 @@ class NgenUniform(NgenBase):
         end_t = self.ngen_realization.time.end_time
         eval_nexus = []
 
-        for id, toid in self._catchment_hydro_fabric["toid"].items():
+        for catchment_id in self._catchment_hydro_fabric.index:
+            try:
+                dn_nexus_id = self._flowpath_hydro_fabric.loc[catchment_id]["dn_nex_id"]
+                nexus_data = self._nexus_hydro_fabric.loc[dn_nexus_id]
+            except KeyError:
+                continue
             # look for an observable nexus
-            nexus_data = self._nexus_hydro_fabric.loc[toid]
             nwis = None
             try:
-                nwis = self._x_walk.loc[id.replace("wb", "cat")]
+                nwis = self._x_walk.loc[catchment_id]
             except KeyError:
-                try:
-                    nwis = self._x_walk.loc[id]
-                except KeyError:
-                    # not an observable nexus, try the next one
-                    continue
-                # establish the hydro location for the observation nexus associated with this catchment
+                # not an observable nexus, try the next one
+                continue
+            # establish the hydro location for the observation nexus associated with this catchment
             location = NWISLocation(nwis, nexus_data.name, nexus_data.geometry)
             nexus = Nexus(nexus_data.name, location, (), id)
             eval_nexus.append(nexus)
@@ -692,13 +696,12 @@ class NgenUniform(NgenBase):
 
         # Identify rivers draining to the stream gage
         self.routing_output = "troute_output_" + start_t.strftime("%Y%m%d%H%M") + ".nc"
-        nexus_id = self._catchment_hydro_fabric.loc[
-            self._x_walk.index[0].replace("cat", "wb")
-        ]["toid"]
+        nexus_id = eval_nexus[0].id
 
         self._wb_lst = [
-            x.split("-")[1]
-            for x in list(self._catchment_hydro_fabric.query("toid==@nexus_id").index)
+            str(x) for x in list(
+                self._flowpath_hydro_fabric.query("dn_nex_id==@nexus_id").index
+            )
         ]
         self._catchments.append(
             UniformCalibrationSet(
@@ -824,21 +827,15 @@ class NgenGrouped(NgenBase):
             if not nwis and nwis == "":
                 continue
 
-            # Adaptively find corresponding catchment
-            cat_id = None
-            if id_key in self._catchment_hydro_fabric.index:
-                cat_id = id_key
-            elif id_key.replace("cat", "wb") in self._catchment_hydro_fabric.index:
-                cat_id = id_key.replace("cat", "wb")
-            elif id_key.replace("wb", "cat") in self._catchment_hydro_fabric.index:
-                cat_id = id_key.replace("wb", "cat")
-            else:
+            # Check if catchment id exists
+            cat_id = id_key
+            if id_key not in self._catchment_hydro_fabric.index:
                 continue
 
             # Map catchment to nexus
             try:
-                fabric = self._catchment_hydro_fabric.loc[cat_id]
-                nexus_data = self._nexus_hydro_fabric.loc[fabric["toid"]]
+                dn_nexus_id = self._flowpath_hydro_fabric.loc[cat_id]["dn_nex_id"]
+                nexus_data = self._nexus_hydro_fabric.loc[dn_nexus_id]
                 location = NWISLocation(nwis, nexus_data.name, nexus_data.geometry)
                 nexus = Nexus(nexus_data.name, location, (), cat_id)
                 return (nexus, nwis)
@@ -870,12 +867,13 @@ class NgenGrouped(NgenBase):
             # Get catchments draining to nexus
             gage_nexus_id = eval_nexus.id
             self._wb_lst = [
-                x.split("-")[1]
-                for x in list(self._catchment_hydro_fabric.query("toid==@gage_nexus_id").index)
+                str(x) for x in list(
+                    self._flowpath_hydro_fabric.query("dn_nex_id==@gage_nexus_id").index
+                )
             ]
         except (KeyError, Exception) as e:
             # Include all catchments in wb_lst as fallback
-            self._wb_lst = list(self._catchment_hydro_fabric.index)
+            self._wb_lst = [str(x) for x in list(self._catchment_hydro_fabric.index)]
             print(f"Could not identify downstream catchments for nexus: {e}")
 
         # Construct calibration set for group
@@ -886,19 +884,13 @@ class NgenGrouped(NgenBase):
             # Process nexus/adjustable object for each catchment
             for cat_id in grp_catchments:
                 try:
-                    hydro_cat_id = cat_id.replace("cat", "wb") if "cat" in cat_id else cat_id
-                    fabric = self._catchment_hydro_fabric.loc[hydro_cat_id]
-                except KeyError:
-                    print(f"KeyError: {hydro_cat_id}")
-                    continue
-
-                try:
-                    nexus_data = self._nexus_hydro_fabric.loc[fabric["toid"]]
+                    dn_nexus_id = self._flowpath_hydro_fabric.loc[cat_id]["dn_nex_id"]
+                    nexus_data = self._nexus_hydro_fabric.loc[dn_nexus_id]
                 except KeyError:
                     raise RuntimeError(f"No nexus found for catchment {cat_id}")
 
                 # Create adjustable catchment object
-                nexus = Nexus(nexus_data.name, None, hydro_cat_id)
+                nexus = Nexus(nexus_data.name, None, cat_id)
                 adjustables.append(
                     AdjustableCatchment(
                         self.workdir,
@@ -925,9 +917,6 @@ class NgenGrouped(NgenBase):
                     wb_lst=self._wb_lst,
                 )
             )
-
-# class Ngen(BaseModel, Configurable, smart_union=True):
-#    __root__: Union[NgenExplicit, NgenIndependent, NgenUniform] = Field(discriminator="strategy")
 
 
 class Ngen(BaseModel, Configurable):
