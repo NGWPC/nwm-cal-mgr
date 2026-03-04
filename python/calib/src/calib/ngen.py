@@ -286,7 +286,7 @@ class NgenBase(ModelExec):
             # This prevent inserting redundant mpirun command in situations
             # such as cloning a Ngen object from another Ngen object
             if not binary.startswith("mpirun -n"):
-                binary = f"mpirun -n {parallel} {binary}"
+                binary = f"mpirun -n {parallel} --bind-to none {binary}"
             if not custom_args:
                 # only append this if args weren't already custom defined by user
                 args += f" {partitions}"
