@@ -884,7 +884,7 @@ class NgenGrouped(NgenBase):
             # Process nexus/adjustable object for each catchment
             for cat_id in grp_catchments:
                 try:
-                    dn_nexus_id = self._flowpath_hydro_fabric.loc[cat_id]["dn_nex_id"]
+                    dn_nexus_id = self._flowpath_hydro_fabric.loc[int(cat_id)]["dn_nex_id"]
                     nexus_data = self._nexus_hydro_fabric.loc[dn_nexus_id]
                 except KeyError:
                     raise RuntimeError(f"No nexus found for catchment {cat_id}")
