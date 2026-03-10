@@ -495,7 +495,7 @@ def scatterplot_objfun(
     df = pd.read_csv(metric_file)
 
     # Plot
-    fig, ax = plt.subplots(dpi=150, tight_layout=True)
+    fig, ax = plt.subplots(figsize=(10, 6), dpi=150, tight_layout=True)
     ax.plot(
         df.loc[:, ["iteration"]],
         df.loc[:, [objective_fun_column]],
