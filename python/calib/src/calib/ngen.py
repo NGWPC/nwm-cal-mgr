@@ -5,7 +5,7 @@ This module contains methods to read and save formulation configurations.
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 
@@ -691,7 +691,7 @@ class NgenUniform(NgenBase):
         params = _params_as_df(self.params)
 
         # Identify rivers draining to the stream gage
-        self.routing_output = "troute_output_" + start_t.strftime("%Y%m%d%H%M") + ".nc"
+        self.routing_output = "troute_output_" + (start_t - timedelta(hours=1)).strftime("%Y%m%d%H%M") + ".nc"
         nexus_id = self._catchment_hydro_fabric.loc[
             self._x_walk.index[0].replace("cat", "wb")
         ]["toid"]
@@ -862,7 +862,7 @@ class NgenGrouped(NgenBase):
         eval_nexus, nwis_id = basin_gage
 
         # Generate timestamped routing output file
-        self.routing_output = "troute_output_" + start_t.strftime("%Y%m%d%H%M") + ".nc"
+        self.routing_output = "troute_output_" + (start_t - timedelta(hours=1)).strftime("%Y%m%d%H%M") + ".nc"
 
         # Identify rivers draining to the stream gage
         self._wb_lst = []
