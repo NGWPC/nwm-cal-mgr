@@ -14,6 +14,7 @@ import yaml
 from calib.agent import Agent
 from calib.configuration import General
 from calib.git_util import print_git_info_all
+from calib.utils import set_os_env_key, OS_ENV_KEY_RESULTS_DIR
 from calib.validation_run import run_valid_ctrl_best
 
 logger = logging.getLogger(__name__)
@@ -33,8 +34,9 @@ def main(general: General, model_conf):
     agent = Agent(model_conf, general.valid_path, general, general.log, general.restart)
 
     # set environment variable for ngencerf backend
-    os.environ["NGEN_RESULTS_DIR"] = str(Path(agent.workdir).parent.parent)
-    logging.info(f"Set environment variable NGEN_RESULTS_DIR to: {os.environ['NGEN_RESULTS_DIR']}")
+    set_os_env_key(
+        OS_ENV_KEY_RESULTS_DIR, str(Path(agent.workdir).parent.parent), override=False
+    )
 
     # read nwm retrospective streamflow if exists
     if agent.run_name != "valid_control":
