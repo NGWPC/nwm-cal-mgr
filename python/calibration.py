@@ -20,6 +20,7 @@ from calib.configuration import NoCalibModel
 from calib.git_util import print_git_info_all
 from calib.search import dds_set, pso_search, gwo_search, single_exec
 from calib.strategy import Algorithm
+from calib.utils import set_os_env_key, OS_ENV_KEY_RESULTS_DIR
 
 LOG = logging.getLogger(__name__)
 
@@ -137,9 +138,8 @@ def main(general: General, model_conf, log_path_overwrite: str | None = None, wo
     agent = Agent(model_conf, general.calib_path, general, general.log, general.restart, worker_name=worker_name)
 
     # set environment variable for ngencerf backend
-    os.environ["NGEN_RESULTS_DIR"] = str(Path(agent.workdir).parent.parent)
-    logging.info(
-        f"Set environment variable NGEN_RESULTS_DIR to: {os.environ['NGEN_RESULTS_DIR']}"
+    set_os_env_key(
+        OS_ENV_KEY_RESULTS_DIR, str(Path(agent.workdir).parent.parent), override=False
     )
 
     import numpy as np
