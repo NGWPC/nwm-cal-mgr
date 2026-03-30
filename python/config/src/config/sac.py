@@ -1,4 +1,4 @@
-from typing import ClassVar, Literal, Mapping, Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -25,9 +25,3 @@ class SAC(BMIFortran):
     registration_function: str = "register_bmi_sac"
     # NOTE aliases don't propagate to subclasses, so we have to repeat the alias
     model_name: Literal["sac"] = Field(default="sac", alias="model_type_name")
-
-    variable_names_map: ClassVar[Mapping[str, str]] = {
-        "precip": "atmosphere_water__liquid_equivalent_precipitation_rate",
-        "tair": "land_surface_air__temperature",
-        "pet": "water_potential_evaporation_flux",
-    }
