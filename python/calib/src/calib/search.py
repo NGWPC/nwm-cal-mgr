@@ -613,13 +613,14 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
 
 
 def compute(
-    calibration_sets: List["CalibrationSet"], iteration: int, agent_1st: str, input: Tuple
+    iteration: int,
+    agent_1st: str,
+    input: Tuple
 ) -> float:
     """Execute run and evaluate objection function.
 
     parameters
     ----------
-    calibration_sets : List of CalibrationSet objects
     iteration : starting iteration
     agent_1st: name of first agent
     input : Agent and associated parameters
@@ -627,6 +628,9 @@ def compute(
     """
     params = input[0]
     agent = input[1]
+
+    # Retrieve calibration_sets from agent
+    calibration_sets = agent.model.adjustables
 
     # determine whether it is the first iteration for the agent
     agent_name = (
@@ -668,7 +672,6 @@ def compute(
 
 def cost_func(
     params: pd.DataFrame,
-    calibration_sets: List["CalibrationSet"],
     agents: "Agent",
     agent_1st: str,
     pool: int,
@@ -677,7 +680,6 @@ def cost_func(
 
     Parameters:
     ----------
-    calibration_sets : List of CalibrationSet objects
     agents : Agent object
     agent_1st: name of first agent
     pool : Pool size
@@ -689,7 +691,7 @@ def cost_func(
     """
     global __iteration_counter
     # TODO implement multi-processing here???
-    func = partial(compute, calibration_sets, __iteration_counter, agent_1st)
+    func = partial(compute, __iteration_counter, agent_1st)
     inputs = list(zip(params, agents[:len(params)]))
     costs = np.fromiter(pool.imap(func, inputs), dtype=float)
     __iteration_counter = __iteration_counter + 1
@@ -790,7 +792,6 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
         bounds=bounds,
     )
     cf = partial(cost_func,
-                 calibration_sets=calibration_sets,
                  agents=agents,
                  agent_1st=agent_1st,
                  pool=_pool)
@@ -960,7 +961,7 @@ def gwo_search(start_iteration: int, iterations: int, agent) -> None:
         calib_path=agent.calib_path,
         basinid=calibration_sets[0].basinID,
     )
-    cf = partial(cost_func, calibration_sets=calibration_sets, agents=agents, agent_1st=agent_1st, pool=_pool)
+    cf = partial(cost_func, agents=agents, agent_1st=agent_1st, pool=_pool)
 
     if iterations < 1:
         msg = "iterations must be >= 1 for GWO."
