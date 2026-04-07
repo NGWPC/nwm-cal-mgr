@@ -5,8 +5,8 @@ properties related to configurations for executing calibration and validation ru
 @author: Nels Frazer, Xia Feng
 """
 
-import logging
 import os
+
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -18,8 +18,9 @@ from calib.meta import JobMeta
 from .configuration import Model
 from .utils import pushd
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+import ewts
+from common import ensure_logger_initialized
+logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
 
 if TYPE_CHECKING:
     from typing import Any, Mapping, Sequence
@@ -89,6 +90,9 @@ class Agent(BaseAgent):
         worker_name: str | None = None,
     ):
         """Construct attributes for the Agent class."""
+        global logger
+        logger = ensure_logger_initialized()
+
         self._workdir = workdir
         self._job = None
         self._run_name = general.name
@@ -103,7 +107,7 @@ class Agent(BaseAgent):
         worker_prefix = (
             "ngen" if model_conf["type"] == "nocalib" else model_conf["type"]
         )
-
+        
         if restart and "calib" in self._run_name:
             # find prior ngen workdirs
             # FIXME if a user starts with an independent calibration strategy

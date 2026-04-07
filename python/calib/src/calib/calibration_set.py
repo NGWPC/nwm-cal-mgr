@@ -11,6 +11,7 @@ import os
 import shutil
 import tempfile
 import time
+
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Sequence
 
@@ -31,11 +32,9 @@ if TYPE_CHECKING:
 
     from .model import EvaluationOptions
 
-import logging
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-
+import ewts
+from common import ensure_logger_initialized
+logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
 
 class CalibrationSet(Evaluatable):
     """A HY_Features based catchment with additional calibration information/functionality."""
@@ -52,6 +51,10 @@ class CalibrationSet(Evaluatable):
         nwmflow_file: Optional[Path],
         wb_lst: list,
     ) -> None:
+        
+        global logger
+        logger = ensure_logger_initialized(ewts.CAL_MGR_ID)
+
         """Construct attributes for the CalibrationSet object.
 
         Parameters

@@ -1,4 +1,4 @@
-import logging
+import ewts
 from pathlib import Path
 from sys import platform
 from typing import Any, Literal, Mapping, Optional, Sequence, Union
@@ -12,9 +12,10 @@ from pydantic import (
 )
 from pydantic.types import ImportString
 
-logger = logging.getLogger("bmi_formulation")
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)
+from common import ensure_logger_initialized
+
+def _logger():
+    return ensure_logger_initialized()
 
 
 class BMIParams(BaseModel):
@@ -96,7 +97,7 @@ class BMIParams(BaseModel):
 
         if output_map:
             if output_vars:
-                logger.info(
+                _logger().info(
                     "BMIParams provided output map and output variables list.  List values will be ignored"
                 )
             output_vars = []

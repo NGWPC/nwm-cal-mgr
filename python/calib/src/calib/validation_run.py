@@ -1,11 +1,9 @@
-import logging
+import ewts
 import os
 import shutil
 from typing import TYPE_CHECKING
 
 import pandas as pd
-
-logger = logging.getLogger(__name__)
 
 from .plot_output import plot_valid_output
 from .search import _calc_metrics, _execute
@@ -14,12 +12,12 @@ from .utils import complete_msg, pushd
 if TYPE_CHECKING:
     pass
 
-
-import logging
-
 from .configuration import NoCalibModel
 
-logger = logging.getLogger(__name__)
+from common import ensure_logger_initialized
+
+def _logger():
+    return ensure_logger_initialized()
 
 
 def run_valid_ctrl_best(agent):
@@ -34,15 +32,15 @@ def run_valid_ctrl_best(agent):
     # Single-execution model (NoCalibModel) validation
 
     if isinstance(agent.model, NoCalibModel):
-        logger.info(
+        _logger().info(
             f"Running validation for NoCalibModel (Single Exec): {agent.run_name}"
         )
         # Execute model run and post-process results
         with pushd(agent.job.workdir):
-            logger.info(agent.cmd)
+            _logger().info(agent.cmd)
             _execute(agent)
             agent.model.postprocess_single_validation_output(agent)
-        logger.info("[NoCalibModel] Validation complete.")
+        _logger().info("[NoCalibModel] Validation complete.")
         return
 
     # -----------------------------------------
@@ -58,7 +56,7 @@ def run_valid_ctrl_best(agent):
     if agent.run_name != "valid_control":
         if agent.nwmflow_file != "":
             if os.path.exists(agent.nwmflow_file):
-                logger.info(
+                _logger().info(
                     f"Read NWM retrospective streamflow simulation from: {agent.nwmflow_file}"
                 )
                 nwm = pd.read_csv(agent.nwmflow_file)
@@ -66,7 +64,7 @@ def run_valid_ctrl_best(agent):
                 nwm["value_date"] = pd.DatetimeIndex(nwm["value_date"])
                 agent.nwmflow = nwm.set_index("value_date")
             else:
-                logger.error(f"File does not exist: {agent.nwmflow_file}")
+                _logger().error(f"File does not exist: {agent.nwmflow_file}")
         else:
             agent.nwmflow = None
 
@@ -81,7 +79,7 @@ def run_valid_ctrl_best(agent):
 
     # Run validation simulation
     with pushd(agent.job.workdir):
-        logger.info(f"Running simulation for {agent.run_name}")
+        _logger().info(f"Running simulation for {agent.run_name}")
         _execute(agent)
 
     # Calculate metric using first calibration object
@@ -101,7 +99,7 @@ def run_valid_ctrl_best(agent):
 
         for out1, run1 in zip(outputs, runs):
             metrics = pd.DataFrame()
-            # logger.info(f"Computing metrics for out1 : {out1}, run1: {run1}")
+            # _logger().info(f"Computing metrics for out1 : {out1}, run1: {run1}")
             for key, value in time_period.items():
                 result = _calc_metrics(
                     out1,
@@ -134,7 +132,7 @@ def run_valid_ctrl_best(agent):
                 runs.append("nwm_retro")
             if agent.run_name != "valid_best":
                 runs.append(agent.run_name)
-            logger.info(f"Generating plots comparing {runs}")
+            _logger().info(f"Generating plots comparing {runs}")
 
             plot_valid_output(primary_set, agent, runs, time_period)
 

@@ -3,8 +3,6 @@ This is a class to hold model job run meta data.
 
 @author: Nels Frazer
 """
-
-import logging
 import os
 import random
 import shutil
@@ -12,7 +10,9 @@ import string
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-logger = logging.getLogger(__name__)
+import ewts
+from common import ensure_logger_initialized
+logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -68,6 +68,9 @@ class JobMeta:
             If not None, this will be used as the middlefix for the worker directory.
             If None, a random string will be used.
         """
+        global logger
+        logger = ensure_logger_initialized()
+
         if workdir is None:
             self._workdir = Path(
                 _create_worker_dir(

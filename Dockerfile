@@ -43,14 +43,47 @@ RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
     pip3 install "numpy==1.26.4" "netcdf4<=1.6.3" && \
     pip3 install "hydrotools.events==1.1.5" "hydrotools.nwis-client==3.3.1"
 
+# ── EWTS (Error, Warning and Trapping System)
+# nwm-cal-mgr and nwm-msw-mgr only need the EWTS Python package.
+#
+# Build args – override at build time to pin a branch, tag, or full commit SHA:
+#   docker build --build-arg EWTS_REF=v1.2.3 ...
+#   docker build --build-arg EWTS_REF=abc123def456 ...
+ARG EWTS_ORG=NGWPC
+ARG EWTS_REF=cmaynard_NGWPC_10000_python_components
+ARG EWTS_CACHE_BUST=1
+
+# Clone nwm-ewts, install the Python package, capture git metadata for
+# provenance, then remove the source tree.
+# Try shallow clone by branch/tag name first; fall back to full clone + checkout
+# for bare commit SHAs (which git clone -b doesn't support).
+#
+# NOTE: Unlike the ngen Dockerfile, clone + pip install + cleanup are kept in a
+# single RUN so the source tree never persists in a layer.  In ngen the split is
+# safe because cmake installs the wheel to /opt/ewts before the source is removed;
+# here there is no cmake step, so the source must remain until pip finishes.
+RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
+    echo "EWTS cache bust: ${EWTS_CACHE_BUST}" && \
+    set -eux && \
+    ewts_dir="$(mktemp -d)" && \
+    git clone "https://github.com/${EWTS_ORG}/nwm-ewts.git" "${ewts_dir}" && \
+    cd "${ewts_dir}" && \
+    git checkout "${EWTS_REF}" && \
+    pip install "${ewts_dir}/runtime/python/ewts" && \
+    rm -rf "${ewts_dir}"
+
 #COPY requirements.txt .
 #RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
 #    pip3 install -r nwm-cal-mgr/requirements.txt && \
 #    rm nwm-cal-mgr/requirements.txt
-
 WORKDIR /ngen-app/
 ARG MSW_MGR_VERSION=development
 RUN set -eux; \
+    echo "Calib cache bust: ${CALIB_CACHE_BUST}" && \
+    # Install shared common package first
+    cd /ngen-app/nwm-cal-mgr/python/common && \
+    pip3 install . ; \
+    \
     # Install dependencies for createInput module
     cd /ngen-app/nwm-cal-mgr/python/calib && \
 #    touch src/*.py && \
