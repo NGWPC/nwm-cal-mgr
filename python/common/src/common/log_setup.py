@@ -95,6 +95,7 @@ def resolve_log_target(
 
     if log_path_overwrite:
         log_path = Path(log_path_overwrite)
+        print(f"log_path_overwrite = {log_path!s}")
 
         if log_path.exists():
             if log_path.is_dir():
@@ -148,16 +149,16 @@ def initialize_logger(
     resolved_log_dir.mkdir(parents=True, exist_ok=True)
     full_log_path = resolved_log_dir / resolved_log_file_name
 
-    if reset_file:
+    if reset_file or log_path_overwrite:
         print(
-            f"log_path_overwrite = {full_log_path!s}, deleting file if already exists, to start a new log file"
+            f"log setup: Deleting file, if already exists, to start a new log file: {full_log_path!s}, "
         )
         try:
             full_log_path.unlink()
         except FileNotFoundError:
             pass
 
-    print(f"Logging into: {full_log_path}")
+    print(f"CALMGR EWTS Logging into: {full_log_path}")
 
     return ewts.logger.setup_logger(
         ewts.CAL_MGR_ID,
@@ -199,7 +200,7 @@ def ensure_logger_initialized(
         caller_text = "\n".join(stack_lines) if stack_lines else "  <no external caller found>"
 
         print(
-            f"WARNING: EWTS {ewts_id} logger was not initialized by the caller; "
+            f"WARNING: log setup - EWTS {ewts_id} logger was not initialized by the caller; "
             f"setting up default logging so execution can continue.\n"
             f"Top non-common call frames:\n{caller_text}",
             flush=True,

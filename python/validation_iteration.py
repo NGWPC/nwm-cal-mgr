@@ -34,10 +34,9 @@ def main(general: General, model_conf, worker: str, iteration: int):
     agent = Agent(model_conf, general.valid_path, general, general.log, general.restart)
 
     # set environment variable for ngencerf backend
-    print(f"Validation Iteration agent.workdir={str(Path(agent.workdir))}", flush=True)
-    print(f"Validation Iteration NGEN_RESULTS_DIR={str(Path(agent.workdir).parent.parent)}", flush=True)
+    print(f"ngen env var {OS_ENV_KEY_RESULTS_DIR} set to {agent.job.workdir}",flush=True)
     set_os_env_key(
-        OS_ENV_KEY_RESULTS_DIR, str(Path(agent.workdir).parent.parent), override=False
+        OS_ENV_KEY_RESULTS_DIR, str(Path(agent.job.workdir)), override=False
     )
 
     # read the parameter values from the *params_iteration.csv file
@@ -177,9 +176,10 @@ def cli():
         conf = yaml.safe_load(file)
 
     general_conf = conf["general"]
-    workdir = Path(general_conf["workdir"])
-    default_log_dir = workdir / "logs"
 
+    run_kind = general_conf["name"]
+    workdir = Path(general_conf["workdir"])
+    default_log_dir = workdir / run_kind / "logs"
     calibration_run_id = general_conf.get("calibration_run_id")
 
     default_log_file_name = build_validation_log_file_name(
