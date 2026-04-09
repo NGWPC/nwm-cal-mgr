@@ -101,18 +101,11 @@ def main(
             default_log_dir=job_log_dir,
         )
 
-        # set environment variable for ngencerf backend
-        print(f"ngen env var {OS_ENV_KEY_RESULTS_DIR} set to {agent.workdir}",flush=True)
-        set_os_env_key(
-            OS_ENV_KEY_RESULTS_DIR, str(Path(agent.workdir)), override=False
-        )
-    else:
-        # set environment variable for ngencerf backend
-        set_os_env_key(
-            OS_ENV_KEY_RESULTS_DIR, str(Path(agent.workdir).parent.parent), override=False
-        )
-
-
+    # set environment variable for ngencerf backend
+    print(f"ngen env var {OS_ENV_KEY_RESULTS_DIR} set to {agent.workdir}",flush=True)
+    set_os_env_key(
+        OS_ENV_KEY_RESULTS_DIR, str(Path(agent.workdir)), override=False
+    )
 
     LOG.info("Starting calib")
 

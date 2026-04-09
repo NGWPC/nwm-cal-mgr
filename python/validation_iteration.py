@@ -6,6 +6,7 @@ validation run with an alternative parameter set
 """
 
 import argparse
+import ewts
 import json
 import os
 import shutil
@@ -21,23 +22,38 @@ from mswm.edit_config import create_valid_realization_file
 
 from common import (
     str_to_bool,
-    ensure_logger_initialized,
     initialize_logger,
     build_validation_log_file_name,
 )
 
-def _logger():
-    return ensure_logger_initialized()
+LOG = ewts.logger.get_logger(ewts.CAL_MGR_ID)
 
-def main(general: General, model_conf, worker: str, iteration: int):
+
+def dump_obj(name, obj):
+    print(f"\n=== {name}: vars ===", flush=True)
+    for k, v in vars(obj).items():
+        print(f"{name}.{k} = {v!r}", flush=True)
+
+    print(f"\n=== {name}: dir ===", flush=True)
+    for k in dir(obj):
+        if not k.startswith("__"):
+            print(f"{name}.{k}", flush=True)
+
+
+def main(
+        general: General,
+        model_conf, 
+        worker: str,
+        iteration: int,
+        log_path_overwrite: str | None = None,
+        log_level_override: str | None = None,
+        log_file_name_override: str | None = None,
+        enabled_override: bool | None = None
+):
+    global LOG
+
     # Initialize agent
     agent = Agent(model_conf, general.valid_path, general, general.log, general.restart)
-
-    # set environment variable for ngencerf backend
-    print(f"ngen env var {OS_ENV_KEY_RESULTS_DIR} set to {agent.job.workdir}",flush=True)
-    set_os_env_key(
-        OS_ENV_KEY_RESULTS_DIR, str(Path(agent.job.workdir)), override=False
-    )
 
     # read the parameter values from the *params_iteration.csv file
     file1 = Path(
@@ -63,6 +79,7 @@ def main(general: General, model_conf, worker: str, iteration: int):
                 calibration_object.eval_params,
                 calibration_object.adf,
                 general.name,
+                LOG,
             )
 
     # create t-route config file for the validation run
@@ -97,8 +114,6 @@ def main(general: General, model_conf, worker: str, iteration: int):
     # Change directory to workdir
     os.chdir(general_valid.workdir)
 
-    _logger().info("Starting Validation Run")
-
     # Initialize agent
     agent_valid = Agent(
         conf_valid["model"],
@@ -109,17 +124,46 @@ def main(general: General, model_conf, worker: str, iteration: int):
     )
 
     if "nwmflow" not in model_conf.keys() or model_conf["nwmflow"] is None:
-        _logger().info(
+        LOG.info(
             "No NWM retrospective streamflow simulation is available for this location"
         )
         agent_valid.nwmflow_file = ""
     else:
         agent_valid.nwmflow_file = model_conf["nwmflow"]
 
+    if log_path_overwrite is None:
+        LOG.info("Validation Iteration bootstrap complete. Switching to validation iteration job log.")
+
+        job_log_dir = Path(agent_valid.job.workdir)
+        job_log_file_name = build_validation_log_file_name(
+            calibration_run_id=general.calibration_run_id,
+            worker_name=agent_valid.job.worker_name,
+            run_kind="iter",
+            iteration=iteration,
+            bootstrap=False,
+        )
+
+        ewts.logger.reset_logger(ewts.CAL_MGR_ID)
+
+        LOG = initialize_logger(
+            log_path_overwrite=None,
+            log_file_name_override=log_file_name_override or job_log_file_name,
+            log_level_override=log_level_override,
+            enabled_override=enabled_override,
+            reset_file=True,
+            default_log_dir=job_log_dir,
+        )
+
+    # set environment variable for ngencerf backend
+    print(f"ngen env var {OS_ENV_KEY_RESULTS_DIR} set to {agent_valid.job.workdir}",flush=True)
+    set_os_env_key(
+        OS_ENV_KEY_RESULTS_DIR, str(Path(agent_valid.job.workdir)), override=False
+    )
+
     # Execcute validation simulation
     run_valid_ctrl_best(agent_valid)
 
-    _logger().info("Validation completed")
+    LOG.info("Validation completed")
 
 
 def cli():
@@ -177,27 +221,48 @@ def cli():
 
     general_conf = conf["general"]
 
-    run_kind = general_conf["name"]
     workdir = Path(general_conf["workdir"])
-    default_log_dir = workdir / run_kind / "logs"
+    default_log_dir = workdir / "logs"
     calibration_run_id = general_conf.get("calibration_run_id")
 
-    default_log_file_name = build_validation_log_file_name(
-        calibration_run_id=calibration_run_id,
-        worker_name=args.worker_id,
-        run_kind="iter",
-        iteration=args.iter_no,
-    )
-
     global LOG
-    LOG = initialize_logger(
-        log_path_overwrite=args.log_path_overwrite,
-        log_file_name_override=args.log_file_name or default_log_file_name,
-        log_level_override=args.log_level,
-        enabled_override=args.logging_enabled,
-        reset_file=True,
-        default_log_dir=default_log_dir,
-    )
+    if args.log_path_overwrite is not None:
+        job_log_file_name = build_validation_log_file_name(
+            calibration_run_id=calibration_run_id,
+            worker_name=args.worker_id,
+            run_kind="iter",
+            iteration=args.iter_no,
+            bootstrap=False,
+        )
+
+        LOG = initialize_logger(
+            enabled_override=args.logging_enabled,
+            log_path_overwrite=args.log_path_overwrite,
+            log_file_name_override=args.log_file_name or job_log_file_name,
+            log_level_override=args.log_level,
+            reset_file=True,
+            default_log_dir=default_log_dir,
+        )
+    else:
+        bootstrap_log_file_name = build_validation_log_file_name(
+            calibration_run_id=calibration_run_id,
+            worker_name=args.worker_id,
+            run_kind="iter",
+            iteration=args.iter_no,
+            bootstrap=True,
+        )
+        print(f"validation_iteration {args.iter_no} boostrap_log_file_name={bootstrap_log_file_name}", flush=True)
+
+        LOG = initialize_logger(
+            log_path_overwrite=None,
+            log_file_name_override=args.log_file_name or bootstrap_log_file_name,
+            log_level_override=args.log_level,
+            enabled_override=args.logging_enabled,
+            reset_file=True,
+            default_log_dir=default_log_dir,
+        )
+
+        LOG.info("Validation Iteration bootstrapping started")
 
     # This is no longer necessary since it is part of the GUI now. Keeping the call,
     # but commented out, in case we ever want to include it again.
@@ -207,7 +272,16 @@ def cli():
     general = General(**conf["general"])
     general.name = "valid_" + args.worker_id + "_iter" + str(args.iter_no)
 
-    main(general, conf["model"], args.worker_id, args.iter_no)
+    main(
+        general,
+        conf["model"],
+        args.worker_id,
+        args.iter_no,
+        log_path_overwrite=args.log_path_overwrite,
+        log_level_override=args.log_level,
+        log_file_name_override=args.log_file_name,
+        enabled_override=args.logging_enabled,
+    )
 
 
 if __name__ == "__main__":
