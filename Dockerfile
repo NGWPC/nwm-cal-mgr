@@ -78,6 +78,7 @@ RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
 #    rm nwm-cal-mgr/requirements.txt
 WORKDIR /ngen-app/
 ARG MSW_MGR_VERSION=development
+ARG CALIB_CACHE_BUST=1
 RUN set -eux; \
     echo "Calib cache bust: ${CALIB_CACHE_BUST}" && \
     # Install shared common package first
