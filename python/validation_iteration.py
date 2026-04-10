@@ -16,7 +16,7 @@ import pandas as pd
 import yaml
 from calib.agent import Agent
 from calib.configuration import General
-from calib.utils import set_os_env_key, OS_ENV_KEY_RESULTS_DIR
+from calib.utils import set_os_env_key, OS_ENV_KEY_RESULTS_DIR, OS_ENV_KEY_NGEN_LOG_FILE_PREFIX
 from calib.validation_run import run_valid_ctrl_best
 from mswm.edit_config import create_valid_realization_file
 
@@ -155,15 +155,17 @@ def main(
         )
 
     # set environment variable for ngencerf backend
-    print(f"ngen env var {OS_ENV_KEY_RESULTS_DIR} set to {agent_valid.job.workdir}",flush=True)
     set_os_env_key(
         OS_ENV_KEY_RESULTS_DIR, str(Path(agent_valid.job.workdir)), override=False
+    )
+    set_os_env_key(
+        OS_ENV_KEY_NGEN_LOG_FILE_PREFIX, f"iter_{iteration}_{agent.job.worker_name}_ngen", override=False
     )
 
     # Execcute validation simulation
     run_valid_ctrl_best(agent_valid)
 
-    LOG.info("Validation completed")
+    LOG.info("Validation Iteration completed")
 
 
 def cli():

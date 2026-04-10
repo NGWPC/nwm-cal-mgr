@@ -13,7 +13,7 @@ from pprint import pprint
 import yaml
 from calib.agent import Agent
 from calib.configuration import General
-from calib.utils import set_os_env_key, OS_ENV_KEY_RESULTS_DIR
+from calib.utils import set_os_env_key, OS_ENV_KEY_RESULTS_DIR, OS_ENV_KEY_NGEN_LOG_FILE_PREFIX
 from calib.validation_run import run_valid_ctrl_best
 
 from common import (
@@ -82,8 +82,12 @@ def main(
 
     # set environment variable for ngencerf backend
     print(f"ngen env var {OS_ENV_KEY_RESULTS_DIR} set to {agent.job.workdir}",flush=True)
+    print(f"ngen env var {OS_ENV_KEY_NGEN_LOG_FILE_PREFIX} set to {agent.run_name}",flush=True)
     set_os_env_key(
         OS_ENV_KEY_RESULTS_DIR, str(Path(agent.job.workdir)), override=False
+    )
+    set_os_env_key(
+        OS_ENV_KEY_NGEN_LOG_FILE_PREFIX, f"{agent.run_name}_ngen", override=False
     )
 
     # read nwm retrospective streamflow if exists

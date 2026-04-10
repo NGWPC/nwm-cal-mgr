@@ -84,7 +84,17 @@ def _execute(meta: "Agent", i: int = None) -> None:
             cwd=meta.job.workdir,
         )
     else:
-        run_log_file = str(meta.job.log_file)
+        # Build stdout file name for ngen run
+        parts = [
+            meta.run_name,
+            f"iter_{i}" if (i is not None and meta.run_name == "iter") else None,
+            f"{meta.job.worker_name}" if (i is not None and meta.run_name == "iter") else None,
+            "ngen_stdout_stderr.log"
+        ]
+        log_filename = "_".join(str(p) for p in parts if p)
+        print(f"ngen stdout/stderr filename = {log_filename}", flush=True)
+        base_dir = meta.workdir if meta.run_name == "calib" else meta.job.workdir
+        run_log_file = Path(base_dir) / log_filename
         if i is not None:
             with open(run_log_file, "w") as log_file:
                 log_file.write("------ Iteration = {}".format(i) + " ------\n")

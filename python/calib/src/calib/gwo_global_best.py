@@ -46,6 +46,9 @@ import ewts
 from common import ensure_logger_initialized
 logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
 
+import logging
+from pathlib import Path
+
 class GlobalBestGWO(SwarmOptimizer):
     def __init__(
         self,
@@ -60,7 +63,7 @@ class GlobalBestGWO(SwarmOptimizer):
         calib_path="./",
         basinid=None,
     ):
-        global logger
+        global logger  # EWTS logger
         logger = ensure_logger_initialized()
         
         """Initialize the swarm
@@ -103,10 +106,13 @@ class GlobalBestGWO(SwarmOptimizer):
             basinid=basinid,
         )
 
-        # Initialize logger
-        self.rep = Reporter(logger=logger)
+        
+        # Initialize pyswarms Reporter
+        self.rep = Reporter()
+        
         # Initialize the resettable attributes
         self.reset()
+        
         # Initialize the topology
         self.top = Star()
         self.name = __name__

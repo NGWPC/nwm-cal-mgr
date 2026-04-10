@@ -30,7 +30,7 @@ from calib.agent import Agent
 from calib.configuration import NoCalibModel
 from calib.search import dds_set, pso_search, gwo_search, single_exec
 from calib.strategy import Algorithm
-from calib.utils import set_os_env_key, OS_ENV_KEY_RESULTS_DIR
+from calib.utils import set_os_env_key, OS_ENV_KEY_RESULTS_DIR, OS_ENV_KEY_NGEN_LOG_FILE_PREFIX
 
 from common import (
     str_to_bool,
@@ -101,10 +101,14 @@ def main(
             default_log_dir=job_log_dir,
         )
 
-    # set environment variable for ngencerf backend
+    # set environment variables for ngencerf backend and ngen runs
     print(f"ngen env var {OS_ENV_KEY_RESULTS_DIR} set to {agent.workdir}",flush=True)
+    print(f"ngen env var {OS_ENV_KEY_NGEN_LOG_FILE_PREFIX} set to ngen_calib",flush=True)
     set_os_env_key(
         OS_ENV_KEY_RESULTS_DIR, str(Path(agent.workdir)), override=False
+    )
+    set_os_env_key(
+        OS_ENV_KEY_NGEN_LOG_FILE_PREFIX, "calib_ngen", override=False
     )
 
     LOG.info("Starting calib")

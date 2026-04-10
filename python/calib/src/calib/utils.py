@@ -14,6 +14,7 @@ from typing import Union
 from .ngencerf import report
 
 OS_ENV_KEY_RESULTS_DIR = "NGEN_RESULTS_DIR"
+OS_ENV_KEY_NGEN_LOG_FILE_PREFIX = "NGEN_LOG_FILE_PREFIX"
 
 from common import ensure_logger_initialized
 
