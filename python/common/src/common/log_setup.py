@@ -41,9 +41,9 @@ def build_calibration_log_file_name(
 ) -> str:
     job_id = calibration_run_id
     if calibration_run_id:
-        base =  f"cal_mgr_job_{calibration_run_id}"
+        base =  f"cal_mgr_job_{calibration_run_id}_calib"
     else:
-        base  =  f"cal_mgr_{create_timestamp('compact')}"
+        base  =  f"cal_mgr_{create_timestamp('compact')}_calib"
 
     if bootstrap:
         return f"{base}_bootstrap.log"
@@ -55,6 +55,7 @@ def build_validation_log_file_name(
     calibration_run_id: int | None,
     worker_name: str | None = None,
     run_kind: str,
+    algorithm: str,
     iteration: int | None = None,
     bootstrap: bool = False
 ) -> str:
@@ -69,19 +70,19 @@ def build_validation_log_file_name(
     else:
         prefix = f"cal_mgr_{create_timestamp('compact')}"
 
-    worker_suffix = f"_worker_{worker_name}" if worker_name else ""
-
     if run_kind not in {"valid_control", "valid_best", "iter"}:
         raise ValueError(f"Unsupported run_kind: {run_kind}")
-    elif run_kind == "iter": 
-        run_kind_suffix = f"_iter_{iteration}"
+    elif run_kind == "iter" and "dds" not in algorithm: 
+        run_kind_suffix = f"_{worker_name}" if not bootstrap else f"_valid_{worker_name}_iter{iteration}"
+    elif run_kind == "iter" and "dds" in algorithm: 
+        run_kind_suffix = f"_valid_iter{iteration}"
     else:   
         run_kind_suffix = f"_{run_kind}"
 
     if bootstrap:
-        return f"{prefix}{run_kind_suffix}{worker_suffix}_bootstrap.log"
+        return f"{prefix}{run_kind_suffix}_bootstrap.log"
     
-    return f"{prefix}{run_kind_suffix}{worker_suffix}.log"
+    return f"{prefix}{run_kind_suffix}.log"
 
 
 def resolve_log_target(

@@ -58,6 +58,10 @@ def main(
     # Initialize agent
     agent = Agent(model_conf, general.valid_path, general, general.log, general.restart)
 
+#    print('validation.py:', flush=True)
+#    dump_obj("agent", agent)
+#    dump_obj("agent.job", agent.job)
+
     if log_path_overwrite is None:
         LOG.info("Validation bootstrap complete. Switching to validation job log.")
 
@@ -65,6 +69,7 @@ def main(
             calibration_run_id=general.calibration_run_id,
             worker_name=agent.job.worker_name,
             run_kind=agent.run_name,
+            algorithm=agent.algorithm,
             bootstrap=False,
         )
 
@@ -87,7 +92,7 @@ def main(
         OS_ENV_KEY_RESULTS_DIR, str(Path(agent.job.workdir)), override=False
     )
     set_os_env_key(
-        OS_ENV_KEY_NGEN_LOG_FILE_PREFIX, f"{agent.run_name}_ngen", override=False
+        OS_ENV_KEY_NGEN_LOG_FILE_PREFIX, f"{agent.run_name}", override=False
     )
 
     # read nwm retrospective streamflow if exists
@@ -158,6 +163,7 @@ def cli():
     general_conf = conf["general"]
 
     run_kind = general_conf["name"]
+    algorithm = general_conf["strategy"]["algorithm"]
     workdir = Path(general_conf["workdir"])
     default_log_dir = workdir / "logs"
     calibration_run_id = general_conf.get("calibration_run_id")
@@ -169,6 +175,7 @@ def cli():
             calibration_run_id=calibration_run_id,
             worker_name=None,
             run_kind=run_kind,
+            algorithm=algorithm,
             bootstrap=False,
         )
 
@@ -185,6 +192,7 @@ def cli():
             calibration_run_id=calibration_run_id,
             worker_name=None,
             run_kind=run_kind,
+            algorithm=algorithm,
             bootstrap=True,
         )
 

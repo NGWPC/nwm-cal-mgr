@@ -8,6 +8,7 @@ validation run with an alternative parameter set
 import argparse
 import ewts
 import json
+import re
 import os
 import shutil
 from pathlib import Path
@@ -54,6 +55,12 @@ def main(
 
     # Initialize agent
     agent = Agent(model_conf, general.valid_path, general, general.log, general.restart)
+
+#    print('validation_iteration.py:', flush=True)
+#    dump_obj("agent", agent)
+#    dump_obj("agent.job", agent.job)
+
+    print(f'\nagent.algorithm={agent.algorithm}', flush=True)
 
     # read the parameter values from the *params_iteration.csv file
     file1 = Path(
@@ -131,14 +138,21 @@ def main(
     else:
         agent_valid.nwmflow_file = model_conf["nwmflow"]
 
+    print('validation_iteration.py:', flush=True)
+    dump_obj("agent_valid", agent)
+    dump_obj("agent_valid.job", agent.job)
+
+    print(f'\nagent_valid.algorithm={agent_valid.algorithm}', flush=True)
+
     if log_path_overwrite is None:
         LOG.info("Validation Iteration bootstrap complete. Switching to validation iteration job log.")
 
         job_log_dir = Path(agent_valid.job.workdir)
         job_log_file_name = build_validation_log_file_name(
             calibration_run_id=general.calibration_run_id,
-            worker_name=agent_valid.job.worker_name,
+            worker_name=agent_valid.run_name,
             run_kind="iter",
+            algorithm=agent_valid.algorithm,
             iteration=iteration,
             bootstrap=False,
         )
@@ -154,12 +168,19 @@ def main(
             default_log_dir=job_log_dir,
         )
 
-    # set environment variable for ngencerf backend
+    # set environment variables for ngencerf backend and ngen ewts log file location
     set_os_env_key(
         OS_ENV_KEY_RESULTS_DIR, str(Path(agent_valid.job.workdir)), override=False
     )
+
+    # setup prefix for ngen ewts log file name
+    if "dds" in agent.algorithm:
+        log_prefix = f"valid_iter{iteration}"
+    else:
+        log_prefix = agent.run_name
+
     set_os_env_key(
-        OS_ENV_KEY_NGEN_LOG_FILE_PREFIX, f"iter_{iteration}_{agent.job.worker_name}_ngen", override=False
+        OS_ENV_KEY_NGEN_LOG_FILE_PREFIX, f"{log_prefix}", override=False
     )
 
     # Execcute validation simulation
@@ -224,6 +245,7 @@ def cli():
     general_conf = conf["general"]
 
     workdir = Path(general_conf["workdir"])
+    algorithm = general_conf["strategy"]["algorithm"]
     default_log_dir = workdir / "logs"
     calibration_run_id = general_conf.get("calibration_run_id")
 
@@ -233,6 +255,7 @@ def cli():
             calibration_run_id=calibration_run_id,
             worker_name=args.worker_id,
             run_kind="iter",
+            algorithm=algorithm,
             iteration=args.iter_no,
             bootstrap=False,
         )
@@ -250,6 +273,7 @@ def cli():
             calibration_run_id=calibration_run_id,
             worker_name=args.worker_id,
             run_kind="iter",
+            algorithm=algorithm,
             iteration=args.iter_no,
             bootstrap=True,
         )
