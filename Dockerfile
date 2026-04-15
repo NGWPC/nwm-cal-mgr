@@ -44,13 +44,12 @@ RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
     pip3 install "hydrotools.events==1.1.5" "hydrotools.nwis-client==3.3.1"
 
 # ── EWTS (Error, Warning and Trapping System)
-# nwm-cal-mgr and nwm-msw-mgr only need the EWTS Python package.
 #
 # Build args – override at build time to pin a branch, tag, or full commit SHA:
 #   docker build --build-arg EWTS_REF=v1.2.3 ...
 #   docker build --build-arg EWTS_REF=abc123def456 ...
 ARG EWTS_ORG=NGWPC
-ARG EWTS_REF=cmaynard_NGWPC_10000_python_components
+ARG EWTS_REF=development
 ARG EWTS_CACHE_BUST=1
 
 # Clone nwm-ewts, install the Python package, capture git metadata for
