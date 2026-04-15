@@ -86,12 +86,7 @@ def _execute(meta: "Agent", i: int = None) -> None:
         )
     else:
         # Build stdout/stderr file name for ngen run
-        match = re.match(r"valid_.*_iter(\d+)", meta.run_name)
-        if match and meta.algorithm in "dds":
-            iteration = match.group(1)
-            log_filename = f"valid_iter{iteration}_ngen_stdout_stderr.log"
-        else:
-            log_filename = f"{meta.run_name}_ngen_stdout_stderr.log"
+        log_filename = f"{meta.run_name}_ngen_stdout_stderr.log"
         print(f"ngen stdout/stderr filename = {log_filename}", flush=True)
         base_dir = meta.workdir if meta.run_name == "calib" else meta.job.workdir
         run_log_file = Path(base_dir) / log_filename

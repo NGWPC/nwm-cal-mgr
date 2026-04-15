@@ -174,13 +174,8 @@ def main(
     )
 
     # setup prefix for ngen ewts log file name
-    if "dds" in agent.algorithm:
-        log_prefix = f"valid_iter{iteration}"
-    else:
-        log_prefix = agent.run_name
-
     set_os_env_key(
-        OS_ENV_KEY_NGEN_LOG_FILE_PREFIX, f"{log_prefix}", override=False
+        OS_ENV_KEY_NGEN_LOG_FILE_PREFIX, f"{agent.run_name}", override=False
     )
 
     # Execcute validation simulation

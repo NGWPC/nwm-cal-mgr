@@ -72,10 +72,8 @@ def build_validation_log_file_name(
 
     if run_kind not in {"valid_control", "valid_best", "iter"}:
         raise ValueError(f"Unsupported run_kind: {run_kind}")
-    elif run_kind == "iter" and "dds" not in algorithm: 
+    elif run_kind == "iter": 
         run_kind_suffix = f"_{worker_name}" if not bootstrap else f"_valid_{worker_name}_iter{iteration}"
-    elif run_kind == "iter" and "dds" in algorithm: 
-        run_kind_suffix = f"_valid_iter{iteration}"
     else:   
         run_kind_suffix = f"_{run_kind}"
 
