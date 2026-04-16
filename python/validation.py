@@ -26,15 +26,6 @@ import ewts
 
 LOG = ewts.logger.get_logger(ewts.CAL_MGR_ID)
 
-def dump_obj(name, obj):
-    print(f"\n=== {name}: vars ===", flush=True)
-    for k, v in vars(obj).items():
-        print(f"{name}.{k} = {v!r}", flush=True)
-
-    print(f"\n=== {name}: dir ===", flush=True)
-    for k in dir(obj):
-        if not k.startswith("__"):
-            print(f"{name}.{k}", flush=True)
 
 def main(
         general: General,
@@ -57,10 +48,6 @@ def main(
 
     # Initialize agent
     agent = Agent(model_conf, general.valid_path, general, general.log, general.restart)
-
-#    print('validation.py:', flush=True)
-#    dump_obj("agent", agent)
-#    dump_obj("agent.job", agent.job)
 
     if log_path_overwrite is None:
         LOG.info("Validation bootstrap complete. Switching to validation job log.")

@@ -38,16 +38,7 @@ from common import (
     build_calibration_log_file_name,
 )
 
-def dump_obj(name, obj):
-    print(f"\n=== {name}: vars ===", flush=True)
-    for k, v in vars(obj).items():
-        print(f"{name}.{k} = {v!r}", flush=True)
 
-    print(f"\n=== {name}: dir ===", flush=True)
-    for k in dir(obj):
-        if not k.startswith("__"):
-            print(f"{name}.{k}", flush=True)
-            
 def main(
         general: General,
         model_conf,
@@ -90,10 +81,6 @@ def main(
 
     # Initialize the starting agent
     agent = Agent(model_conf, general.calib_path, general, general.log, general.restart, worker_name=worker_name)
-
-#    print('calibration.py:', flush=True)
-#    dump_obj("agent", agent)
-#    dump_obj("agent.job", agent.job)
 
     if log_path_overwrite is None:
         LOG.info("Calibration bootstrap complete. Switching to calibration job log.")
