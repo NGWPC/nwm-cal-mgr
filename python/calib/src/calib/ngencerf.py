@@ -1,9 +1,13 @@
-import logging
 import os
 import time
 from urllib.parse import urljoin
 
 import requests
+
+from common import ensure_logger_initialized
+
+def _logger():
+    return ensure_logger_initialized()
 
 # ─────────────────────────────────────────────────────────────
 # Configuration
@@ -14,9 +18,6 @@ NGENCERF_REPORT_ITERATION_ENDPOINT = "calibration/report_iteration/"
 # Retry configuration (same semantics as the Bash script)
 RETRY_DELAY = 300  # seconds between retries (5 minutes)
 MAX_RETRIES = 144  # 12 hours total retry window
-
-logger = logging.getLogger(__name__)
-
 
 def report(
         calibration_run_id: int,
@@ -50,7 +51,7 @@ def report(
         "Authorization": f"Bearer {auth_token}",
     }
 
-    logger.info(f"Reporting iteration to ngenCerf server - {payload}")
+    _logger().info(f"Reporting iteration to ngenCerf server - {payload}")
 
     # ─────────────────────────────────────────────────────────────
     # Retry loop:
@@ -70,30 +71,30 @@ def report(
             # If successful, parse and log the response message
             response_json = response.json()
             message = response_json.get("message")
-            logger.info(f"Response from report_iteration: {message}")
+            _logger().info(f"Response from report_iteration: {message}")
             return  # Done, no need to retry
 
         except requests.exceptions.ConnectionError as e:
             # Server is unreachable (network or DNS issue)
-            logger.warning(f"Server unreachable on attempt {attempt}/{MAX_RETRIES}: {e}")
+            _logger().warning(f"Server unreachable on attempt {attempt}/{MAX_RETRIES}: {e}")
 
             # Stop after MAX_RETRIES to avoid endless looping
             if attempt >= MAX_RETRIES:
-                logger.error("Max retries reached. Giving up.")
+                _logger().error("Max retries reached. Giving up.")
                 return
 
             # Wait before retrying
-            logger.info(f"Retrying in {RETRY_DELAY} seconds...")
+            _logger().info(f"Retrying in {RETRY_DELAY} seconds...")
             time.sleep(RETRY_DELAY)
 
         except requests.exceptions.HTTPError as e:
             # Server responded (4xx or 5xx). Retry will NOT fix this.
-            logger.error(f"Call to NgenCerf Server {url} failed with {str(e)}.")
+            _logger().error(f"Call to NgenCerf Server {url} failed with {str(e)}.")
             if response is not None:
-                logger.error(f"Response from NgenCerf Server: {response.text}")
+                _logger().error(f"Response from NgenCerf Server: {response.text}")
             raise
 
         except Exception as e:
             # Catch-all for any other unexpected errors (e.g., JSON decoding issue)
-            logger.exception(f"Unexpected error while reporting iteration: {e}")
+            _logger().exception(f"Unexpected error while reporting iteration: {e}")
             return

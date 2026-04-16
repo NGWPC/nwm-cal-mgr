@@ -8,7 +8,6 @@ from typing import Dict, Optional, Union
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-import logging
 from typing import Dict, Optional
 
 import numpy as np
@@ -23,8 +22,11 @@ from .event_metric_functions import (
     separate_compound_events,
 )
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+
+from common import ensure_logger_initialized
+
+def _logger():
+    return ensure_logger_initialized()
 
 __all__ = [
     "treat_values",
@@ -551,7 +553,7 @@ def event_based_metrics(
     y_true_chunks = [p1 for p1 in y_true_chunks if len(p1) >= 10]
 
     if len(y_true_chunks) == 0:
-        logger.info("Events cannot be calculated due to missing data")
+        _logger().info("Events cannot be calculated due to missing data")
         return {"PKBIAS": np.nan, "PKTE": np.nan, "EVBIAS": np.nan}
 
     events_all = pd.DataFrame()
@@ -582,7 +584,7 @@ def event_based_metrics(
     if len(events_all) > 0:
         metrics = compute_event_metrics(events_all, y_true0, y_pred0, aggregation)
     else:
-        logger.info(
+        _logger().info(
             "No paired events found and event-based metrics cannot be calculated"
         )
         return {"PKBIAS": np.nan, "PKTE": np.nan, "EVBIAS": np.nan}

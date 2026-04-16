@@ -20,8 +20,6 @@ try:  # to get literal in python 3.7, it was added to typing in 3.8
 except ImportError:
     from typing_extensions import Literal
 
-import logging
-
 import pandas as pd
 import yaml
 from pydantic import (
@@ -35,8 +33,9 @@ from pydantic.types import ImportString
 
 from .strategy import Objective
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+import ewts
+from common import ensure_logger_initialized
+logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
 
 
 # additional constrained types
@@ -118,6 +117,9 @@ class EvaluationOptions(BaseModel):
 
     def __init__(self, **kwargs):
         """Assign output files, evaluation time range, and initialize best obejctive function and best iteration."""
+        global logger
+        logger = ensure_logger_initialized()
+
         super().__init__(**kwargs)
         self._objective_log_file = kwargs.pop(
             "objective_log_file", Path("{}_objective_log.txt".format(self.basinID))
@@ -552,6 +554,7 @@ class EvaluationOptions(BaseModel):
     @field_validator("objective")
     def validate_objective(cls, value):
         if value is None:
+            logger = ensure_logger_initialized()
             logger.info("Objective cannot be none -- setting default objective")
             value = Objective.kge
         return value
@@ -638,7 +641,7 @@ class ModelExec(BaseModel, Configurable):
     binary: str
     args: Optional[str] = None
     workdir: DirectoryPath = Path("./")  # FIXME test the various workdirs
-    eval_params: Optional[EvaluationOptions] = Field(default=EvaluationOptions())
+    eval_params: Optional[EvaluationOptions] = Field(default_factory=EvaluationOptions)
 
     # FIXME formalize type: str = "ModelName"
     def get_binary(self) -> str:

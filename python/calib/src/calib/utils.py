@@ -7,16 +7,19 @@ This module contains utility functions for executing calibration and validation 
 import smtplib
 from contextlib import contextmanager
 from email.mime.text import MIMEText
-import logging
+import ewts
 from os import PathLike, chdir, getcwd, path, environ
 from typing import Union
 
 from .ngencerf import report
 
 OS_ENV_KEY_RESULTS_DIR = "NGEN_RESULTS_DIR"
+OS_ENV_KEY_NGEN_LOG_FILE_PREFIX = "NGEN_LOG_FILE_PREFIX"
 
-LOG = logging.getLogger(__name__)
+from common import ensure_logger_initialized
 
+def _logger():
+    return ensure_logger_initialized()
 
 @contextmanager
 def pushd(path: Union[str, PathLike]) -> None:
@@ -124,9 +127,9 @@ def set_os_env_key(key: str, val: str, override: bool = True) -> None:
     if key in environ:
         msg_suffix = f"OS env key {repr(key)} already exists with value {repr(environ[key])}, override={override}"
         if not override:
-            LOG.info("Will not override: " + msg_suffix)
+            _logger().info("Will not override: " + msg_suffix)
             return
-        LOG.info("Will override: " + msg_suffix)
+        _logger().info("Will override: " + msg_suffix)
 
-    LOG.info(f"Setting OS env key {repr(key)} to value {repr(val)}.")
+    _logger().info(f"Setting OS env key {repr(key)} to value {repr(val)}.")
     environ[key] = val

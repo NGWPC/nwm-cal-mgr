@@ -3,8 +3,6 @@ This is a class to hold model job run meta data.
 
 @author: Nels Frazer
 """
-
-import logging
 import os
 import random
 import shutil
@@ -12,13 +10,15 @@ import string
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-logger = logging.getLogger(__name__)
+import ewts
+from common import ensure_logger_initialized
+logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _create_worker_dir(prefix: str, suffix: str, parent_dir: str, worker_name: str | None) -> str:
+def _create_worker_dir(prefix: str, suffix: str, parent_dir: str, worker_name: str, replace_existing: bool = False) -> str:
     """
     Creates a worker directory with default permissions.
 
@@ -26,19 +26,13 @@ def _create_worker_dir(prefix: str, suffix: str, parent_dir: str, worker_name: s
         prefix (str): Prefix for the directory name.
         suffix (str): Suffix for the directory name.
         parent_dir (str): Parent directory where the worker directory will be created.
-        worker_name (str | None):
-            If not None, this will be used as the middlefix for the worker directory.
-            If None, a random string will be used.
+        worker_name
     Returns:
         str: The path to the created worker directory as a string.
     """
-    if worker_name is None:
-        middlefix = "".join(random.choices(string.ascii_lowercase + string.digits, k=8))
-    else:
-        middlefix = worker_name
-    worker_dir = os.path.join(parent_dir, f"{prefix}{middlefix}{suffix}")
+    worker_dir = os.path.join(parent_dir, f"{prefix}{worker_name}{suffix}")
 
-    if worker_name and os.path.exists(worker_dir):
+    if replace_existing and os.path.exists(worker_dir):
         logger.info(f"Since static worker_name provided, deleting existing worker dir: {worker_dir}")
         shutil.rmtree(worker_dir)
 
@@ -68,18 +62,38 @@ class JobMeta:
             If not None, this will be used as the middlefix for the worker directory.
             If None, a random string will be used.
         """
+        global logger
+        logger = ensure_logger_initialized()
+
+        provided_worker_name = worker_name
+        self._worker_name = worker_name
+        if self._worker_name is None:
+            self._worker_name = "".join(
+                random.choices(string.ascii_lowercase + string.digits, k=8)
+            )
+
         if workdir is None:
             self._workdir = Path(
                 _create_worker_dir(
                     prefix=name + "_",
                     suffix="_worker",
                     parent_dir=str(parent_workdir),
-                    worker_name=worker_name,
+                    worker_name=self._worker_name,
+                    replace_existing=provided_worker_name is not None,
                 )
             ).resolve()
         else:
             self._workdir = workdir
             logger.info(f"Using existing worker {self._workdir}")
+            if worker_name is None:
+                prefix = f"{name}_"
+                suffix = "_worker"
+                dirname = self._workdir.name
+
+                if dirname.startswith(prefix) and dirname.endswith(suffix):
+                    # extract the middle part
+                    middle = dirname[len(prefix):-len(suffix)]
+                    self._worker_name = middle
 
         self._log_file = None
         if log:
@@ -101,3 +115,7 @@ class JobMeta:
         Path to the job's log file, or None.
         """
         return self._log_file
+
+    @property
+    def worker_name(self) -> str | None:
+        return self._worker_name

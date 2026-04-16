@@ -6,7 +6,7 @@ and validation runs, and generate a variery of plots.
 """
 
 import copy
-import logging
+import ewts
 import os
 from functools import reduce
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
@@ -16,9 +16,10 @@ import pandas as pd
 import calib.metric_functions as mf
 import calib.plot_functions as plf
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+from common import ensure_logger_initialized
 
+def _logger():
+    return ensure_logger_initialized()
 
 if TYPE_CHECKING:
     from calib import Evaluatable
@@ -89,7 +90,7 @@ def plot_calib_output(
         ["Control Run", "Last Run", "Best Run"]
     ]
     if df_merged.empty:
-        logger.warning("can't merge different runs")
+        _logger().warning("can't merge different runs")
     if eval_range:
         df_merged = df_merged.loc[eval_range[0] : eval_range[1]]
     df_merged.reset_index(inplace=True)
@@ -102,7 +103,7 @@ def plot_calib_output(
 
     # only produce streamflow plots if df_merged is not empty
     if len(df_merged) < 1:
-        logger.warning(
+        _logger().warning(
             "streamflow time series, scatter plots, and FDC plots cannot be created due to lack of valid streamflow data"
         )
     else:
@@ -176,7 +177,7 @@ def plot_calib_output(
             df_merged_copy3, remove_neg=True, remove_na=True, replace_zero=True
         )
         if len(df_merged_copy3) < 1:
-            logger.warning(
+            _logger().warning(
                 "Plot of Flow Duration Curve cannot be created due to lack of valid streamflow data"
             )
         else:
@@ -334,7 +335,7 @@ def plot_valid_output(
             agent.valid_path, calibration_object.basinID + "_output_" + run1 + ".csv"
         )
         if not os.path.exists(outfile):
-            logger.error(f"File does not exist: {outfile}")
+            _logger().error(f"File does not exist: {outfile}")
         df1 = pd.read_csv(outfile)
         df1["Time"] = pd.DatetimeIndex(df1["Time"])
         df1 = df1[["Time", calibration_object.streamflow_name]]
@@ -360,13 +361,13 @@ def plot_valid_output(
 
     # only produce streamflow plots if df_merged is not empty
     if len(df_merged) < 1:
-        logger.warning(
+        _logger().warning(
             "streamflow time series, scatter plots, and FDC plots cannot be created due to lack of valid streamflow data"
         )
     else:
         # Plot hydrograph
         df_merged_copy1 = copy.deepcopy(df_merged)
-        # logger.info(f"Hydrograph : {df_merged_copy1}")
+        # _logger().info(f"Hydrograph : {df_merged_copy1}")
         fig_path = agent.valid_path_plot
         plotfile = os.path.join(
             fig_path, calibration_object.basinID + "_hydrograph_valid_run.png"
@@ -392,7 +393,7 @@ def plot_valid_output(
             df_merged_copy2, remove_neg=True, remove_na=True, replace_zero=True
         )
         if len(df_merged_copy2) < 1:
-            logger.warning(
+            _logger().warning(
                 "Plot of Flow Duration Curve cannot be created due to lack of valid streamflow data"
             )
         else:
@@ -412,7 +413,7 @@ def plot_valid_output(
         outfile = os.path.join(
             agent.valid_path, calibration_object.basinID + "_metrics_" + run1 + ".csv"
         )
-        logger.info(f"Plot Metrics input file: {outfile}")
+        _logger().info(f"Plot Metrics input file: {outfile}")
         mdf = pd.concat([mdf, pd.read_csv(outfile)], ignore_index=True)
     plotfile = os.path.join(
         fig_path, calibration_object.basinID + "_barplot_metrics_valid_run.png"
