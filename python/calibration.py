@@ -31,6 +31,7 @@ from calib.configuration import NoCalibModel
 from calib.search import dds_set, pso_search, gwo_search, single_exec
 from calib.strategy import Algorithm
 from calib.utils import set_os_env_key, OS_ENV_KEY_RESULTS_DIR, OS_ENV_KEY_NGEN_LOG_FILE_PREFIX
+from calib.git_util import print_git_info_all
 
 from common import (
     str_to_bool,
@@ -50,9 +51,7 @@ def main(
     ):
     global LOG
 
-    # This is no longer necessary since it is part of the GUI now. Keeping the call,
-    # but commented out, in case we ever want to include it again.
-    # print_git_info_all()
+    print_git_info_all()
 
     """
     If worker_name is not provided, a random string will be used when generating the worker directory.

@@ -15,6 +15,7 @@ from calib.agent import Agent
 from calib.configuration import General
 from calib.utils import set_os_env_key, OS_ENV_KEY_RESULTS_DIR, OS_ENV_KEY_NGEN_LOG_FILE_PREFIX
 from calib.validation_run import run_valid_ctrl_best
+from calib.git_util import print_git_info_all
 
 from common import (
     str_to_bool,
@@ -36,6 +37,8 @@ def main(
         enabled_override: bool | None = None
     ):
     global LOG
+
+    print_git_info_all()
 
     # Seed the random number generators if requested
     if general.random_seed is not None:
@@ -193,12 +196,6 @@ def cli():
         )
 
         LOG.info("Validation bootstrapping started")
-
-
-    # This is no longer necessary since it is part of the GUI now. Keeping the call,
-    # but commented out, in case we ever want to include it again.
-    # Add to top: from calib.git_util import print_git_info_all
-    # print_git_info_all()
 
     general = General(**conf["general"])
 
