@@ -1,13 +1,13 @@
 import os
+import requests
 import time
+from common import ensure_logger_initialized
 from urllib.parse import urljoin
 
-import requests
-
-from common import ensure_logger_initialized
 
 def _logger():
     return ensure_logger_initialized()
+
 
 # ─────────────────────────────────────────────────────────────
 # Configuration
@@ -19,13 +19,14 @@ NGENCERF_REPORT_ITERATION_ENDPOINT = "calibration/report_iteration/"
 RETRY_DELAY = 300  # seconds between retries (5 minutes)
 MAX_RETRIES = 144  # 12 hours total retry window
 
+
 def report(
         calibration_run_id: int,
         iteration: int,
         worker: str,
         first_iteration: bool,
         auth_token: str,
-):
+) -> None:
     """
     Report a calibration iteration result to the ngenCerf server.
 
@@ -74,7 +75,7 @@ def report(
             _logger().info(f"Response from report_iteration: {message}")
             return  # Done, no need to retry
 
-        except requests.exceptions.ConnectionError as e:
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             # Server is unreachable (network or DNS issue)
             _logger().warning(f"Server unreachable on attempt {attempt}/{MAX_RETRIES}: {e}")
 
@@ -88,11 +89,23 @@ def report(
             time.sleep(RETRY_DELAY)
 
         except requests.exceptions.HTTPError as e:
+            http_response = e.response
+            response_text = http_response.text if http_response is not None else "<no response body>"
+            status_code = http_response.status_code if http_response is not None else "<unknown>"
+
+            error_message = (
+                f"Call to ngenCerf server failed: "
+                f"url={url}, status_code={status_code}, response={response_text}"
+            )
             # Server responded (4xx or 5xx). Retry will NOT fix this.
-            _logger().error(f"Call to NgenCerf Server {url} failed with {str(e)}.")
-            if response is not None:
-                _logger().error(f"Response from NgenCerf Server: {response.text}")
-            raise
+            _logger().error(error_message)
+            raise requests.exceptions.HTTPError(error_message, response=http_response) from e
+
+        except ValueError as e:
+            _logger().error(
+                f"Invalid JSON response from NgenCerf Server at {url}: {e}"
+            )
+            return
 
         except Exception as e:
             # Catch-all for any other unexpected errors (e.g., JSON decoding issue)
