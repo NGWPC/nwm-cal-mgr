@@ -320,7 +320,7 @@ def _evaluate(
         #    plot_cost_func(calibration_object, agent, cost_iter_file, agent.algorithm, calib_iter=True)
 
     # Plot metrics, parameters and output
-    if len(glob.glob("*.log")) == 1 and i % primary_obj.save_plot_iter_freq == 0:
+    if primary_obj.save_plot_iter_freq and i % primary_obj.save_plot_iter_freq == 0:
         plot_calib_output(i, primary_obj, agent)
 
     # Save last iteration
