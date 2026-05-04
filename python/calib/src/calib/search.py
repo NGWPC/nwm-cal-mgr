@@ -316,12 +316,18 @@ def _evaluate(
     # Save global best cost, and plot
     if agent.algorithm != "dds":
         cost_iter_file = primary_obj.write_cost_iter_file(i, agent.workdir)
-        # if len(glob.glob('*.log'))==1:   #comment out plot_cost_func here since it is also called right below
-        #    plot_cost_func(calibration_object, agent, cost_iter_file, agent.algorithm, calib_iter=True)
 
-    # Plot metrics, parameters and output
+    # Plot metrics, parameters and output (for the first/lead agent only in case of multiple agents for GWO and PSO)
     if primary_obj.save_plot_iter_freq and i % primary_obj.save_plot_iter_freq == 0:
-        plot_calib_output(i, primary_obj, agent)
+        # determine if the current agent is the lead agent by checking the metrics file to see if iteration 0 is present,
+        # since only the first agent starts with iteration 0 and the rest start with iteration 1 for GWO and PSO.
+        iters = pd.read_csv(
+            primary_obj.metric_iter_file,
+            usecols=["iteration"],
+            dtype={"iteration": int},
+        )
+        if (iters["iteration"] == 0).any():
+            plot_calib_output(i, primary_obj, agent)
 
     # Save last iteration
     primary_obj.write_last_iteration(i)
