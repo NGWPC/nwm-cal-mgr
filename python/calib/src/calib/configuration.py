@@ -6,7 +6,6 @@ This module implements several classes to hold generation confugrations.
 
 from __future__ import annotations  # for pydnaitc
 
-import logging
 import os
 from pathlib import Path
 from typing import Annotated, Dict, List, Optional, Union
@@ -28,12 +27,9 @@ from .model import ModelExec, PosInt
 from .ngen import Ngen
 from .strategy import Estimation, Sensitivity
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s,%(msecs)d %(levelname)s: %(message)s",
-    datefmt="%H:%M:%S",
-)
-
+import ewts
+from common import ensure_logger_initialized
+logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
 
 class General(BaseModel):
     """General configuration class."""
@@ -67,6 +63,9 @@ class General(BaseModel):
         # smart_union = True
 
     def __init__(self, **kwargs):
+        global logger
+        logger = ensure_logger_initialized()
+
         super().__init__(**kwargs)
         self._calib_path = os.path.join(
             str(self.workdir) + "/Output", "Calibration_Run"
@@ -106,22 +105,14 @@ class Model(BaseModel):
     ]
 
 
-import logging
 import shutil
 from pathlib import Path
 
 import geopandas as gpd
 import netCDF4
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-
-
 # from .metrics import calculate_all_metrics
 from .model import BaseModel
-
-# logger = logging.getLogger("NGEN_CAL")
-
 
 # ... [existing imports and code above remain unchanged] ...
 
@@ -290,7 +281,6 @@ class NoCalibModel(ModelExec):
         plot_iter_path.mkdir(exist_ok=True)
         output_iter_path.mkdir(parents=True, exist_ok=True)
 
-        logger = logging.getLogger("NGEN_CAL")
         output_dir = Path(workdir)
 
         sim_streamflow_col = "sim_flow"
