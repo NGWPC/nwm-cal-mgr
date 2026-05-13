@@ -72,6 +72,7 @@ jobs:
       ngen_image_revision: ${{ steps.vars.outputs.ngen_image_revision }}
       ewts_revision: ${{ steps.vars.outputs.ewts_revision }}
       msw_mgr_revision: ${{ steps.vars.outputs.msw_mgr_revision }}
+      ewts_cache_bust: ${{ steps.vars.outputs.ewts_cache_bust }}
     steps:
       - name: Compute image vars
         id: vars
@@ -161,6 +162,21 @@ jobs:
           EWTS_REVISION=$(resolve_sha "https://github.com/${{ inputs.EWTS_ORG || github.repository_owner }}/nwm-ewts.git" "$(ref_or_default "${{ inputs.EWTS_REF }}")")
           MSW_MGR_REVISION=$(resolve_sha "https://github.com/${{ inputs.MSW_MGR_ORG || github.repository_owner }}/nwm-msw-mgr.git" "$(ref_or_default "${{ inputs.MSW_MGR_REF }}")")
 
+          # Resolve EWTS ref for Docker cache busting
+          EWTS_ORG="${{ inputs.EWTS_ORG || github.repository_owner }}"
+          EWTS_REF="${{ inputs.EWTS_REF || 'development' }}"
+
+          if [[ "${EWTS_REF}" =~ ^[0-9a-f]{7,40}$ ]]; then
+            EWTS_CACHE_BUST="${EWTS_REF}"
+          else
+            EWTS_CACHE_BUST="$(git ls-remote "https://github.com/${EWTS_ORG}/nwm-ewts.git" "${EWTS_REF}" | awk '{print $1}')"
+          fi
+
+          if [ -z "${EWTS_CACHE_BUST}" ]; then
+            echo "ERROR: Could not resolve EWTS_REF=${EWTS_REF}"
+            exit 1
+          fi
+
           # save outputs
           cat >> "$GITHUB_OUTPUT" <<EOF
           org=${ORG}
@@ -174,6 +190,7 @@ jobs:
           ngen_image_digest=${NGEN_IMAGE_DIGEST}
           ngen_image_revision=${NGEN_IMAGE_REVISION}
           ewts_revision=${EWTS_REVISION}
+          ewts_cache_bust=${EWTS_CACHE_BUST}
           msw_mgr_revision=${MSW_MGR_REVISION}
           EOF
 
@@ -239,6 +256,7 @@ jobs:
             EWTS_ORG=${{ inputs.EWTS_ORG || github.repository_owner }}
             EWTS_REF=${{ inputs.EWTS_REF || needs.setup.outputs.default_ref }}
             EWTS_REVISION=${{ needs.setup.outputs.ewts_revision }}
+            EWTS_CACHE_BUST=${{ needs.setup.outputs.ewts_cache_bust }}
             MSW_MGR_ORG=${{ inputs.MSW_MGR_ORG || github.repository_owner }}
             MSW_MGR_REF=${{ inputs.MSW_MGR_REF || needs.setup.outputs.default_ref }}
             MSW_MGR_REVISION=${{ needs.setup.outputs.msw_mgr_revision }}
