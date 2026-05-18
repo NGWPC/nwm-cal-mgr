@@ -98,6 +98,7 @@ def report_to_ngencerf(agent, iteration=0, first_iter=True):
             worker,
             first_iter,
             agent._general.auth_token,
+            agent._general.ngencerf_base_url
         )
 
 

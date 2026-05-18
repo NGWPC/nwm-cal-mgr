@@ -51,6 +51,7 @@ class General(BaseModel):
     calibration_run_id: Optional[int] = None
     ngen_cerf: Optional[bool] = None
     auth_token: Optional[str] = None
+    ngencerf_base_url: Optional[str] = None
     # Private
     _calib_path: Path
     _valid_path: Path
