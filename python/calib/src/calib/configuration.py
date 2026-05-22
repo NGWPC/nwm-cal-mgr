@@ -21,7 +21,7 @@ import traceback
 from datetime import datetime
 
 import pandas as pd
-from pydantic import BaseModel, DirectoryPath, Field, PrivateAttr
+from pydantic import BaseModel, ConfigDict, DirectoryPath, Field, PrivateAttr
 
 from .model import ModelExec, PosInt
 from .ngen import Ngen
@@ -55,12 +55,12 @@ class General(BaseModel):
     _calib_path: Path
     _valid_path: Path
 
-    class Config:
-        """Override configuration for pydantic BaseModel."""
-
-        # underscore_attrs_are_private = True
-        use_enum_values = True
-        # smart_union = True
+    model_config = ConfigDict(
+        # underscore_attrs_are_private=True,
+        use_enum_values=True,
+        # smart_union=True,
+    )
+    """Override configuration for pydantic BaseModel."""
 
     def __init__(self, **kwargs):
         global logger

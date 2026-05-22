@@ -45,16 +45,9 @@ class Time(BaseModel):
     # reasonable default (defacto, actually???)
     output_interval: PosInt = 3600
 
-    # FIXME https://github.com/samuelcolvin/pydantic/issues/2277
-    # Until 1.10, it looks like nested encoder config doesn't apply
-    # so you have to define the encoder at the top level object that
-    # will be serialized...
-    class Config:
-        # override how datetime format looks in .json()
-        # json_encoders = {datetime: lambda v: v.strftime("%Y-%m-%d %H:%M:%S")}
-        @field_serializer("timestamp")
-        def serialize_dt(self, dt: datetime) -> str:
-            return dt.strftime("%Y-%m-%d %H:%M:%S")
+    @field_serializer("start_time", "end_time")
+    def serialize_dt(self, dt: datetime) -> str:
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
 class Routing(BaseModel):

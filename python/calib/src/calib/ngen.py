@@ -151,12 +151,12 @@ class NgenBase(ModelExec):
     _precip: gpd.GeoDataFrame
     _wb_lst: list
 
-    class Config:
-        """Override configuration for pydantic BaseModel"""
-
-        # underscore_attrs_are_private = True
-        use_enum_values = True
-        # smart_union = True
+    model_config = ConfigDict(
+        # underscore_attrs_are_private=True,
+        use_enum_values=True,
+        # smart_union=True,
+    )
+    """Override configuration for pydantic BaseModel."""
 
     def __init__(self, **kwargs):
         # Let pydantic work its magic

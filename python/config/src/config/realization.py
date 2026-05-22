@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Mapping, Optional, Sequence, Dict, Union
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 from .configurations import Forcing, Routing, Time
 from .formulation import Formulation
@@ -40,13 +40,8 @@ class NgenRealization(BaseModel):
     forcing_groups: Dict[str, Forcing] = Field(default_factory=dict)
     catchments: Optional[Mapping[str, Union[CatchmentRealization, CatchmentGroup]]] = Field(default_factory=dict)
 
-    class Config:
-        validate_by_name = True
+    model_config = ConfigDict(validate_by_name=True)
 
-        # json_encoders = {datetime: lambda v: v.strftime("%Y-%m-%d %H:%M:%S")}
-        @field_serializer("timestamp")
-        def serialize_dt(self, dt: datetime) -> str:
-            return dt.strftime("%Y-%m-%d %H:%M:%S")
 
     def resolve_paths(self):
         """resolve possible relative paths in configuration"""
