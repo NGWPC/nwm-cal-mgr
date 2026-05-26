@@ -11,6 +11,7 @@ import os
 import shutil
 import tempfile
 import time
+
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Sequence
 
@@ -18,6 +19,7 @@ import netCDF4
 import pandas as pd
 from hypy.nexus import Nexus
 from pandas import DataFrame  # type: ignore
+from pandas.api.types import is_numeric_dtype, is_object_dtype, is_string_dtype
 
 from .calibratable import Adjustable, Evaluatable
 
@@ -30,11 +32,9 @@ if TYPE_CHECKING:
 
     from .model import EvaluationOptions
 
-import logging
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-
+import ewts
+from common import ensure_logger_initialized
+logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
 
 class CalibrationSet(Evaluatable):
     """A HY_Features based catchment with additional calibration information/functionality."""
@@ -51,6 +51,10 @@ class CalibrationSet(Evaluatable):
         nwmflow_file: Optional[Path],
         wb_lst: list,
     ) -> None:
+        
+        global logger
+        logger = ensure_logger_initialized(ewts.CAL_MGR_ID)
+
         """Construct attributes for the CalibrationSet object.
 
         Parameters
@@ -75,7 +79,52 @@ class CalibrationSet(Evaluatable):
             if os.path.exists(obsflow_file):
                 logger.info(f"Read observed streamflow from: {obsflow_file}")
                 obs = pd.read_csv(obsflow_file)
-                obs["value_date"] = pd.DatetimeIndex(obs["value_date"])
+                cols = obs.columns.str.lower()
+                obs.columns = cols
+
+                # function to detect time column
+                def detect_time_column(df: pd.DataFrame, time_col: str = "time"):
+                    for col in df.columns:
+                        if is_object_dtype(df[col]) or is_string_dtype(df[col]):
+                            parsed = pd.to_datetime(df[col], errors="coerce")
+                            if parsed.notna().all():
+                                if col.lower() != time_col:
+                                    logger.info(
+                                        f"Using '{col}' as 'time' column for streamflow observation file"
+                                    )
+                                return col
+
+                    msg = "No column in streamflow observation file contains fully valid datetimes"
+                    logger.error(msg)
+                    raise ValueError(msg)
+
+                # function to detect flow column
+                def detect_flow_column(df: pd.DataFrame, flow_col: str = "obs_flow"):
+                    for col in df.columns:
+                        if is_numeric_dtype(df[col]):
+                            if col.lower() != flow_col:
+                                logger.info(
+                                    f"Using '{col}' as 'obs_flow' column for streamflow observation file"
+                                )
+                            return col
+
+                    msg = "No column in streamflow observation file contains numeric flow values"
+                    logger.error(msg)
+                    raise ValueError(msg)
+
+                # if 'time' column not present, try to detect it
+                time_col = "time" if "time" in obs.columns else detect_time_column(obs)
+
+                # Normalize to canonical name "value_date" (i.e., datetime of observation value) used elsewhere
+                obs = obs.rename(columns={time_col: "value_date"})
+
+                # if 'obs_flow' column not present, try to detect it
+                flow_col = (
+                    "obs_flow" if "obs_flow" in obs.columns else detect_flow_column(obs)
+                )
+                obs = obs.rename(columns={flow_col: "obs_flow"})
+
+                obs["value_date"] = pd.to_datetime(obs["value_date"], errors="raise")
                 self._observed = obs.set_index("value_date")
             else:
                 logger.error(
@@ -208,9 +257,131 @@ class CalibrationSet(Evaluatable):
     def observed(self, df):
         self._observed = df
 
+    def save_calib_output(
+        self,
+        i,
+        output_iter_file: "Path",
+        last_output_file: "Path",
+        calib_path1: "Path",
+        calib_path2: "Path",
+        calib_path3: Path = None,
+        save_output_iter_flag=False,
+    ) -> None:
+        """Save model output from calibration run.
+
+        Parameters:
+        ----------
+        i : iteration
+        output_iter_file : output file at each iteration
+        last_output_file : last output file
+        calib_path1 : directory to store streamflow file at each iteration
+        calib_path2 : current agent job directory
+        calib_path3 : directory to store catchment and nexsus output plus other output files, default None
+        save_output_iter_flag : whether to save output at each iteration
+
+        """
+        if os.path.exists(self._output_file):
+            flow_output = self._output.reset_index()
+            flow_output = flow_output.rename(columns={"index": "Time"})
+            if i == 0 or save_output_iter_flag:
+                filename_iter = os.path.join(
+                    calib_path1, output_iter_file + str("{:04d}").format(i) + ".csv"
+                )
+                flow_output.to_csv(filename_iter, index=False)
+            flow_output.to_csv(last_output_file, index=False)
+
+            shutil.move(
+                self._output_file,
+                os.path.join(
+                    os.path.dirname(last_output_file),
+                    "{}_last".format(self._output_file),
+                ),
+            )
+        if calib_path3 is None:
+            calib_path3 = calib_path2
+        for csvfl in glob.glob(os.path.join(calib_path2, "nex*.csv")):
+            shutil.move(csvfl, calib_path3 + "/" + os.path.basename(csvfl))
+        for csvfl in glob.glob(os.path.join(calib_path2, "cat*.csv")):
+            shutil.move(csvfl, calib_path3 + "/" + os.path.basename(csvfl))
+        if len(glob.glob(os.path.join(calib_path2, "*.out"))) > 0:
+            for outfl in glob.glob(os.path.join(calib_path2, "*.out")):
+                shutil.move(outfl, calib_path3 + "/" + os.path.basename(outfl))
+
+    def save_valid_output(
+        self,
+        basinid: str,
+        run_name: str,
+        valid_path1: "Path",
+        valid_path2: "Path",
+        valid_path3: "Path",
+    ) -> None:
+        """Save model output from validation run.
+
+        Parameters:
+        ----------
+        run_name : Control or best run
+        valid_path1 : Validation run main directory
+        valid_path2 : Validation run job work directory
+        valid_path3 : Subdrirectory under valid_path2 to store output files
+
+        """
+        if os.path.exists(self._output_file):
+            flow_output = self._output.reset_index()
+            flow_output = flow_output.rename(columns={"index": "Time"})
+            filename_valid = os.path.join(
+                valid_path1, basinid + "_output_" + run_name + ".csv"
+            )
+            flow_output.to_csv(filename_valid, index=False)
+            shutil.move(
+                self._output_file,
+                os.path.join(valid_path2, "{}_".format(self._output_file) + run_name),
+            )
+        for csvfl in glob.glob(os.path.join(valid_path2, "nex*.csv")):
+            shutil.move(
+                csvfl,
+                valid_path3
+                + "/"
+                + os.path.basename(csvfl).split(".")[0]
+                + "_{}".format(run_name)
+                + ".csv",
+            )
+        for csvfl in glob.glob(os.path.join(valid_path2, "cat*.csv")):
+            shutil.move(
+                csvfl,
+                valid_path3
+                + "/"
+                + os.path.basename(csvfl).split(".")[0]
+                + "_{}".format(run_name)
+                + ".csv",
+            )
+        if len(glob.glob(os.path.join(valid_path2, "*.out"))) > 0:
+            for outfl in glob.glob(os.path.join(valid_path2, "*.out")):
+                shutil.move(
+                    outfl,
+                    valid_path3
+                    + "/"
+                    + os.path.basename(outfl).split(".")[0]
+                    + "_{}".format(run_name)
+                    + ".out",
+                )
+
+    def save_best_output(self, best_output_file: "Path", best_save_flag=False) -> None:
+        """Save the output at the best iteration
+
+        Parameters:
+        ----------
+        best_output_file : Best output file name
+        best_save_flag : Whether save output as best output
+
+        """
+        if self._output is not None and best_save_flag:
+            flow_output = self._output.reset_index()
+            flow_output = flow_output.rename(columns={"index": "Time"})
+            flow_output.to_csv(best_output_file, index=False)
+
     def save_output(self, i) -> None:
         """Save the last output to output for iteration i."""
-        if os.path.exists(elf._output_file):
+        if os.path.exists(self._output_file):
             shutil.move(self._output_file, "{}_last".format(self._output_file))
 
     def check_point(self, path: "Path") -> None:
@@ -275,141 +446,6 @@ class UniformCalibrationSet(CalibrationSet, Adjustable):
         # FIXME ensure _output_file exists
         # FIXME re-enable this once more complete
         shutil.move(self._output_file, "{}_last".format(self._output_file))
-
-    def save_calib_output(
-        self,
-        i,
-        output_iter_file: "Path",
-        last_output_file: "Path",
-        calib_path1: "Path",
-        calib_path2: "Path",
-        calib_path3: Path = None,
-        save_output_iter_flag=False,
-    ) -> None:
-        """Save model output from calibration run.
-
-        Parameters:
-        ----------
-        i : iteration
-        output_iter_file : output file at each iteration
-        last_output_file : last output file
-        calib_path1 : directory to store streamflow file at each iteration
-        calib_path2 : current agent job directory
-        calib_path3 : directory to store catchment and nexsus output plus other output files, default None
-        save_output_iter_flag : whether to save output at each iteration
-
-        """
-        if os.path.exists(self._output_file):
-            flow_output = self._output.reset_index()
-            flow_output = flow_output.rename(columns={"index": "Time"})
-            if i == 0 or save_output_iter_flag:
-                filename_iter = os.path.join(
-                    calib_path1, output_iter_file + str("{:04d}").format(i) + ".csv"
-                )
-                flow_output.to_csv(filename_iter, index=False)
-            flow_output.to_csv(last_output_file, index=False)
-
-            shutil.move(
-                self._output_file,
-                os.path.join(
-                    os.path.dirname(last_output_file),
-                    "{}_last".format(self._output_file),
-                ),
-            )
-        if calib_path3 is None:
-            calib_path3 = calib_path2
-        for csvfl in glob.glob(os.path.join(calib_path2, "nex*.csv")):
-            shutil.move(csvfl, calib_path3 + "/" + os.path.basename(csvfl))
-        for csvfl in glob.glob(os.path.join(calib_path2, "cat*.csv")):
-            shutil.move(csvfl, calib_path3 + "/" + os.path.basename(csvfl))
-        if len(glob.glob(os.path.join(calib_path2, "*.out"))) > 0:
-            for outfl in glob.glob(os.path.join(calib_path2, "*.out")):
-                shutil.move(outfl, calib_path3 + "/" + os.path.basename(outfl))
-
-    def save_best_output(self, best_output_file: "Path", best_save_flag=False) -> None:
-        """Save the output at the best iteration
-
-        Parameters:
-        ----------
-        best_output_file : Best output file name
-        best_save_flag : Whether save output as best output
-
-        """
-        if self._output is not None and best_save_flag:
-            flow_output = self._output.reset_index()
-            flow_output = flow_output.rename(columns={"index": "Time"})
-            flow_output.to_csv(best_output_file, index=False)
-
-    def save_valid_output(
-        self,
-        basinid: str,
-        run_name: str,
-        valid_path1: "Path",
-        valid_path2: "Path",
-        valid_path3: "Path",
-    ) -> None:
-        """Save model output from validation run.
-
-        Parameters:
-        ----------
-        run_name : Control or best run
-        valid_path1 : Validation run main directory
-        valid_path2 : Validation run job work directory
-        valid_path3 : Subdrirectory under valid_path2 to store output files
-
-        """
-        # log an error message if any of the validation output paths (valid_path1, valid_path2, or valid_path3)
-        # does not exist during runtime (should have been created earlier)
-        for valid_path in [valid_path1, valid_path2, valid_path3]:
-            if not os.path.exists(valid_path):
-                msg = (
-                    f"Inaccessible output location during validation. "
-                    f"Output path does not exist: {valid_path} "
-                    f"for basin {basinid} and run {run_name}"
-                )
-                logger.error(msg)
-                raise FileNotFoundError(msg)
-
-        if os.path.exists(self._output_file):
-            flow_output = self._output.reset_index()
-            flow_output = flow_output.rename(columns={"index": "Time"})
-            filename_valid = os.path.join(
-                valid_path1, basinid + "_output_" + run_name + ".csv"
-            )
-            flow_output.to_csv(filename_valid, index=False)
-            shutil.move(
-                self._output_file,
-                os.path.join(valid_path2, "{}_".format(self._output_file) + run_name),
-            )
-
-        for csvfl in glob.glob(os.path.join(valid_path2, "nex*.csv")):
-            shutil.move(
-                csvfl,
-                valid_path3
-                + "/"
-                + os.path.basename(csvfl).split(".")[0]
-                + "_{}".format(run_name)
-                + ".csv",
-            )
-        for csvfl in glob.glob(os.path.join(valid_path2, "cat*.csv")):
-            shutil.move(
-                csvfl,
-                valid_path3
-                + "/"
-                + os.path.basename(csvfl).split(".")[0]
-                + "_{}".format(run_name)
-                + ".csv",
-            )
-        if len(glob.glob(os.path.join(valid_path2, "*.out"))) > 0:
-            for outfl in glob.glob(os.path.join(valid_path2, "*.out")):
-                shutil.move(
-                    outfl,
-                    valid_path3
-                    + "/"
-                    + os.path.basename(outfl).split(".")[0]
-                    + "_{}".format(run_name)
-                    + ".out",
-                )
 
     # Update handled in meta, TODO remove this method???
     def update_params(self, iteration: int) -> None:

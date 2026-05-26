@@ -1,9 +1,60 @@
 # syntax=docker/dockerfile:1.4
 
+############################################################################
+# Change/Verify these values when adopting this Dockerfile into another org:
+#   GH_ORG, GHCR_ORG, IMAGE_NAMESPACE,
+#   EWTS_ORG, EWTS_REF, MSW_MGR_ORG, MSW_MGR_REF
+############################################################################
+
+# Ownership / branding overrides
+ARG GH_ORG=NGWPC
+ARG GHCR_ORG=ngwpc
+ARG IMAGE_NAMESPACE=ngwpc
+
+# External repository sources (org and ref/branch overrides)
+ARG EWTS_ORG=${GH_ORG}
+ARG EWTS_REF=development
+ARG MSW_MGR_ORG=${GH_ORG}
+ARG MSW_MGR_REF=development
+############################################################################
+
+# Image selection
 ARG NGEN_IMAGE_TAG=latest
-FROM ghcr.io/ngwpc/ngen:${NGEN_IMAGE_TAG}
+ARG NGEN_IMAGE=ghcr.io/${GHCR_ORG}/ngen:${NGEN_IMAGE_TAG}
+FROM ${NGEN_IMAGE}
+
 # Uncomment when building ngen locally
 #FROM ngen
+
+# Re-expose args after FROM for the remaining build stage
+# Keeps whatever value was already set
+ARG GH_ORG
+ARG GHCR_ORG
+ARG IMAGE_NAMESPACE
+ARG EWTS_ORG
+ARG EWTS_REF
+ARG MSW_MGR_ORG
+ARG MSW_MGR_REF
+
+# OCI Metadata Arguments
+ARG NGEN_IMAGE
+ARG BASE_IMAGE_DIGEST="unknown"
+ARG BASE_IMAGE_REVISION="unknown"
+ARG IMAGE_SOURCE="unknown"
+ARG IMAGE_VENDOR="unknown"
+ARG IMAGE_VERSION="unknown"
+ARG IMAGE_REVISION="unknown"
+
+# OCI Standard Labels
+LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
+    org.opencontainers.image.base.digest="${BASE_IMAGE_DIGEST}" \
+    io.${IMAGE_NAMESPACE}.image.base.revision="${BASE_IMAGE_REVISION}" \
+    org.opencontainers.image.source="${IMAGE_SOURCE}" \
+    org.opencontainers.image.vendor="${IMAGE_VENDOR}" \
+    org.opencontainers.image.version="${IMAGE_VERSION}" \
+    org.opencontainers.image.revision="${IMAGE_REVISION}" \
+    org.opencontainers.image.title="NGEN Calibration Manager" \
+    org.opencontainers.image.description="Docker image for the NGEN Calibration application"
 
 COPY . /ngen-app/nwm-cal-mgr/
 
@@ -20,20 +71,52 @@ RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
     pip3 install "numpy==1.26.4" "netcdf4<=1.6.3" && \
     pip3 install "hydrotools.events==1.1.5" "hydrotools.nwis-client==3.3.1"
 
+# ── EWTS (Error, Warning and Trapping System)
+#
+# Build args – override at build time to pin a branch, tag, or full commit SHA:
+#   docker build --build-arg EWTS_REF=v1.2.3 ...
+#   docker build --build-arg EWTS_REF=abc123def456 ...
+
+ARG EWTS_CACHE_BUST=1
+
+# Clone nwm-ewts, install the Python package, capture git metadata for
+# provenance, then remove the source tree.
+# Try shallow clone by branch/tag name first; fall back to full clone + checkout
+# for bare commit SHAs (which git clone -b doesn't support).
+#
+# NOTE: Unlike the ngen Dockerfile, clone + pip install + cleanup are kept in a
+# single RUN so the source tree never persists in a layer.  In ngen the split is
+# safe because cmake installs the wheel to /opt/ewts before the source is removed;
+# here there is no cmake step, so the source must remain until pip finishes.
+RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
+    echo "EWTS cache bust: ${EWTS_CACHE_BUST}" && \
+    set -eux && \
+    ewts_dir="$(mktemp -d)" && \
+    git clone "https://github.com/${EWTS_ORG}/nwm-ewts.git" "${ewts_dir}" && \
+    cd "${ewts_dir}" && \
+    git checkout "${EWTS_REF}" && \
+    pip install "${ewts_dir}/runtime/python/ewts" && \
+    rm -rf "${ewts_dir}"
+
 #COPY requirements.txt .
 #RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache \
 #    pip3 install -r nwm-cal-mgr/requirements.txt && \
 #    rm nwm-cal-mgr/requirements.txt
-
 WORKDIR /ngen-app/
+ARG CALIB_CACHE_BUST=1
 RUN set -eux; \
+    echo "Calib cache bust: ${CALIB_CACHE_BUST}" && \
+    # Install shared common package first
+    cd /ngen-app/nwm-cal-mgr/python/common && \
+    pip3 install . ; \
+    \
     # Install dependencies for createInput module
     cd /ngen-app/nwm-cal-mgr/python/calib && \
 #    touch src/*.py && \
     pip3 install . ; \
     \
     # Install mswm package
-    pip3 install mswm@git+https://github.com/NGWPC/nwm-msw-mgr.git@development ; \
+    pip3 install mswm@git+https://github.com/${MSW_MGR_ORG}/nwm-msw-mgr.git@${MSW_MGR_REF} ; \
     \
     # Install dependencies for runCalibValid module
     cd /ngen-app/nwm-cal-mgr/python/config && \

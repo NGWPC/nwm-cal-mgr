@@ -78,6 +78,9 @@ class Adjustable(ABC):
         if iteration > 0:
             if filter_condition:
                 self.switch_param_name(["SFT", "SMP"], "smcmax", "maxsmc")
+            # Drop iteration column if it already exists to avoid duplicates
+            if str(iteration) in self._adf.columns:
+                self._adf = self._adf.drop(columns=[str(iteration)])
             mdf = pd.merge(self._adf, self._df[["param", str(iteration)]], on="param")
             mdf.sort_values(["model", "fac"], inplace=True)
             self._adf = mdf
