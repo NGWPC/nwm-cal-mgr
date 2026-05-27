@@ -22,20 +22,38 @@ RETRY_DELAY = 300  # seconds between retries (5 minutes)
 MAX_RETRIES = 144  # 12 hours total retry window
 
 
+def normalize_url(url: str) -> str:
+    """
+    Normalize a base URL by adding a default http:// scheme if one is not provided.
+
+    Examples:
+        localhost:8000        -> http://localhost:8000
+        myserver.com          -> http://myserver.com
+        http://foo.com        -> http://foo.com
+        https://foo.com       -> https://foo.com
+    """
+    url = url.strip()
+
+    parsed = urlparse(url)
+
+    if not parsed.scheme:
+        url = f"http://{url}"
+
+    return url
+
+
 def validate_url(url: str, name: str) -> None:
     """
-    Validate that a URL contains an HTTP/HTTPS scheme and network location.
+    Validate that a normalized URL contains an HTTP/HTTPS scheme and network location.
 
-    Examples of valid values:
+    Examples of valid normalized values:
         http://localhost:8000
         https://myserver.com
         https://myserver.com/api/
 
-    Examples of invalid values:
+    Examples of invalid normalized values:
         ""
-        localhost:8000
-        myserver
-        /api/foo
+        http:///api/foo
         ftp://myserver.com
     """
     parsed = urlparse(url)
@@ -71,8 +89,8 @@ def report(
       - Raises a fatal exception if the report cannot be posted successfully.
     """
 
-    # Construct full URL for the API endpoint
-    ngencerf_base_url = ngencerf_base_url.strip()
+    # Normalize and validate the base URL before constructing the API endpoint URL
+    ngencerf_base_url = normalize_url(ngencerf_base_url)
     validate_url(ngencerf_base_url, "ngencerf_base_url")
 
     url = urljoin(
@@ -158,4 +176,3 @@ def report(
             raise ReportIterationError(
                 f"Unexpected error while reporting iteration: url={url}, payload={payload}"
             ) from e
-
