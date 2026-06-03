@@ -1,7 +1,7 @@
 import requests
 import time
 from common import get_calmgr_logger
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 
 class ReportIterationError(RuntimeError):
@@ -15,59 +15,17 @@ def _logger():
 # ─────────────────────────────────────────────────────────────
 # Configuration
 # ─────────────────────────────────────────────────────────────
-NGENCERF_REPORT_ITERATION_ENDPOINT = "calibration/report_iteration/"
+# Resource path only (leading slash, NO /api). The /api prefix is a routing
+# artifact (it splits UI vs server traffic on the shared ALB), so it lives in
+# the base URL the server hands us — ngencerf_base_url already ends in /api,
+# the same place the UI, CLI, and the server's own Slurm callbacks keep it. We
+# join by plain string concatenation against the trailing-slash-stripped base
+# (the one shared join convention), so /api appears exactly once.
+NGENCERF_REPORT_ITERATION_ENDPOINT = "/calibration/report_iteration/"
 
 # Retry configuration (same semantics as the Bash script)
 RETRY_DELAY = 300  # seconds between retries (5 minutes)
 MAX_RETRIES = 144  # 12 hours total retry window
-
-
-def normalize_url(url: str) -> str:
-    """
-    Normalize a base URL by adding a default http:// scheme if one is not provided.
-
-    Examples:
-        localhost:8000        -> http://localhost:8000
-        myserver.com          -> http://myserver.com
-        http://foo.com        -> http://foo.com
-        https://foo.com       -> https://foo.com
-    """
-    url = url.strip()
-
-    parsed = urlparse(url)
-
-    if not parsed.scheme:
-        url = f"http://{url}"
-
-    return url
-
-
-def validate_url(url: str, name: str) -> None:
-    """
-    Validate that a normalized URL contains an HTTP/HTTPS scheme and network location.
-
-    Examples of valid normalized values:
-        http://localhost:8000
-        https://myserver.com
-        https://myserver.com/api/
-
-    Examples of invalid normalized values:
-        ""
-        http:///api/foo
-        ftp://myserver.com
-    """
-    parsed = urlparse(url)
-
-    if parsed.scheme not in {"http", "https"}:
-        raise ReportIterationError(
-            f"Invalid {name}: unsupported URL scheme: '{url}'. "
-            f"Expected http:// or https://"
-        )
-
-    if not parsed.netloc:
-        raise ReportIterationError(
-            f"Invalid {name}: missing hostname: '{url}'"
-        )
 
 
 def report(
@@ -88,14 +46,9 @@ def report(
         or server-side error.
       - Raises a fatal exception if the report cannot be posted successfully.
     """
-
-    # Normalize and validate the base URL before constructing the API endpoint URL
-    ngencerf_base_url = normalize_url(ngencerf_base_url)
-    validate_url(ngencerf_base_url, "ngencerf_base_url")
-
-    url = urljoin(
-        ngencerf_base_url,
-        NGENCERF_REPORT_ITERATION_ENDPOINT
+    url = (
+            ngencerf_base_url.rstrip("/")
+            + NGENCERF_REPORT_ITERATION_ENDPOINT
     )
 
     # Prepare request payload and headers
