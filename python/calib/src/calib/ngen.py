@@ -370,8 +370,9 @@ class NgenBase(ModelExec):
         else:
             modules = [module.model_name]
 
-        if (("SMP" in modules) or ("SFT" in modules)) and ("CFE" in modules):
-            params0 = params.copy(deep=1)
+        params0 = params.copy(deep=1)
+        # CFE is present, copy shared CFE params to SFT and SMP
+        if ("SMP" in modules or "SFT" in modules) and "CFE" in modules:
             for m1 in ["SMP", "SFT"]:
                 if m1 not in modules:
                     continue
@@ -385,6 +386,17 @@ class NgenBase(ModelExec):
                         if p1 == "maxsmc":
                             par2["param"] = "smcmax"
                         params = pd.concat([params, par2])
+
+        # SFT is calibrated without CFE copy SFT params to SMP
+        elif "SMP" in modules and "SFT" in modules and "CFE" not in modules:
+            for p1 in ["b", "smcmax", "satpsi"]:  # This assumes the SFT parameter is supplied as smcmax, not as maxsmc to match CFE
+                par1 = params0.loc[
+                    (params0["model"] == "SFT") & (params0["param"] == p1)
+                ]
+                if len(par1):
+                    par2 = par1.copy(deep=1)
+                    par2["model"] = "SMP"
+                    params = pd.concat([params, par2])
 
         groups = params.set_index("param").groupby("model")
         if isinstance(module, MultiBMI):
