@@ -1,8 +1,8 @@
-import ewts
 import os
 import shutil
 from typing import TYPE_CHECKING
 
+import ewts
 import pandas as pd
 
 from .plot_output import plot_valid_output
@@ -105,8 +105,8 @@ def run_valid_ctrl_best(agent):
                     out1,
                     primary_set.observed,
                     value,
-                    primary_set.threshold,
-                    primary_set.peak_flow_threshold,
+                    primary_set.threshold_categorical,
+                    primary_set.threshold_event,
                 )
                 tmp = {**{"run": run1, "period": key}, **result}
                 metrics = pd.concat([metrics, pd.DataFrame([tmp])], ignore_index=True)
@@ -144,4 +144,3 @@ def run_valid_ctrl_best(agent):
             agent.workdir,
             primary_set.user,
         )
-

@@ -20,8 +20,10 @@ try:  # to get literal in python 3.7, it was added to typing in 3.8
 except ImportError:
     from typing_extensions import Literal
 
+import ewts
 import pandas as pd
 import yaml
+from common import ensure_logger_initialized
 from pydantic import (
     BaseModel,
     DirectoryPath,
@@ -89,8 +91,8 @@ class EvaluationOptions(BaseModel):
     _best_save_flag: bool = None
     id: Optional[str] = None
     basinID: Optional[str] = None
-    threshold: Optional[float] = None
-    peak_flow_threshold: Optional[float] = 90.0
+    threshold_categorical: Optional[dict] = {"value": 0.9, "type": "quantile"}
+    threshold_event: Optional[dict] = {"value": 0.9, "type": "quantile"}
     site_name: Optional[str] = None
     streamflow_name: Optional[str] = "sim_flow"
     save_output_iteration: Optional[bool] = False

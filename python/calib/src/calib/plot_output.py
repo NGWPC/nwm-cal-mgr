@@ -6,17 +6,16 @@ and validation runs, and generate a variery of plots.
 """
 
 import copy
-import ewts
 import os
 from functools import reduce
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
+import nwm_metrics.metric_functions as mf
 import pandas as pd
+from common import get_calmgr_logger
 
-import calib.metric_functions as mf
 import calib.plot_functions as plf
 
-from common import get_calmgr_logger
 
 def _logger():
     return get_calmgr_logger()
