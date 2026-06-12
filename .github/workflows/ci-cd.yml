@@ -108,14 +108,7 @@ jobs:
             REAL_REF="${{ github.ref_name }}"
             REAL_SHA="${GITHUB_SHA}"
           fi
-
-          # Force safe dependency refs for PR builds
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            EWTS_REF="development"
-            MSW_MGR_REF="development"
-            NWM_METRICS_REF="development"
-          fi
-
+          
           # clean ref name and short commit sha
           CLEAN_REF=$(echo "$REAL_REF" | tr '[:upper:]' '[:lower:]' | sed 's/\//-/g')
           SHORT_SHA="${REAL_SHA:0:7}"
