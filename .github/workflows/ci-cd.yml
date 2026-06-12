@@ -119,6 +119,9 @@ jobs:
           case "${GITHUB_REF_TYPE}:${GITHUB_REF_NAME}" in
             branch:development|branch:ngwpc-candidate|branch:ngwpc-release)
               DEFAULT_REF="$GITHUB_REF_NAME" ;;
+            branch:*)
+              # any other branch (feature branches)
+              DEFAULT_REF="$GITHUB_REF_NAME";;
             *)
               DEFAULT_REF="development" ;;
           esac
