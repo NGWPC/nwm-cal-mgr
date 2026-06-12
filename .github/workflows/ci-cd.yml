@@ -109,6 +109,13 @@ jobs:
             REAL_SHA="${GITHUB_SHA}"
           fi
 
+          # Force safe dependency refs for PR builds
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            EWTS_REF="development"
+            MSW_MGR_REF="development"
+            NWM_METRICS_REF="development"
+          fi
+
           # clean ref name and short commit sha
           CLEAN_REF=$(echo "$REAL_REF" | tr '[:upper:]' '[:lower:]' | sed 's/\//-/g')
           SHORT_SHA="${REAL_SHA:0:7}"
@@ -119,9 +126,6 @@ jobs:
           case "${GITHUB_REF_TYPE}:${GITHUB_REF_NAME}" in
             branch:development|branch:ngwpc-candidate|branch:ngwpc-release)
               DEFAULT_REF="$GITHUB_REF_NAME" ;;
-            branch:*)
-              # any other branch (feature branches)
-              DEFAULT_REF="$GITHUB_REF_NAME";;
             *)
               DEFAULT_REF="development" ;;
           esac
