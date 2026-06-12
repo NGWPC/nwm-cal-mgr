@@ -43,6 +43,14 @@ on:
         description: 'MSW_MGR_REF'
         required: false
         type: string
+      NWM_METRICS_ORG:
+        description: 'NWM_METRICS_ORG'
+        required: false
+        type: string
+      NWM_METRICS_REF:
+        description: 'NWM_METRICS_REF'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -73,6 +81,7 @@ jobs:
       ewts_revision: ${{ steps.vars.outputs.ewts_revision }}
       msw_mgr_revision: ${{ steps.vars.outputs.msw_mgr_revision }}
       ewts_cache_bust: ${{ steps.vars.outputs.ewts_cache_bust }}
+      nwm_metrics_revision: ${{ steps.vars.outputs.nwm_metrics_revision }}
     steps:
       - name: Compute image vars
         id: vars
@@ -161,6 +170,7 @@ jobs:
 
           EWTS_REVISION=$(resolve_sha "https://github.com/${{ inputs.EWTS_ORG || github.repository_owner }}/nwm-ewts.git" "$(ref_or_default "${{ inputs.EWTS_REF }}")")
           MSW_MGR_REVISION=$(resolve_sha "https://github.com/${{ inputs.MSW_MGR_ORG || github.repository_owner }}/nwm-msw-mgr.git" "$(ref_or_default "${{ inputs.MSW_MGR_REF }}")")
+          NWM_METRICS_REVISION=$(resolve_sha "https://github.com/${{ inputs.NWM_METRICS_ORG || github.repository_owner }}/nwm-eval-mgr.git" "$(ref_or_default "${{ inputs.NWM_METRICS_REF }}")")
 
           # Resolve EWTS ref for Docker cache busting
           EWTS_ORG="${{ inputs.EWTS_ORG || github.repository_owner }}"
@@ -192,6 +202,7 @@ jobs:
           ewts_revision=${EWTS_REVISION}
           ewts_cache_bust=${EWTS_CACHE_BUST}
           msw_mgr_revision=${MSW_MGR_REVISION}
+          nwm_metrics_revision=${NWM_METRICS_REVISION}
           EOF
 
   # CodeQL scan
@@ -260,6 +271,9 @@ jobs:
             MSW_MGR_ORG=${{ inputs.MSW_MGR_ORG || github.repository_owner }}
             MSW_MGR_REF=${{ inputs.MSW_MGR_REF || needs.setup.outputs.default_ref }}
             MSW_MGR_REVISION=${{ needs.setup.outputs.msw_mgr_revision }}
+            NWM_METRICS_ORG=${{ inputs.NWM_METRICS_ORG || github.repository_owner }}
+            NWM_METRICS_REF=${{ inputs.NWM_METRICS_REF || needs.setup.outputs.default_ref }}
+            NWM_METRICS_REVISION=${{ needs.setup.outputs.nwm_metrics_revision }}
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
             IMAGE_VENDOR=${{ github.repository_owner }}
             IMAGE_VERSION=${{ needs.setup.outputs.clean_ref }}
