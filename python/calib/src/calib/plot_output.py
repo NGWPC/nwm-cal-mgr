@@ -359,6 +359,8 @@ def plot_valid_output(
     # since typically there are unrealistically large values during the first few time steps
     df_merged = df_merged.iloc[24:]
 
+    fig_path = agent.valid_path_plot
+
     # only produce streamflow plots if df_merged is not empty
     if len(df_merged) < 1:
         _logger().warning(
@@ -368,7 +370,6 @@ def plot_valid_output(
         # Plot hydrograph
         df_merged_copy1 = copy.deepcopy(df_merged)
         # _logger().info(f"Hydrograph : {df_merged_copy1}")
-        fig_path = agent.valid_path_plot
         plotfile = os.path.join(
             fig_path, calibration_object.basinID + "_hydrograph_valid_run.png"
         )
@@ -415,6 +416,7 @@ def plot_valid_output(
         )
         _logger().info(f"Plot Metrics input file: {outfile}")
         mdf = pd.concat([mdf, pd.read_csv(outfile)], ignore_index=True)
+
     plotfile = os.path.join(
         fig_path, calibration_object.basinID + "_barplot_metrics_valid_run.png"
     )
