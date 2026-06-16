@@ -3,17 +3,13 @@
 ############################################################################
 # Change/Verify these values when adopting this Dockerfile into another org:
 #   GH_ORG, GHCR_ORG, IMAGE_NAMESPACE,
-#   EWTS_ORG, EWTS_REF, MSW_MGR_ORG, MSW_MGR_REF
+#   MSW_MGR_ORG, MSW_MGR_REF
 ############################################################################
 
-# Ownership / branding overrides
 ARG GH_ORG=NGWPC
 ARG GHCR_ORG=ngwpc
 ARG IMAGE_NAMESPACE=ngwpc
 
-# External repository sources (org and ref/branch overrides)
-ARG EWTS_ORG=${GH_ORG}
-ARG EWTS_REF=development
 ARG MSW_MGR_ORG=${GH_ORG}
 ARG MSW_MGR_REF=development
 
@@ -43,8 +39,6 @@ FROM ${NGEN_IMAGE}
 ARG GH_ORG
 ARG GHCR_ORG
 ARG IMAGE_NAMESPACE
-ARG EWTS_ORG
-ARG EWTS_REF
 ARG MSW_MGR_ORG
 ARG MSW_MGR_REF
 ARG NGEN_IMAGE
@@ -58,10 +52,8 @@ ARG IMAGE_SOURCE="unknown"
 ARG IMAGE_VENDOR="unknown"
 ARG IMAGE_VERSION="unknown"
 ARG IMAGE_REVISION="unknown"
-ARG EWTS_REVISION="unknown"
 ARG MSW_MGR_REVISION="unknown"
 
-# Image Labels: OCI-spec annotations followed by custom source-repo metadata.
 LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
     org.opencontainers.image.base.digest="${BASE_IMAGE_DIGEST}" \
     org.opencontainers.image.source="${IMAGE_SOURCE}" \
@@ -71,15 +63,18 @@ LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
     org.opencontainers.image.title="NGEN Calibration Manager" \
     org.opencontainers.image.description="Docker image for the NGEN Calibration application" \
     io.${IMAGE_NAMESPACE}.image.base.revision="${BASE_IMAGE_REVISION}" \
-    io.${IMAGE_NAMESPACE}.ewts.org="${EWTS_ORG}" \
-    io.${IMAGE_NAMESPACE}.ewts.ref="${EWTS_REF}" \
-    io.${IMAGE_NAMESPACE}.ewts.revision="${EWTS_REVISION}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.org="${MSW_MGR_ORG}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.ref="${MSW_MGR_REF}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}"
 
-COPY . /ngen-app/nwm-cal-mgr/
+# Reuse the Python virtual environment inherited from ngen. The dependency image
+# creates the venv and the unversioned `python` symlink; forcing and ngen install
+# their Python packages into that same environment.
+ENV VIRTUAL_ENV="/ngen-app/ngen-python" \
+    PATH="${VIRTUAL_ENV}/bin:${PATH}" \
+    PYTHONPATH="${VIRTUAL_ENV}/lib/python3.14/site-packages:/usr/local/lib/python3.14/site-packages:${PYTHONPATH}"
 
+COPY . /ngen-app/nwm-cal-mgr/
 COPY ./docker/run-nwm-cal-mgr.sh /ngen-app/bin/
 
 WORKDIR /ngen-app/
@@ -87,18 +82,11 @@ WORKDIR /ngen-app/
 RUN set -eux; \
     chmod +x /ngen-app/bin/run-nwm-cal-mgr.sh
 
-# Re-expose the Python virtual environment inherited from ngen.
-# The dependency image creates the venv and the unversioned `python` symlink.
-# ngen-bmi-forcing and ngen install their Python packages into that venv.
-# cal-mgr should reuse it rather than recreating it.
-ENV VIRTUAL_ENV="/ngen-app/ngen-python" \
-    PATH="${VIRTUAL_ENV}/bin:${PATH}" \
-    PYTHONPATH="${VIRTUAL_ENV}/lib/python3.11/site-packages:/usr/local/lib64/python3.11/site-packages:${PYTHONPATH}"
-
-# Install numpy, netcdf4, hydrotools events, and nwis-client
-RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-rocky \
-    python -m pip install --upgrade pip && \
-    python -m pip install "numpy==1.26.4" "netcdf4<=1.6.3" && \
+# Install calibration-specific Python dependencies. Do not reinstall EWTS here;
+# it is inherited from the ngen image.
+RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-bookworm \
+    set -eux; \
+    python -m pip install --upgrade pip; \
     python -m pip install "hydrotools.events==1.1.5" "hydrotools.nwis-client==3.3.1"
 
 WORKDIR /ngen-app/
@@ -106,26 +94,15 @@ WORKDIR /ngen-app/
 ARG MSW_MGR_CACHE_BUST=1
 RUN set -eux; \
     echo "MSW MGR cache bust: ${MSW_MGR_CACHE_BUST}" && \
-    # Install shared common package first
-    cd /ngen-app/nwm-cal-mgr/python/common && \
-    python -m pip install . ; \
-    \
-    # Install dependencies for createInput module
-    cd /ngen-app/nwm-cal-mgr/python/calib && \
-#    touch src/*.py && \
-    python -m pip install . ; \
-    \
-    # Install mswm package
-    python -m pip install mswm@git+https://github.com/${MSW_MGR_ORG}/nwm-msw-mgr.git@${MSW_MGR_REF} ; \
-    \
-    # Install dependencies for runCalibValid module
-    cd /ngen-app/nwm-cal-mgr/python/config && \
-#    touch src/ngen/cal/*.py && \
-    python -m pip install . ; \
-    \
-    # Clean up pip cache and remove .gitconfig
-    python -m pip cache purge && \
-    rm --force /root/.gitconfig
+    cd /ngen-app/nwm-cal-mgr/python/common; \
+    python -m pip install .; \
+    cd /ngen-app/nwm-cal-mgr/python/calib; \
+    python -m pip install .; \
+    python -m pip install mswm@git+https://github.com/${MSW_MGR_ORG}/nwm-msw-mgr.git@${MSW_MGR_REF}; \
+    cd /ngen-app/nwm-cal-mgr/python/config; \
+    python -m pip install .; \
+    python -m pip cache purge; \
+    rm --force /root/.gitconfig || true
 
 WORKDIR /ngen-app/nwm-cal-mgr
 
@@ -153,5 +130,4 @@ RUN set -eux; \
       > $GIT_INFO_PATH
 
 WORKDIR /
-
-ENTRYPOINT [ "/ngen-app/bin/run-nwm-cal-mgr.sh" ]
+ENTRYPOINT ["/ngen-app/bin/run-nwm-cal-mgr.sh"]
