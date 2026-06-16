@@ -199,17 +199,12 @@ class CalibrationSet(Evaluatable):
                         }
                     )
 
-                    # Get date from tnx file
-                    tnx_file = list(Path(self._output_file).parent.glob("nex*.csv"))[0]
-                    tnx_df = pd.read_csv(
-                        tnx_file,
-                        index_col=0,
-                        parse_dates=[1],
-                        names=["ts", "time", "Q"],
-                    ).set_index("time")
-                    dt_range = pd.date_range(
-                        tnx_df.index[1], tnx_df.index[-1], len(self._output.index)
-                    ).round("min")
+                    # Get date from troute NetCDF file
+                    times = netCDF4.num2date(
+                        ncvar["time"][:],
+                        units=ncvar["time"].units,
+                    )
+                    dt_range = pd.DatetimeIndex([pd.Timestamp(t.isoformat()) for t in times])
                     self._output.index = dt_range
                     self._output.index.name = "Time"
                     self._output = self._output.resample("1h").first()
