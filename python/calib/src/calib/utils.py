@@ -87,7 +87,7 @@ def complete_msg(
 def report_to_ngencerf(agent, iteration=0, first_iter=True):
     if agent._general.ngen_cerf:
         print(
-            f"Made report to ngen-cerf with run_id : {agent._general.calibration_run_id}"
+            f"Reporting iteration {iteration} to ngen-cerf with run_id : {agent._general.calibration_run_id}"
         )
         worker = (
             path.basename(agent.job.workdir).replace("ngen_", "").replace("_worker", "")
