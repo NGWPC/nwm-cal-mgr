@@ -3,12 +3,18 @@
 ############################################################################
 # Change/Verify these values when adopting this Dockerfile into another org:
 #   GH_ORG, GHCR_ORG, IMAGE_NAMESPACE,
-#   MSW_MGR_ORG, MSW_MGR_REF
+#   EWTS_ORG, EWTS_REF, MSW_MGR_ORG, MSW_MGR_REF,
+#   CAL_MGR_INSTALL_EWTS, EWTS_CACHE_BUST
 ############################################################################
 
 ARG GH_ORG=NGWPC
 ARG GHCR_ORG=ngwpc
 ARG IMAGE_NAMESPACE=ngwpc
+
+ARG EWTS_ORG=${GH_ORG}
+ARG EWTS_REF=development
+ARG CAL_MGR_INSTALL_EWTS=OFF
+ARG EWTS_CACHE_BUST=0
 
 ARG MSW_MGR_ORG=${GH_ORG}
 ARG MSW_MGR_REF=development
@@ -39,6 +45,10 @@ FROM ${NGEN_IMAGE}
 ARG GH_ORG
 ARG GHCR_ORG
 ARG IMAGE_NAMESPACE
+ARG EWTS_ORG
+ARG EWTS_REF
+ARG CAL_MGR_INSTALL_EWTS
+ARG EWTS_CACHE_BUST
 ARG MSW_MGR_ORG
 ARG MSW_MGR_REF
 ARG NGEN_IMAGE
@@ -52,6 +62,7 @@ ARG IMAGE_SOURCE="unknown"
 ARG IMAGE_VENDOR="unknown"
 ARG IMAGE_VERSION="unknown"
 ARG IMAGE_REVISION="unknown"
+ARG EWTS_REVISION="unknown"
 ARG MSW_MGR_REVISION="unknown"
 
 LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
@@ -63,16 +74,21 @@ LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
     org.opencontainers.image.title="NGEN Calibration Manager" \
     org.opencontainers.image.description="Docker image for the NGEN Calibration application" \
     io.${IMAGE_NAMESPACE}.image.base.revision="${BASE_IMAGE_REVISION}" \
+    io.${IMAGE_NAMESPACE}.ewts.org="${EWTS_ORG}" \
+    io.${IMAGE_NAMESPACE}.ewts.ref="${EWTS_REF}" \
+    io.${IMAGE_NAMESPACE}.ewts.revision="${EWTS_REVISION}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.org="${MSW_MGR_ORG}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.ref="${MSW_MGR_REF}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}"
 
 # Reuse the Python virtual environment inherited from ngen. The dependency image
-# creates the venv and the unversioned `python` symlink; forcing and ngen install
-# their Python packages into that same environment.
+# creates the venv; forcing and ngen install their Python packages into that same
+# environment. Do not recreate it here.
 ENV VIRTUAL_ENV="/ngen-app/ngen-python" \
     PATH="${VIRTUAL_ENV}/bin:${PATH}" \
     PYTHONPATH="${VIRTUAL_ENV}/lib/python3.14/site-packages:/usr/local/lib/python3.14/site-packages:${PYTHONPATH}"
+
+SHELL ["/bin/bash", "-c"]
 
 COPY . /ngen-app/nwm-cal-mgr/
 COPY ./docker/run-nwm-cal-mgr.sh /ngen-app/bin/
@@ -82,8 +98,36 @@ WORKDIR /ngen-app/
 RUN set -eux; \
     chmod +x /ngen-app/bin/run-nwm-cal-mgr.sh
 
-# Install calibration-specific Python dependencies. Do not reinstall EWTS here;
-# it is inherited from the ngen image.
+# Optional development-only EWTS Python override.
+#
+# Production images should inherit EWTS from ngen. Set CAL_MGR_INSTALL_EWTS=ON
+# only when testing a new EWTS Python package without rebuilding forcing/ngen.
+#
+# Example:
+# docker build \
+#   --build-arg CAL_MGR_INSTALL_EWTS=ON \
+#   --build-arg EWTS_REF=my-ewts-branch \
+#   --build-arg EWTS_CACHE_BUST=$(date +%s) \
+#   -t nwm-cal-mgr .
+RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-bookworm \
+    set -eux; \
+    CAL_MGR_INSTALL_EWTS="${CAL_MGR_INSTALL_EWTS:-OFF}"; \
+    echo "CAL_MGR_INSTALL_EWTS=${CAL_MGR_INSTALL_EWTS}; EWTS ref: ${EWTS_REF}; cache bust: ${EWTS_CACHE_BUST}"; \
+    CAL_MGR_INSTALL_EWTS_NORMALIZED="$(echo "${CAL_MGR_INSTALL_EWTS}" | tr '[:lower:]' '[:upper:]')"; \
+    if [[ "${CAL_MGR_INSTALL_EWTS_NORMALIZED}" =~ ^(ON|YES|TRUE|1)$ ]]; then \
+        echo "Installing development EWTS Python override"; \
+        rm -rf /tmp/nwm-ewts; \
+        (git clone --depth 1 -b "${EWTS_REF}" \
+            "https://github.com/${EWTS_ORG}/nwm-ewts.git" /tmp/nwm-ewts \
+         || (git clone "https://github.com/${EWTS_ORG}/nwm-ewts.git" /tmp/nwm-ewts && \
+             cd /tmp/nwm-ewts && git checkout "${EWTS_REF}")); \
+        python -m pip install --force-reinstall --no-deps /tmp/nwm-ewts/runtime/python/ewts; \
+        rm -rf /tmp/nwm-ewts; \
+    else \
+        echo "Using EWTS inherited from ngen"; \
+    fi
+
+# Install calibration-specific Python dependencies.
 RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-bookworm \
     set -eux; \
     python -m pip install --upgrade pip; \
