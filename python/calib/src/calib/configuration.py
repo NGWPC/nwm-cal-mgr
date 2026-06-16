@@ -28,8 +28,8 @@ from .ngen import Ngen
 from .strategy import Estimation, Sensitivity
 
 import ewts
-from common import ensure_logger_initialized
-logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
+from common import get_calmgr_logger
+logger = get_calmgr_logger()
 
 class General(BaseModel):
     """General configuration class."""
@@ -64,9 +64,6 @@ class General(BaseModel):
         # smart_union = True
 
     def __init__(self, **kwargs):
-        global logger
-        logger = ensure_logger_initialized()
-
         super().__init__(**kwargs)
         self._calib_path = os.path.join(
             str(self.workdir) + "/Output", "Calibration_Run"

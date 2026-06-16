@@ -34,8 +34,8 @@ from pydantic.types import ImportString
 from .strategy import Objective
 
 import ewts
-from common import ensure_logger_initialized
-logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
+from common import get_calmgr_logger
+logger = get_calmgr_logger()
 
 
 # additional constrained types
@@ -117,9 +117,6 @@ class EvaluationOptions(BaseModel):
 
     def __init__(self, **kwargs):
         """Assign output files, evaluation time range, and initialize best obejctive function and best iteration."""
-        global logger
-        logger = ensure_logger_initialized()
-
         super().__init__(**kwargs)
         self._objective_log_file = kwargs.pop(
             "objective_log_file", Path("{}_objective_log.txt".format(self.basinID))
@@ -554,7 +551,6 @@ class EvaluationOptions(BaseModel):
     @field_validator("objective")
     def validate_objective(cls, value):
         if value is None:
-            logger = ensure_logger_initialized()
             logger.info("Objective cannot be none -- setting default objective")
             value = Objective.kge
         return value

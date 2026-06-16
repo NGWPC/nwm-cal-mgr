@@ -43,8 +43,8 @@ from .gwo_swarms import SwarmOptimizer
 
 
 import ewts
-from common import ensure_logger_initialized
-logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
+from common import get_calmgr_logger
+logger = get_calmgr_logger()
 
 import logging
 from pathlib import Path
@@ -63,9 +63,6 @@ class GlobalBestGWO(SwarmOptimizer):
         calib_path="./",
         basinid=None,
     ):
-        global logger  # EWTS logger
-        logger = ensure_logger_initialized()
-        
         """Initialize the swarm
 
         Attributes

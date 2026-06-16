@@ -32,9 +32,8 @@ if TYPE_CHECKING:
 
     from .model import EvaluationOptions
 
-import ewts
-from common import ensure_logger_initialized
-logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
+from common import get_calmgr_logger
+logger = get_calmgr_logger()
 
 class CalibrationSet(Evaluatable):
     """A HY_Features based catchment with additional calibration information/functionality."""
@@ -52,9 +51,6 @@ class CalibrationSet(Evaluatable):
         wb_lst: list,
     ) -> None:
         
-        global logger
-        logger = ensure_logger_initialized(ewts.CAL_MGR_ID)
-
         """Construct attributes for the CalibrationSet object.
 
         Parameters

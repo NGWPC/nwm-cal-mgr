@@ -16,10 +16,10 @@ from .ngencerf import report
 OS_ENV_KEY_RESULTS_DIR = "NGEN_RESULTS_DIR"
 OS_ENV_KEY_NGEN_LOG_FILE_PREFIX = "NGEN_LOG_FILE_PREFIX"
 
-from common import ensure_logger_initialized
+from common import get_calmgr_logger
 
 def _logger():
-    return ensure_logger_initialized()
+    return get_calmgr_logger()
 
 @contextmanager
 def pushd(path: Union[str, PathLike]) -> None:

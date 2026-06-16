@@ -90,8 +90,6 @@ def main(
             bootstrap=False,
         )
 
-        ewts.logger.reset_logger(ewts.CAL_MGR_ID)
-
         LOG = initialize_logger(
             enabled_override=enabled_override,
             log_path_overwrite=None,

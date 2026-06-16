@@ -12,10 +12,10 @@ import numpy as np
 import pandas as pd
 import scipy.stats as sp
 
-from common import ensure_logger_initialized
+from common import get_calmgr_logger
 
 def _logger():
-    return ensure_logger_initialized()
+    return get_calmgr_logger()
 
 __all__ = [
     "plot_streamflow",

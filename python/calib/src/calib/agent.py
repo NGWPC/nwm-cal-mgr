@@ -19,8 +19,8 @@ from .configuration import Model
 from .utils import pushd
 
 import ewts
-from common import ensure_logger_initialized
-logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
+from common import get_calmgr_logger
+logger = get_calmgr_logger()
 
 if TYPE_CHECKING:
     from typing import Any, Mapping, Sequence
@@ -90,9 +90,6 @@ class Agent(BaseAgent):
         worker_name: str | None = None,
     ):
         """Construct attributes for the Agent class."""
-        global logger
-        logger = ensure_logger_initialized()
-
         self._workdir = workdir
         self._job = None
         self._run_name = general.name
