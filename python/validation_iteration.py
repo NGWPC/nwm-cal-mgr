@@ -8,7 +8,6 @@ validation run with an alternative parameter set
 import argparse
 import ewts
 import json
-import re
 import os
 import shutil
 from pathlib import Path
@@ -63,19 +62,33 @@ def main(
 
     # write the realization and config files for validation run
     calibration_sets = agent.model.adjustables
-    for calibration_set in calibration_sets:
-        for calibration_object in calibration_set.adjustables:
-            # get the alternative parameter values
-            calibration_object.adf.loc[:, general.name] = df1[iteration].to_list()
 
-            # create the realization file (with the alternative parameters) and the validation config file
-            create_valid_realization_file(
-                agent,
-                calibration_object.eval_params,
-                calibration_object.adf,
-                general.name,
-                LOG,
-            )
+    # params_iteration contains parameter values for all formulation groups
+    param_values_all = df1[iteration].to_list()
+
+    idx = 0
+    group_adfs = []
+    for calibration_set in calibration_sets:
+        group_dims = len(calibration_set.adjustables[0].adf)
+        param_values = param_values_all[idx:idx + group_dims]
+        idx += group_dims
+
+        # Get iteration parameter values for this group
+        calibration_object = calibration_set.adjustables[0]
+        calibration_object.adf.loc[:, general.name] = param_values
+        group_adfs.append(calibration_object.adf)
+
+    combined_adf = pd.concat(group_adfs, ignore_index=True)
+    primary_set = calibration_sets[0]
+
+    # create the realization file (with the alternative parameters) and the validation config file
+    create_valid_realization_file(
+        agent,
+        primary_set.eval_params,
+        combined_adf,
+        general.name,
+        LOG,
+    )
 
     # create t-route config file for the validation run
     configfl = os.path.join(
