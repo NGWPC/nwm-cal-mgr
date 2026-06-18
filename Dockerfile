@@ -17,19 +17,29 @@ ARG EWTS_REF=development
 ARG MSW_MGR_ORG=${GH_ORG}
 ARG MSW_MGR_REF=development
 
-ARG CAL_MGR_INSTALL_EWTS=OFF
-ARG EWTS_CACHE_BUST=0
+############################################################################
+# Image selection
 ############################################################################
 
-# Image selection
-ARG NGEN_IMAGE_TAG=latest
-ARG NGEN_IMAGE=ghcr.io/${GHCR_ORG}/ngen:${NGEN_IMAGE_TAG}
+# Use the ngen image as the base.
+#
+# Default build:
+#   docker build -t nwm-cal-mgr .
+#
+# Build from a different published ngen image:
+#   docker build \
+#     --build-arg NGEN_IMAGE=ghcr.io/ngwpc/ngen:development \
+#     -t nwm-cal-mgr .
+#
+# Build from a locally built ngen image:
+#   docker build \
+#     --build-arg NGEN_IMAGE=ngen \
+#     -t nwm-cal-mgr .
+ARG NGEN_IMAGE=ghcr.io/${GHCR_ORG}/ngen:latest
 
-# To use a local build add --build-arg NGEN_IMAGE=<your local build tag>
 FROM ${NGEN_IMAGE}
 
-# Re-expose args after FROM for the remaining build stage
-# Keeps whatever value was already set
+# Re-expose args after FROM for the remaining build stage.
 ARG GH_ORG
 ARG GHCR_ORG
 ARG IMAGE_NAMESPACE
@@ -37,13 +47,11 @@ ARG EWTS_ORG
 ARG EWTS_REF
 ARG MSW_MGR_ORG
 ARG MSW_MGR_REF
-ARG CAL_MGR_INSTALL_EWTS
-ARG EWTS_CACHE_BUST
 
 # OCI Metadata Arguments
-ARG NGEN_IMAGE
-ARG BASE_IMAGE_DIGEST="unknown"
-ARG BASE_IMAGE_REVISION="unknown"
+ARG NGEN_IMAGE_NAME="${NGEN_IMAGE}"
+ARG NGEN_IMAGE_DIGEST="unknown"
+ARG NGEN_IMAGE_REVISION="unknown"
 ARG IMAGE_SOURCE="unknown"
 ARG IMAGE_VENDOR="unknown"
 ARG IMAGE_VERSION="unknown"
@@ -52,15 +60,15 @@ ARG EWTS_REVISION="unknown"
 ARG MSW_MGR_REVISION="unknown"
 
 # Image Labels: OCI-spec annotations followed by custom source-repo metadata.
-LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
-    org.opencontainers.image.base.digest="${BASE_IMAGE_DIGEST}" \
+LABEL org.opencontainers.image.base.name="${NGEN_IMAGE_NAME}" \
+    org.opencontainers.image.base.digest="${NGEN_IMAGE_DIGEST}" \
     org.opencontainers.image.source="${IMAGE_SOURCE}" \
     org.opencontainers.image.vendor="${IMAGE_VENDOR}" \
     org.opencontainers.image.version="${IMAGE_VERSION}" \
     org.opencontainers.image.revision="${IMAGE_REVISION}" \
     org.opencontainers.image.title="NGEN Calibration Manager" \
     org.opencontainers.image.description="Docker image for the NGEN Calibration application" \
-    io.${IMAGE_NAMESPACE}.image.base.revision="${BASE_IMAGE_REVISION}" \
+    io.${IMAGE_NAMESPACE}.image.base.revision="${NGEN_IMAGE_REVISION}" \
     io.${IMAGE_NAMESPACE}.ewts.org="${EWTS_ORG}" \
     io.${IMAGE_NAMESPACE}.ewts.ref="${EWTS_REF}" \
     io.${IMAGE_NAMESPACE}.ewts.revision="${EWTS_REVISION}" \
@@ -84,37 +92,6 @@ RUN set -eux; \
 ENV VIRTUAL_ENV="/ngen-app/ngen-python" \
     PATH="${VIRTUAL_ENV}/bin:${PATH}" \
     PYTHONPATH="${VIRTUAL_ENV}/lib/python3.11/site-packages:/usr/local/lib64/python3.11/site-packages:${PYTHONPATH}"
-
-SHELL ["/bin/bash", "-c"]
-
-# Optional development-only EWTS Python override.
-#
-# Production images should inherit EWTS from ngen. Set CAL_MGR_INSTALL_EWTS=ON
-# only when testing a new EWTS Python package without rebuilding forcing/ngen.
-#
-# To specify EWTS for development only:
-# docker build \
-#  --build-arg CAL_MGR_INSTALL_EWTS=ON \
-#  --build-arg EWTS_REF=my-ewts-branch \
-#  --build-arg EWTS_CACHE_BUST=$(date +%s) \
-#  -t nwm-cal-mgr .
-RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-rocky \
-    set -eux; \
-    CAL_MGR_INSTALL_EWTS="${CAL_MGR_INSTALL_EWTS:-OFF}"; \
-    echo "CAL_MGR_INSTALL_EWTS=${CAL_MGR_INSTALL_EWTS}; EWTS ref: ${EWTS_REF}; cache bust: ${EWTS_CACHE_BUST}"; \
-    CAL_MGR_INSTALL_EWTS_NORMALIZED="$(echo "${CAL_MGR_INSTALL_EWTS}" | tr '[:lower:]' '[:upper:]')"; \
-    if [[ "${CAL_MGR_INSTALL_EWTS_NORMALIZED}" =~ ^(ON|YES|TRUE|1)$ ]]; then \
-        echo "Installing development EWTS Python override"; \
-        rm -rf /tmp/nwm-ewts; \
-        (git clone --depth 1 -b "${EWTS_REF}" \
-            "https://github.com/${EWTS_ORG}/nwm-ewts.git" /tmp/nwm-ewts \
-         || (git clone "https://github.com/${EWTS_ORG}/nwm-ewts.git" /tmp/nwm-ewts && \
-             cd /tmp/nwm-ewts && git checkout "${EWTS_REF}")); \
-        python -m pip install --force-reinstall --no-deps /tmp/nwm-ewts/runtime/python/ewts; \
-        rm -rf /tmp/nwm-ewts; \
-    else \
-        echo "Using EWTS inherited from ngen"; \
-    fi
 
 # Install numpy, netcdf4, hydrotools events, and nwis-client
 RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-rocky \
