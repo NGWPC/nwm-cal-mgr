@@ -28,10 +28,10 @@ from .plot_output import plot_calib_output, plot_cost_func
 from .utils import complete_msg, pushd, report_to_ngencerf
 
 
-from common import ensure_logger_initialized
+from common import get_calmgr_logger
 
 def _logger():
-    return ensure_logger_initialized()
+    return get_calmgr_logger()
 
 if TYPE_CHECKING:
     from calib import Adjustable, Evaluatable
@@ -89,6 +89,7 @@ def _execute(meta: "Agent", i: int = None) -> None:
         log_filename = f"{meta.run_name}_ngen_stdout_stderr.log"
         print(f"ngen stdout/stderr filename = {log_filename}", flush=True)
         base_dir = meta.workdir if meta.run_name == "calib" else meta.job.workdir
+        print(f"ngen stdout/stderr base_dir = {base_dir}", flush=True)
         run_log_file = Path(base_dir) / log_filename
         if i is not None:
             with open(run_log_file, "w") as log_file:

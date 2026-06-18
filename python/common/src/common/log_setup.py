@@ -9,9 +9,6 @@ import re
 
 import ewts
 
-_WARNED_UNINITIALIZED_LOGGERS: set[str] = set()
-
-
 def str_to_bool(value: str) -> bool:
     value = value.lower()
     if value in {"true", "t", "yes", "y", "1", "on", "enabled", "enable"}:
@@ -136,7 +133,7 @@ def initialize_logger(
     enabled_override: bool | None = None,
     reset_file: bool = False,
     default_log_dir: str | Path | None = None,
-) -> ewts.logger.EwtsLogger | ewts.logger.BoundEwtsLoggerProxy:
+) -> ewts.logger.EwtsLogger:
     log_level = log_level_override if log_level_override is not None else "INFO"
 
     resolved_log_dir, resolved_log_file_name = resolve_log_target(
@@ -166,44 +163,7 @@ def initialize_logger(
         log_file_name=resolved_log_file_name,
         running_in_ngen=False,
         enabled=enabled_override,
-        bind_now=True,
     )
 
-
-def ensure_logger_initialized(
-    ewts_id: str = ewts.CAL_MGR_ID,
-) -> ewts.logger.EwtsLogger | ewts.logger.BoundEwtsLoggerProxy:
-    logger = ewts.logger.get_logger(ewts_id)
-
-    if logger.is_bound():
-        return logger.get_bound_logger()
-
-    if ewts_id not in _WARNED_UNINITIALIZED_LOGGERS:
-        stack_lines = []
-        for frame_info in inspect.stack()[1:]:
-            filename = Path(frame_info.filename)
-            module = inspect.getmodule(frame_info.frame)
-            module_name = module.__name__ if module else "<unknown>"
-
-            if module_name.startswith("common"):
-                continue
-
-            stack_lines.append(
-                f"  {module_name}.{frame_info.function} "
-                f"({filename.name}:{frame_info.lineno})"
-            )
-
-            if len(stack_lines) == 5:
-                break
-
-        caller_text = "\n".join(stack_lines) if stack_lines else "  <no external caller found>"
-
-        print(
-            f"WARNING: log setup - EWTS {ewts_id} logger was not initialized by the caller; "
-            f"setting up default logging so execution can continue.\n"
-            f"Top non-common call frames:\n{caller_text}",
-            flush=True,
-        )
-        _WARNED_UNINITIALIZED_LOGGERS.add(ewts_id)
-
-    return initialize_logger(reset_file=False)
+def get_calmgr_logger() -> ewts.logger.EwtsLogger:
+    return ewts.logger.get_logger(ewts.CAL_MGR_ID)

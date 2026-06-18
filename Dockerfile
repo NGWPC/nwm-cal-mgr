@@ -16,18 +16,30 @@ ARG EWTS_ORG=${GH_ORG}
 ARG EWTS_REF=development
 ARG MSW_MGR_ORG=${GH_ORG}
 ARG MSW_MGR_REF=development
+
+############################################################################
+# Image selection
 ############################################################################
 
-# Image selection
-ARG NGEN_IMAGE_TAG=latest
-ARG NGEN_IMAGE=ghcr.io/${GHCR_ORG}/ngen:${NGEN_IMAGE_TAG}
+# Use the ngen image as the base.
+#
+# Default build:
+#   docker build -t nwm-cal-mgr .
+#
+# Build from a different published ngen image:
+#   docker build \
+#     --build-arg NGEN_IMAGE=ghcr.io/ngwpc/ngen:development \
+#     -t nwm-cal-mgr .
+#
+# Build from a locally built ngen image:
+#   docker build \
+#     --build-arg NGEN_IMAGE=ngen \
+#     -t nwm-cal-mgr .
+ARG NGEN_IMAGE=ghcr.io/${GHCR_ORG}/ngen:latest
+
 FROM ${NGEN_IMAGE}
 
-# Uncomment when building from a locally built ngen image
-# FROM ngen
-
-# Re-expose args after FROM for the remaining build stage
-# Keeps whatever value was already set
+# Re-expose args after FROM for the remaining build stage.
 ARG GH_ORG
 ARG GHCR_ORG
 ARG IMAGE_NAMESPACE
@@ -35,9 +47,11 @@ ARG EWTS_ORG
 ARG EWTS_REF
 ARG MSW_MGR_ORG
 ARG MSW_MGR_REF
+ARG NGEN_IMAGE
 
 # OCI Metadata Arguments
-ARG NGEN_IMAGE
+#
+# BASE_IMAGE_* refers to the ngen image this image is built FROM.
 ARG BASE_IMAGE_DIGEST="unknown"
 ARG BASE_IMAGE_REVISION="unknown"
 ARG IMAGE_SOURCE="unknown"

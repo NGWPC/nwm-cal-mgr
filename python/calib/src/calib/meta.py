@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import ewts
-from common import ensure_logger_initialized
-logger = ewts.logger.get_logger(ewts.CAL_MGR_ID)
+from common import get_calmgr_logger
+logger = get_calmgr_logger()
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -62,9 +62,6 @@ class JobMeta:
             If not None, this will be used as the middlefix for the worker directory.
             If None, a random string will be used.
         """
-        global logger
-        logger = ensure_logger_initialized()
-
         provided_worker_name = worker_name
         self._worker_name = worker_name
         if self._worker_name is None:
