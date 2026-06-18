@@ -47,11 +47,13 @@ ARG EWTS_ORG
 ARG EWTS_REF
 ARG MSW_MGR_ORG
 ARG MSW_MGR_REF
+ARG NGEN_IMAGE
 
 # OCI Metadata Arguments
-ARG NGEN_IMAGE_NAME="${NGEN_IMAGE}"
-ARG NGEN_IMAGE_DIGEST="unknown"
-ARG NGEN_IMAGE_REVISION="unknown"
+#
+# BASE_IMAGE_* refers to the ngen image this image is built FROM.
+ARG BASE_IMAGE_DIGEST="unknown"
+ARG BASE_IMAGE_REVISION="unknown"
 ARG IMAGE_SOURCE="unknown"
 ARG IMAGE_VENDOR="unknown"
 ARG IMAGE_VERSION="unknown"
@@ -60,15 +62,15 @@ ARG EWTS_REVISION="unknown"
 ARG MSW_MGR_REVISION="unknown"
 
 # Image Labels: OCI-spec annotations followed by custom source-repo metadata.
-LABEL org.opencontainers.image.base.name="${NGEN_IMAGE_NAME}" \
-    org.opencontainers.image.base.digest="${NGEN_IMAGE_DIGEST}" \
+LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
+    org.opencontainers.image.base.digest="${BASE_IMAGE_DIGEST}" \
     org.opencontainers.image.source="${IMAGE_SOURCE}" \
     org.opencontainers.image.vendor="${IMAGE_VENDOR}" \
     org.opencontainers.image.version="${IMAGE_VERSION}" \
     org.opencontainers.image.revision="${IMAGE_REVISION}" \
     org.opencontainers.image.title="NGEN Calibration Manager" \
     org.opencontainers.image.description="Docker image for the NGEN Calibration application" \
-    io.${IMAGE_NAMESPACE}.image.base.revision="${NGEN_IMAGE_REVISION}" \
+    io.${IMAGE_NAMESPACE}.image.base.revision="${BASE_IMAGE_REVISION}" \
     io.${IMAGE_NAMESPACE}.ewts.org="${EWTS_ORG}" \
     io.${IMAGE_NAMESPACE}.ewts.ref="${EWTS_REF}" \
     io.${IMAGE_NAMESPACE}.ewts.revision="${EWTS_REVISION}" \
