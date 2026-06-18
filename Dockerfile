@@ -7,10 +7,12 @@
 #   CAL_MGR_INSTALL_EWTS, EWTS_CACHE_BUST
 ############################################################################
 
+# Ownership / branding overrides
 ARG GH_ORG=NGWPC
 ARG GHCR_ORG=ngwpc
 ARG IMAGE_NAMESPACE=ngwpc
 
+# External repository sources (org and ref/branch overrides)
 ARG EWTS_ORG=${GH_ORG}
 ARG EWTS_REF=development
 ARG CAL_MGR_INSTALL_EWTS=OFF
@@ -65,28 +67,28 @@ ARG IMAGE_REVISION="unknown"
 ARG EWTS_REVISION="unknown"
 ARG MSW_MGR_REVISION="unknown"
 
+# Image Labels: OCI-spec annotations followed by custom source-repo metadata.
 LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
-    org.opencontainers.image.base.digest="${BASE_IMAGE_DIGEST}" \
-    org.opencontainers.image.source="${IMAGE_SOURCE}" \
-    org.opencontainers.image.vendor="${IMAGE_VENDOR}" \
-    org.opencontainers.image.version="${IMAGE_VERSION}" \
-    org.opencontainers.image.revision="${IMAGE_REVISION}" \
-    org.opencontainers.image.title="NGEN Calibration Manager" \
-    org.opencontainers.image.description="Docker image for the NGEN Calibration application" \
-    io.${IMAGE_NAMESPACE}.image.base.revision="${BASE_IMAGE_REVISION}" \
-    io.${IMAGE_NAMESPACE}.ewts.org="${EWTS_ORG}" \
-    io.${IMAGE_NAMESPACE}.ewts.ref="${EWTS_REF}" \
-    io.${IMAGE_NAMESPACE}.ewts.revision="${EWTS_REVISION}" \
-    io.${IMAGE_NAMESPACE}.msw.mgr.org="${MSW_MGR_ORG}" \
-    io.${IMAGE_NAMESPACE}.msw.mgr.ref="${MSW_MGR_REF}" \
-    io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}"
+      org.opencontainers.image.base.digest="${BASE_IMAGE_DIGEST}" \
+      org.opencontainers.image.source="${IMAGE_SOURCE}" \
+      org.opencontainers.image.vendor="${IMAGE_VENDOR}" \
+      org.opencontainers.image.version="${IMAGE_VERSION}" \
+      org.opencontainers.image.revision="${IMAGE_REVISION}" \
+      org.opencontainers.image.title="NGEN Calibration Manager" \
+      org.opencontainers.image.description="Docker image for the NGEN Calibration application" \
+      io.${IMAGE_NAMESPACE}.image.base.revision="${BASE_IMAGE_REVISION}" \
+      io.${IMAGE_NAMESPACE}.ewts.org="${EWTS_ORG}" \
+      io.${IMAGE_NAMESPACE}.ewts.ref="${EWTS_REF}" \
+      io.${IMAGE_NAMESPACE}.ewts.revision="${EWTS_REVISION}" \
+      io.${IMAGE_NAMESPACE}.msw.mgr.org="${MSW_MGR_ORG}" \
+      io.${IMAGE_NAMESPACE}.msw.mgr.ref="${MSW_MGR_REF}" \
+      io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}"
 
 # Reuse the Python virtual environment inherited from ngen. The dependency image
 # creates the venv; forcing and ngen install their Python packages into that same
 # environment. Do not recreate it here.
 ENV VIRTUAL_ENV="/ngen-app/ngen-python" \
-    PATH="${VIRTUAL_ENV}/bin:${PATH}" \
-    PYTHONPATH="${VIRTUAL_ENV}/lib/python3.14/site-packages:/usr/local/lib/python3.14/site-packages:${PYTHONPATH}"
+    PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 SHELL ["/bin/bash", "-c"]
 
@@ -144,9 +146,7 @@ RUN set -eux; \
     python -m pip install .; \
     python -m pip install mswm@git+https://github.com/${MSW_MGR_ORG}/nwm-msw-mgr.git@${MSW_MGR_REF}; \
     cd /ngen-app/nwm-cal-mgr/python/config; \
-    python -m pip install .; \
-    python -m pip cache purge; \
-    rm --force /root/.gitconfig || true
+    python -m pip install .;
 
 WORKDIR /ngen-app/nwm-cal-mgr
 
