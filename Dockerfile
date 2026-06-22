@@ -111,27 +111,7 @@ WORKDIR /ngen-app/
 ARG CALIB_CACHE_BUST=1
 RUN set -eux; \
     echo "Calib cache bust: ${CALIB_CACHE_BUST}" && \
-    # Install shared common package first
-    cd /ngen-app/nwm-cal-mgr/python/common && \
-    python -m pip install . ; \
-    \
-    # Install dependencies for createInput module
-    cd /ngen-app/nwm-cal-mgr/python/calib && \
-#    touch src/*.py && \
-    python -m pip install . ; \
-    \
-    # Install mswm package
-    python -m pip install mswm@git+https://github.com/${MSW_MGR_ORG}/nwm-msw-mgr.git@${MSW_MGR_REF} ; \
-    \
-    # Install nwm_metrics package
-    pip3 install "nwm_metrics@git+https://github.com/${NWM_METRICS_ORG}/nwm-eval-mgr.git@${NWM_METRICS_REF}#subdirectory=nwm_metrics" ; \
-    \
-    # Install dependencies for runCalibValid module
-    cd /ngen-app/nwm-cal-mgr/python/config && \
-#    touch src/ngen/cal/*.py && \
-    python -m pip install . ; \
-    \
-    # Clean up pip cache and remove .gitconfig
+    python -m pip install /ngen-app/nwm-cal-mgr && \
     python -m pip cache purge && \
     rm --force /root/.gitconfig
 

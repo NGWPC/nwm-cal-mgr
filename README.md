@@ -2,13 +2,25 @@
 
 **Description**:  Supporting code/workflows for automated calibration of [NGen](https://github.com/noaa-owp/ngen) Formulations using Dynamic Dimensioned Search (DDS), Grey Wolf Optimizer(GWO), and Particle Swarm Optimizer (PSO)
 
+
+## Repository Structure
+
+```text
+nwm-cal-mgr/
+├── python/calib/           # Core calibration library
+├── python/config/          # Configuration workflow package
+├── python/common/          # Common utilities and shared code (e.g., logging)
+└── configs/                # Sample configuration files for calibration runs
+```
+
 ## Dependencies
 
 See [calib/requirements.txt](python/calib/requirements.txt) and [config/requirements.txt](python/config/requirements.txt) for specific python dependencies.
 
-Other dependencies include:
+External dependencies include:
 - [nwm-msw-mgr](https://github.com/NGWPC/nwm-msw-mgr)
 - [nwm_metrics](https://github.com/NGWPC/nwm-eval-mgr/nwm_metrics)
+- [ewts](https://github.com/NGWPC/nwm-ewts/runtime/python/ewts)
 
 ## Installation
 
@@ -16,7 +28,9 @@ Other dependencies include:
 
 ## Configuration
 
-Set up input configuration for MSWM.
+You can manually configure a calibration run as shown in the sample config file `configs/config_calib.yaml`. However, 
+it is strongly recommended to use the Model Setup Workflow Manager (MSWM) to produce the calibration config file and 
+the necessary input files.
 
 Refer to one of the sample input config files in [MSWM](https://github.com/NGWPC/nwm-msw-mgr/tree/development/src/mswm/example_inputs) to set up your configuration for calibration/validation.
 

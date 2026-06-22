@@ -26,29 +26,3 @@ git clone -b development https://github.com/NGWPC/nwm-cal-mgr.git
 cd
 pip install [NWM_ROOT]/nwm-cal-mgr # or use flag "-e" to install the package as an editable
 ```
-
-4. install dependency **mswm**
-
-```bash
-cd [NWM_ROOT]
-git clone -b development https://github.com/NGWPC/nwm-msw-mgr.git
-```
-
-- install mswm
-```bash
-cd [NWM_ROOT]/nwm-msw-mgr
-pip install .
-```
-5. install dependency **nwm_metrics**
-
-- clone nwm-eval-mgr
-```bash
-cd [NWM_ROOT]
-git clone -b development https://github.com/NGWPC/nwm-eval-mgr.git
-```
-
-- install nwm_metrics
-```bash
-cd [NWM_ROOT]/nwm-eval-mgr/nwm_metrics
-pip install .
-```
