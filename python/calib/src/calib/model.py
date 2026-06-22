@@ -23,7 +23,6 @@ except ImportError:
 import ewts
 import pandas as pd
 import yaml
-from common import ensure_logger_initialized
 from pydantic import (
     BaseModel,
     DirectoryPath,

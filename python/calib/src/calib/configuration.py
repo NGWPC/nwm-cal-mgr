@@ -25,16 +25,15 @@ import ewts
 import geopandas as gpd
 import netCDF4
 import pandas as pd
-from common import ensure_logger_initialized
+from common import get_calmgr_logger
 from pydantic import BaseModel, DirectoryPath, Field, PrivateAttr
 
 from .model import ModelExec, PosInt
 from .ngen import Ngen
 from .strategy import Estimation, Sensitivity
 
-import ewts
-from common import get_calmgr_logger
 logger = get_calmgr_logger()
+
 
 class General(BaseModel):
     """General configuration class."""
