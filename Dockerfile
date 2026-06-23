@@ -16,6 +16,8 @@ ARG EWTS_ORG=${GH_ORG}
 ARG EWTS_REF=development
 ARG MSW_MGR_ORG=${GH_ORG}
 ARG MSW_MGR_REF=development
+ARG NWM_EVAL_ORG=${GH_ORG}
+ARG NWM_EVAL_REF=development
 
 ############################################################################
 # Image selection
@@ -47,9 +49,9 @@ ARG EWTS_ORG
 ARG EWTS_REF
 ARG MSW_MGR_ORG
 ARG MSW_MGR_REF
+ARG EVAL_MGR_ORG
+ARG EVAL_MGR_REF
 ARG NGEN_IMAGE
-ARG NWM_METRICS_ORG
-ARG NWM_METRICS_REF
 
 # OCI Metadata Arguments
 #
@@ -62,7 +64,7 @@ ARG IMAGE_VERSION="unknown"
 ARG IMAGE_REVISION="unknown"
 ARG EWTS_REVISION="unknown"
 ARG MSW_MGR_REVISION="unknown"
-ARG NWM_METRICS_REVISION="unknown"
+ARG EVAL_MGR_REVISION="unknown"
 
 # Image Labels: OCI-spec annotations followed by custom source-repo metadata.
 LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
@@ -80,9 +82,9 @@ LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.org="${MSW_MGR_ORG}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.ref="${MSW_MGR_REF}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}" \
-    io.${IMAGE_NAMESPACE}.nwm.metrics.org="${NWM_METRICS_ORG}" \
-    io.${IMAGE_NAMESPACE}.nwm.metrics.ref="${NWM_METRICS_REF}" \
-    io.${IMAGE_NAMESPACE}.nwm.metrics.revision="${NWM_METRICS_REVISION}"
+    io.${IMAGE_NAMESPACE}.nwm.eval.org="${EVAL_MGR_ORG}" \
+    io.${IMAGE_NAMESPACE}.nwm.eval.ref="${EVAL_MGR_REF}" \
+    io.${IMAGE_NAMESPACE}.nwm.eval.revision="${EVAL_MGR_REVISION}"
 
 COPY . /ngen-app/nwm-cal-mgr/
 
@@ -111,7 +113,12 @@ WORKDIR /ngen-app/
 ARG CALIB_CACHE_BUST=1
 RUN set -eux; \
     echo "Calib cache bust: ${CALIB_CACHE_BUST}" && \
+    # install nwm-cal-mgr packages (common, calib, config)
     python -m pip install /ngen-app/nwm-cal-mgr && \
+    # Install mswm package
+    python -m pip install mswm@git+https://github.com/${MSW_MGR_ORG}/nwm-msw-mgr.git@${MSW_MGR_REF} ; \
+    # Install nwm_metrics package
+    python -m pip install nwm_metrics@git+https://github.com/${NWM_EVAL_ORG}/nwm-eval-mgr.git@${NWM_EVAL_REF}#subdirectory=nwm_metrics ; \
     python -m pip cache purge && \
     rm --force /root/.gitconfig
 
