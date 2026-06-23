@@ -87,8 +87,8 @@ LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
 # Reuse the Python virtual environment inherited from ngen. The dependency image
 # creates the venv; forcing and ngen install their Python packages into that same
 # environment. Do not recreate it here.
-ENV VIRTUAL_ENV="/ngen-app/ngen-python" \
-    PATH="${VIRTUAL_ENV}/bin:${PATH}"
+ENV VIRTUAL_ENV="/ngen-app/ngen-python"
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 SHELL ["/bin/bash", "-c"]
 
@@ -132,21 +132,26 @@ RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-bookworm \
 # Install calibration-specific Python dependencies.
 RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-bookworm \
     set -eux; \
-    python -m pip install --upgrade pip; \
     python -m pip install "hydrotools.events==1.1.5" "hydrotools.nwis-client==3.3.1"
 
 WORKDIR /ngen-app/
-# MSW_MGR_CACHE_BUST = nwm-msw-mgr commit SHA from CI; a new commit busts this layer so mswm is reinstalled from the requested ref, not a stale cache.
+
+# MSW_MGR_CACHE_BUST is set by CI to the nwm-msw-mgr commit SHA. A new commit
+# invalidates this layer so mswm is installed from the requested ref rather
+# than being reused from a stale Docker layer.
 ARG MSW_MGR_CACHE_BUST=1
-RUN set -eux; \
-    echo "MSW MGR cache bust: ${MSW_MGR_CACHE_BUST}" && \
+
+RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-bookworm \
+    set -eux; \
+    echo "MSW MGR cache bust: ${MSW_MGR_CACHE_BUST}"; \
     cd /ngen-app/nwm-cal-mgr/python/common; \
     python -m pip install .; \
     cd /ngen-app/nwm-cal-mgr/python/calib; \
     python -m pip install .; \
-    python -m pip install mswm@git+https://github.com/${MSW_MGR_ORG}/nwm-msw-mgr.git@${MSW_MGR_REF}; \
+    python -m pip install \
+        "mswm@git+https://github.com/${MSW_MGR_ORG}/nwm-msw-mgr.git@${MSW_MGR_REF}"; \
     cd /ngen-app/nwm-cal-mgr/python/config; \
-    python -m pip install .;
+    python -m pip install .
 
 WORKDIR /ngen-app/nwm-cal-mgr
 
