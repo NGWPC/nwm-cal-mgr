@@ -110,7 +110,8 @@ RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-rocky \
     python -m pip install "hydrotools.events==1.1.5" "hydrotools.nwis-client==3.3.1"
 
 WORKDIR /ngen-app/
-ARG CALIB_CACHE_BUST=1
+# MSW_MGR_CACHE_BUST = nwm-msw-mgr commit SHA from CI; a new commit busts this layer so mswm is reinstalled from the requested ref, not a stale cache.
+ARG MSW_MGR_CACHE_BUST=1
 RUN set -eux; \
     echo "Calib cache bust: ${CALIB_CACHE_BUST}" && \
     # install nwm-cal-mgr packages (common, calib, config)
