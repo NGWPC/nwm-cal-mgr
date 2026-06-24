@@ -1,6 +1,16 @@
 # NWM Calibration Manager
 nwm-cal-mgr is a Python repository that provides tools for calibration and validation of [NGen](https://github.com/noaa-owp/ngen) Formulations using Dynamic Dimensioned Search (DDS), Grey Wolf Optimizer(GWO), and Particle Swarm Optimizer (PSO).
 
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Automated Installation](#automated-installation)
+- [Manual Installation](#manual-installation)
+- [Verify Installation](#verify-installation)
+- [Run Calibration and Validation](#run-calibration-and-validation)
+- [Docker Container](#docker-container)
+  
+## Introduction
 Instructions on how to install, configure, and run calibration/validation are given below, where:
 
 * `[WORK_DIR]` refers to the parent directory in which repositories are cloned
@@ -368,7 +378,7 @@ pip install "ewts@git+https://github.com/ngwpc/nwm-ewts.git@development#subdirec
 ```
 ---
 
-## Verify the installation
+## Verify installation
 
 Installing `nwm-cal-mgr` also installs the calibration/validation CLI commands.
 
@@ -468,10 +478,11 @@ To build and run `nwm-cal-mgr` with Docker, you will need:
 
 ### Build
 
-From the repository root, build the container image:
+From the repository root, run `build_nwm_cal_mgr.sh` to build the container image:
 
 ```bash
-docker build --tag nwm-cal-mgr .
+./build_nwm_cal_mgr.sh
+./build_nwm_cal_mgr.sh --ref development
 ```
 
 ### Container help
@@ -509,7 +520,7 @@ Examples:
 
 ### Run calibration and validation in the container
 
-When running an evaluation or verification workflow, you will typically need to mount local data and configuration files into the container.
+When running a calibration workflow, you will typically need to mount local data and configuration files into the container.
 
 - run MSWM to create inputs for calibration/validation:
 
