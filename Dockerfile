@@ -16,8 +16,8 @@ ARG EWTS_ORG=${GH_ORG}
 ARG EWTS_REF=development
 ARG MSW_MGR_ORG=${GH_ORG}
 ARG MSW_MGR_REF=development
-ARG NWM_EVAL_ORG=${GH_ORG}
-ARG NWM_EVAL_REF=development
+ARG EVAL_MGR_ORG=${GH_ORG}
+ARG EVAL_MGR_REF=development
 
 ############################################################################
 # Image selection
@@ -113,13 +113,13 @@ WORKDIR /ngen-app/
 # MSW_MGR_CACHE_BUST = nwm-msw-mgr commit SHA from CI; a new commit busts this layer so mswm is reinstalled from the requested ref, not a stale cache.
 ARG MSW_MGR_CACHE_BUST=1
 RUN set -eux; \
-    echo "Calib cache bust: ${CALIB_CACHE_BUST}" && \
+    echo "MSW MGR cache bust: ${MSW_MGR_CACHE_BUST}" && \
     # install nwm-cal-mgr packages (common, calib, config)
     python -m pip install /ngen-app/nwm-cal-mgr && \
     # Install mswm package
     python -m pip install mswm@git+https://github.com/${MSW_MGR_ORG}/nwm-msw-mgr.git@${MSW_MGR_REF} ; \
     # Install nwm_metrics package
-    python -m pip install nwm_metrics@git+https://github.com/${NWM_EVAL_ORG}/nwm-eval-mgr.git@${NWM_EVAL_REF}#subdirectory=nwm_metrics ; \
+    python -m pip install nwm_metrics@git+https://github.com/${EVAL_MGR_ORG}/nwm-eval-mgr.git@${EVAL_MGR_REF}#subdirectory=nwm_metrics ; \
     python -m pip cache purge && \
     rm --force /root/.gitconfig
 
