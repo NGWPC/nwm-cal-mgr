@@ -6,14 +6,18 @@ Instructions on how to install, configure, and run calibration/validation are gi
 * `[WORK_DIR]` refers to the parent directory in which repositories are cloned
 * `[VENV_DIR]` refers to the Python virtual environment directory
 
-Two installation options are supported:
+You can choose from the following installation options:
 
-1. **Automated installation using the installer script** (recommended)
-2. **Manual installation step-by-step**
+1. **Automated local installation**
+2. **Manual local installation**
+3. **Docker container installation** (recommended)
+
+Note for local installations (options 1 and 2), you will also need to install ngen (https://github.com/NGWPC/ngen) and 
+its various submodules locally, in order to run calibration and validation workflows. 
 
 ---
 
-## Automated installation (recommended)
+## Automated installation
 
 The following installer script automates the development installation workflow. It:
 
@@ -364,7 +368,7 @@ pip install "ewts@git+https://github.com/ngwpc/nwm-ewts.git@development#subdirec
 ```
 ---
 
-## Verifying the installation
+## Verify the installation
 
 Installing `nwm-cal-mgr` also installs the calibration/validation CLI commands.
 
@@ -386,7 +390,7 @@ validation_iteration --help
 ```
 ---
 
-## Running calibration and validation
+## Run calibration and validation
 
 ### Run MSWM
 
@@ -395,13 +399,13 @@ the sample config files in [MSWM](https://github.com/NGWPC/nwm-msw-mgr/tree/deve
 to set up your configuration for calibration/validation.
 
 ```bash
-python -m mswm.manager build_calib [MSWM_CONFIG]
+python -m mswm.manager build_calib <path_to_mswm_config>
 ```
-This will produce a set of input files for calibration/validation, including a config file for calibration to be used 
-in the next step.
+Where `<path_to_mswm_config>` is the path to the MSWM configuration file. This will produce a set of input files for 
+calibration/validation, including a config file for calibration to be used in the next step.
 
-Note MSWM creates the input, output and log folders for calibration/validation runs based on configurations in [MSWM_CONFIG], 
-e.g., 
+Note MSWM creates the input, output and log folders for calibration/validation runs based on configurations in 
+the MSWM config file, e.g.:
 - input: `kge_dds/noah_cfes/01123000/Input`
 - output (calibration): `kge_dds/noah_cfes/01123000/Output/Calibration_Run`
 - output (validation): `kge_dds/noah_cfes/01123000/Output/Validation_Run`
@@ -410,9 +414,9 @@ e.g.,
 ### Run calibration
 
 ```bash
-calibration [CALIB_CONFIG]
+calibration <path_to_calib_config>
 ```
-Where [CALIB_CONFIG] is the config file for calibration, which can be found in the log file from running MSWM.
+Where `<path_to_calib_config>` is the path to the config file for calibration, which can be found in the log file from running MSWM.
 
 Example:
 ```bash
@@ -422,11 +426,11 @@ calibration kge_dds/noah_cfes/01123000/Input/01123000_config_calib.yaml
 ### Run validation
 
 ```bash
-validation [VALID_CONTROL_CONFIG]
-validation [VALID_BEST_CONFIG]
+validation <path_to_valid_control_config>
+validation <path_to_valid_best_config>
 ```
-[VALID_CONTROL_CONFIG] and [VALID_BEST_CONFIG] are the config files for validation runs with the control/default
-parameters and the best parameters, respectively. These config files are produced at the end of calibration
+where `<path_to_valid_control_config>` and `<path_to_valid_best_config>` are the config files for validation runs with 
+the control/default parameters and the best parameters, respectively. These config files are produced at the end of calibration
 (see the log file for paths to these files).
 
 Example:
@@ -441,9 +445,9 @@ the iteration number as an argument. This is useful when you want to check the p
 calibration iteration over the calibration and validation periods.
 
 ```bash
-validation_iteration [CALIB_CONFIG] [worker ID] [iteration number]
+validation_iteration <path_to_calib_config> <worker_ID> <iteration_number>
 ```
-Where [worker ID] refers to the middle part of the folder name for a specific calibration run. For example, if the 
+Where `<worker_ID>` refers to the middle part of the folder name for a specific calibration run. For example, if the 
 calibration run folder is named `ngen_ulu2wno6_worker`, then the worker ID is `ulu2wno6`. Note here the config file for 
 the calibration run (rather than the validation run) is used as the first argument.
 
@@ -452,3 +456,117 @@ Example:
 # run validation for iteration 5 of the calibration run with worker ID "ulu2wno6"
 validation_iteration kge_dds/noah_cfes/01123000/Input/01123000_config_calib.yaml ulu2wno6 5
 ```
+---
+
+## Docker Container
+
+### Requirements
+
+To build and run `nwm-cal-mgr` with Docker, you will need:
+
+* Docker Engine
+
+### Build
+
+From the repository root, build the container image:
+
+```bash
+docker build --tag nwm-cal-mgr .
+```
+
+### Container help
+
+To display the container help message:
+
+```bash
+docker run nwm-cal-mgr --help
+# or
+docker run nwm-cal-mgr -h
+```
+
+This will print the available commands supported by the container CLI:
+
+```text
+Usage: run-nwm-cal-mgr.sh <command> <input_file> [worker_name iteration_number] [stdout_file]
+
+COMMAND:
+  mswm                 Run mswm to create inputs for calibration/validation.
+  calibration          Run calibration.
+  validation           Run validation.
+  validation_iteration Run validation for a specific iteration; requires worker_name and iteration_number.
+
+INPUT_FILE: Path to the configuration file required by the script.
+WORKER_NAME: Required for validation_iteration.
+ITERATION_NUMBER: Required for validation_iteration.
+STDOUT_FILE: Optional path where script console output will be saved.
+
+Examples:
+  run-nwm-cal-mgr.sh mswm /path/to/mswm_config.yaml
+  run-nwm-cal-mgr.sh calibration /path/to/calib_config.yaml
+  run-nwm-cal-mgr.sh validation /path/to/valid_config.yaml /path/to/output.log
+  run-nwm-cal-mgr.sh validation_iteration /path/to/calib_config.yaml worker1 5 /path/to/output.log
+```
+
+### Run calibration and validation in the container
+
+When running an evaluation or verification workflow, you will typically need to mount local data and configuration files into the container.
+
+- run MSWM to create inputs for calibration/validation:
+
+  ```bash
+  docker run \
+    -v $(pwd):$(pwd) \
+    -w $(pwd) \
+    nwm-cal-mgr \
+    mswm <path_to_mswm_config>
+  ```
+
+- run calibration:
+
+  ```bash
+  docker run \
+    -v $(pwd):$(pwd) \
+    -w $(pwd) \
+    nwm-cal-mgr \
+    calibration <path_to_calib_config>
+  ```
+- run validation control and best:
+
+    ```bash
+    docker run \
+        -v $(pwd):$(pwd) \
+        -w $(pwd) \
+        nwm-cal-mgr \
+        validation <path_to_valid_control_config>
+    ```
+    
+    ```bash
+    docker run \
+        -v $(pwd):$(pwd) \
+        -w $(pwd) \
+        nwm-cal-mgr \
+        validation <path_to_valid_best_config>
+    ```
+
+- run validation for a specific iteration:
+
+  ```bash
+  docker run \
+    -v $(pwd):$(pwd) \
+    -w $(pwd) \
+    nwm-cal-mgr \
+    validation_iteration <path_to_calib_config> <worker_ID> <iteration_number>
+  ```  
+
+### Notes
+
+* File paths provided to the container must correspond to paths visible from within the container.
+* Any paths referenced in the configuration file must also be valid within the container environment.
+* If your workflow requires access to external datasets, ensure the corresponding directories are mounted into the container using Docker volume mounts (`-v`).
+
+
+---
+
+## License
+
+License information to be added.
