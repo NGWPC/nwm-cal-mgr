@@ -20,37 +20,49 @@ EVAL_MGR_REF="${EVAL_MGR_REF:-development}"
 
 NGEN_IMAGE="${NGEN_IMAGE:-ghcr.io/${GHCR_ORG}/ngen:latest}"
 
-# Usage
+# Optional common ref for EWTS / MSW / EVAL
+REF=""
+
 usage() {
   cat <<EOF
 Usage:
   $0 [options]
 
 Options:
-  --tag TAG                 Docker image tag (default: latest)
+  --tag TAG                Docker image tag (default: latest)
 
   --gh-org ORG             GitHub org (default: NGWPC)
   --ghcr-org ORG           GHCR org (default: ngwpc)
   --image-namespace NS     OCI label namespace (default: ngwpc)
 
+  --ref REF                Common ref to use for EWTS, MSW, and EVAL
+                           unless overridden by a repo-specific --*-ref
+
   --ewts-org ORG           EWTS repo org (default: GH_ORG)
-  --ewts-ref REF           EWTS branch/tag (default: development)
+  --ewts-ref REF           EWTS branch/tag/sha (default: development, or --ref if provided)
 
-  --msw-org ORG           MSW repo org (default: GH_ORG)
-  --msw-ref REF           MSW branch/tag (default: development)
+  --msw-org ORG            MSW repo org (default: GH_ORG)
+  --msw-ref REF            MSW branch/tag/sha (default: development, or --ref if provided)
 
-  --eval-org ORG          Eval repo org (default: GH_ORG)
-  --eval-ref REF          Eval branch/tag (default: development)
+  --eval-org ORG           Eval repo org (default: GH_ORG)
+  --eval-ref REF           Eval branch/tag/sha (default: development, or --ref if provided)
 
   --ngen-image IMAGE       Base ngen image (default: ghcr.io/<ghcr-org>/ngen:latest)
 
 Examples:
   $0
   $0 --tag v1.0.0
-  $0 --eval-ref feature-x --msw-ref bugfix-12
+  $0 --ref development
+  $0 --ref v1.2.0
+  $0 --ref feature-x --eval-ref hotfix-branch
   $0 --gh-org NGWPC --ngen-image ghcr.io/ngwpc/ngen:development
 EOF
 }
+
+# Track whether repo-specific refs were explicitly set
+EWTS_REF_SET=0
+MSW_MGR_REF_SET=0
+EVAL_MGR_REF_SET=0
 
 # Parse args
 while [[ $# -gt 0 ]]; do
@@ -61,14 +73,16 @@ while [[ $# -gt 0 ]]; do
     --ghcr-org) GHCR_ORG="$2"; shift 2;;
     --image-namespace) IMAGE_NAMESPACE="$2"; shift 2;;
 
+    --ref) REF="$2"; shift 2;;
+
     --ewts-org) EWTS_ORG="$2"; shift 2;;
-    --ewts-ref) EWTS_REF="$2"; shift 2;;
+    --ewts-ref) EWTS_REF="$2"; EWTS_REF_SET=1; shift 2;;
 
     --msw-org) MSW_MGR_ORG="$2"; shift 2;;
-    --msw-ref) MSW_MGR_REF="$2"; shift 2;;
+    --msw-ref) MSW_MGR_REF="$2"; MSW_MGR_REF_SET=1; shift 2;;
 
     --eval-org) EVAL_MGR_ORG="$2"; shift 2;;
-    --eval-ref) EVAL_MGR_REF="$2"; shift 2;;
+    --eval-ref) EVAL_MGR_REF="$2"; EVAL_MGR_REF_SET=1; shift 2;;
 
     --ngen-image) NGEN_IMAGE="$2"; shift 2;;
 
@@ -81,6 +95,13 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# Apply common REF only to repos that did not get an explicit repo-specific ref
+if [[ -n "$REF" ]]; then
+  [[ $EWTS_REF_SET -eq 0 ]] && EWTS_REF="$REF"
+  [[ $MSW_MGR_REF_SET -eq 0 ]] && MSW_MGR_REF="$REF"
+  [[ $EVAL_MGR_REF_SET -eq 0 ]] && EVAL_MGR_REF="$REF"
+fi
 
 # Git metadata
 echo "[build] collecting git metadata..."
@@ -95,6 +116,7 @@ IMAGE_TAGS=$(git tag --points-at HEAD | tr '\n' ' ')
 
 # Build
 echo "[build] building image ${IMAGE_NAME}:${TAG}"
+echo "[build] refs: EWTS=${EWTS_REF}, MSW=${MSW_MGR_REF}, EVAL=${EVAL_MGR_REF}"
 
 docker build \
   -t "${IMAGE_NAME}:${TAG}" \
