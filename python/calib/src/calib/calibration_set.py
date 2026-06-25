@@ -290,10 +290,9 @@ class CalibrationSet(Evaluatable):
             )
         if calib_path3 is None:
             calib_path3 = calib_path2
-        for csvfl in glob.glob(os.path.join(calib_path2, "nex*.csv")):
-            shutil.move(csvfl, calib_path3 + "/" + os.path.basename(csvfl))
-        for csvfl in glob.glob(os.path.join(calib_path2, "cat*.csv")):
-            shutil.move(csvfl, calib_path3 + "/" + os.path.basename(csvfl))
+        for pat in ["nex*.csv", "cat*.csv", "cat*.nc"]:
+            for f in glob.glob(os.path.join(calib_path2, pat)):
+                shutil.move(f, calib_path3 + "/" + os.path.basename(f))
         if len(glob.glob(os.path.join(calib_path2, "*.out"))) > 0:
             for outfl in glob.glob(os.path.join(calib_path2, "*.out")):
                 shutil.move(outfl, calib_path3 + "/" + os.path.basename(outfl))
@@ -327,24 +326,16 @@ class CalibrationSet(Evaluatable):
                 self._output_file,
                 os.path.join(valid_path2, "{}_".format(self._output_file) + run_name),
             )
-        for csvfl in glob.glob(os.path.join(valid_path2, "nex*.csv")):
-            shutil.move(
-                csvfl,
-                valid_path3
-                + "/"
-                + os.path.basename(csvfl).split(".")[0]
-                + "_{}".format(run_name)
-                + ".csv",
-            )
-        for csvfl in glob.glob(os.path.join(valid_path2, "cat*.csv")):
-            shutil.move(
-                csvfl,
-                valid_path3
-                + "/"
-                + os.path.basename(csvfl).split(".")[0]
-                + "_{}".format(run_name)
-                + ".csv",
-            )
+        for pat, ext in [("nex*.csv", ".csv"), ("cat*.csv", ".csv"), ("cat*.nc", ".nc")]:
+            for f in glob.glob(os.path.join(valid_path2, pat)):
+                shutil.move(
+                    f,
+                    valid_path3
+                    + "/"
+                    + os.path.basename(f).split(".")[0]
+                    + "_{}".format(run_name)
+                    + ext,
+                )
         if len(glob.glob(os.path.join(valid_path2, "*.out"))) > 0:
             for outfl in glob.glob(os.path.join(valid_path2, "*.out")):
                 shutil.move(
