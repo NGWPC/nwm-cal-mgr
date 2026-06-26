@@ -235,17 +235,17 @@ class NoCalibModel(ModelExec):
                 }
             )
 
-            # Get date
-            tnx_file = list(Path(_output_file).parent.glob("nex*.csv"))[0]
-            tnx_df = pd.read_csv(
-                tnx_file, index_col=0, parse_dates=[1], names=["ts", "time", "Q"]
-            ).set_index("time")
-            dt_range = pd.date_range(
-                tnx_df.index[1], tnx_df.index[-1], len(_output.index)
-            ).round("min")
+            # Get date range
+            times = netCDF4.num2date(
+                ncvar["time"][:],
+                units=ncvar["time"].units,
+            )
+
+            dt_range = pd.DatetimeIndex([pd.Timestamp(t.isoformat()) for t in times])
             _output.index = dt_range
             _output.index.name = "Time"
             _output = _output.resample("1h").first()
+
             logger.info("Simulation results ready (DataFrame populated)")
             hydrograph = _output
 
