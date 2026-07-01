@@ -24,6 +24,7 @@ import pandas as pd
 import yaml
 from pydantic import (
     BaseModel,
+    ConfigDict,
     DirectoryPath,
     Field,
     conint,
@@ -107,13 +108,11 @@ class EvaluationOptions(BaseModel):
     _last_iter_file: Path
     _cost_iter_file: Path
 
-    class Config:
-        """Override configuration for pydantic BaseModel."""
-
-        # underscore_attrs_are_private = True
-        use_enum_values = (
-            False  # if true, then objective turns into a str, and things blow up
-        )
+    model_config = ConfigDict(
+        # underscore_attrs_are_private=True,
+        use_enum_values=False,  # if true, then objective turns into a str, and things blow up
+    )
+    """Override configuration for pydantic BaseModel."""
 
     def __init__(self, **kwargs):
         """Assign output files, evaluation time range, and initialize best obejctive function and best iteration."""
