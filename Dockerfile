@@ -3,7 +3,8 @@
 ############################################################################
 # Change/Verify these values when adopting this Dockerfile into another org:
 #   GH_ORG, GHCR_ORG, IMAGE_NAMESPACE,
-#   EWTS_ORG, EWTS_REF, MSW_MGR_ORG, MSW_MGR_REF
+#   EWTS_ORG, EWTS_REF, MSW_MGR_ORG, MSW_MGR_REF,
+#   CAL_MGR_INSTALL_EWTS, EWTS_CACHE_BUST
 ############################################################################
 
 # Ownership / branding overrides
@@ -14,6 +15,9 @@ ARG IMAGE_NAMESPACE=ngwpc
 # External repository sources (org and ref/branch overrides)
 ARG EWTS_ORG=${GH_ORG}
 ARG EWTS_REF=development
+ARG CAL_MGR_INSTALL_EWTS=OFF
+ARG EWTS_CACHE_BUST=0
+
 ARG MSW_MGR_ORG=${GH_ORG}
 ARG MSW_MGR_REF=development
 ARG EVAL_MGR_ORG=${GH_ORG}
@@ -47,6 +51,8 @@ ARG GHCR_ORG
 ARG IMAGE_NAMESPACE
 ARG EWTS_ORG
 ARG EWTS_REF
+ARG CAL_MGR_INSTALL_EWTS
+ARG EWTS_CACHE_BUST
 ARG MSW_MGR_ORG
 ARG MSW_MGR_REF
 ARG EVAL_MGR_ORG
@@ -55,9 +61,9 @@ ARG NGEN_IMAGE
 
 # OCI Metadata Arguments
 #
-# BASE_IMAGE_* refers to the ngen image this image is built FROM.
-ARG BASE_IMAGE_DIGEST="unknown"
-ARG BASE_IMAGE_REVISION="unknown"
+# NGEN_IMAGE_* refers to the ngen image this image is built FROM.
+ARG NGEN_IMAGE_DIGEST="unknown"
+ARG NGEN_IMAGE_REVISION="unknown"
 ARG IMAGE_SOURCE="unknown"
 ARG IMAGE_VENDOR="unknown"
 ARG IMAGE_VERSION="unknown"
@@ -87,7 +93,6 @@ LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
     io.${IMAGE_NAMESPACE}.eval.mgr.revision="${EVAL_MGR_REVISION}"
 
 COPY . /ngen-app/nwm-cal-mgr/
-
 COPY ./docker/run-nwm-cal-mgr.sh /ngen-app/bin/
 
 WORKDIR /ngen-app/
@@ -95,39 +100,66 @@ WORKDIR /ngen-app/
 RUN set -eux; \
     chmod +x /ngen-app/bin/run-nwm-cal-mgr.sh
 
-# Re-expose the Python virtual environment inherited from ngen.
-# The dependency image creates the venv and the unversioned `python` symlink.
-# ngen-bmi-forcing and ngen install their Python packages into that venv.
-# cal-mgr should reuse it rather than recreating it.
-ENV VIRTUAL_ENV="/ngen-app/ngen-python" \
-    PATH="${VIRTUAL_ENV}/bin:${PATH}" \
-    PYTHONPATH="${VIRTUAL_ENV}/lib/python3.11/site-packages:/usr/local/lib64/python3.11/site-packages:${PYTHONPATH}"
+# Optional development-only EWTS Python override.
+#
+# Production images should inherit EWTS from ngen. Set CAL_MGR_INSTALL_EWTS=ON
+# only when testing a new EWTS Python package without rebuilding forcing/ngen.
+#
+# Example:
+# docker build \
+#   --build-arg CAL_MGR_INSTALL_EWTS=ON \
+#   --build-arg EWTS_REF=my-ewts-branch \
+#   --build-arg EWTS_CACHE_BUST=$(date +%s) \
+#   -t nwm-cal-mgr .
+RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-bookworm \
+    set -eux; \
+    CAL_MGR_INSTALL_EWTS="${CAL_MGR_INSTALL_EWTS:-OFF}"; \
+    echo "CAL_MGR_INSTALL_EWTS=${CAL_MGR_INSTALL_EWTS}; EWTS ref: ${EWTS_REF}; cache bust: ${EWTS_CACHE_BUST}"; \
+    CAL_MGR_INSTALL_EWTS_NORMALIZED="$(echo "${CAL_MGR_INSTALL_EWTS}" | tr '[:lower:]' '[:upper:]')"; \
+    if [[ "${CAL_MGR_INSTALL_EWTS_NORMALIZED}" =~ ^(ON|YES|TRUE|1)$ ]]; then \
+        echo "Installing development EWTS Python override"; \
+        rm -rf /tmp/nwm-ewts; \
+        (git clone --depth 1 -b "${EWTS_REF}" \
+            "https://github.com/${EWTS_ORG}/nwm-ewts.git" /tmp/nwm-ewts \
+         || (git clone "https://github.com/${EWTS_ORG}/nwm-ewts.git" /tmp/nwm-ewts && \
+             cd /tmp/nwm-ewts && git checkout "${EWTS_REF}")); \
+        python -m pip install --force-reinstall --no-deps /tmp/nwm-ewts/runtime/python/ewts; \
+        rm -rf /tmp/nwm-ewts; \
+    else \
+        echo "Using EWTS inherited from ngen"; \
+    fi
 
-# Install numpy, netcdf4, hydrotools events, and nwis-client
-RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-rocky \
-    python -m pip install --upgrade pip && \
-    python -m pip install "numpy==1.26.4" "netcdf4<=1.6.3" && \
+# Install calibration-specific Python dependencies.
+RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-bookworm \
+    set -eux; \
     python -m pip install "hydrotools.events==1.1.5" "hydrotools.nwis-client==3.3.1"
 
 WORKDIR /ngen-app/
-# MSW_MGR_CACHE_BUST = nwm-msw-mgr commit SHA from CI; a new commit busts this layer so mswm is reinstalled from the requested ref, not a stale cache.
+
+# MSW_MGR_CACHE_BUST is set by CI to the nwm-msw-mgr commit SHA. A new commit
+# invalidates this layer so mswm is installed from the requested ref rather
+# than being reused from a stale Docker layer.
 ARG MSW_MGR_CACHE_BUST=1
-RUN set -eux; \
-    echo "MSW MGR cache bust: ${MSW_MGR_CACHE_BUST}" && \
-    # install nwm-cal-mgr packages (common, calib, config)
-    python -m pip install /ngen-app/nwm-cal-mgr && \
-    # Install mswm package
-    python -m pip install mswm@git+https://github.com/${MSW_MGR_ORG}/nwm-msw-mgr.git@${MSW_MGR_REF} ; \
-    # Install nwm_metrics package
-    python -m pip install nwm_metrics@git+https://github.com/${EVAL_MGR_ORG}/nwm-eval-mgr.git@${EVAL_MGR_REF}#subdirectory=nwm_metrics ; \
-    python -m pip cache purge && \
-    rm --force /root/.gitconfig
+
+RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-bookworm \
+    set -eux; \
+    echo "MSW MGR cache bust: ${MSW_MGR_CACHE_BUST}"; \
+    cd /ngen-app/nwm-cal-mgr/python/common; \
+    python -m pip install .; \
+    cd /ngen-app/nwm-cal-mgr/python/calib; \
+    python -m pip install .; \
+    python -m pip install \
+        "mswm@git+https://github.com/${MSW_MGR_ORG}/nwm-msw-mgr.git@${MSW_MGR_REF}"; \
+    cd /ngen-app/nwm-cal-mgr/python/config; \
+    python -m pip install .
 
 WORKDIR /ngen-app/nwm-cal-mgr
 
 ARG CI_COMMIT_REF_NAME
 
 RUN set -eux; \
+    # Ensure local tag metadata includes all remote tags before creating git_info.
+    git fetch --force --tags origin '+refs/tags/*:refs/tags/*' && \
     # Get the remote URL from Git configuration
     repo_url=$(git config --get remote.origin.url); \
     # Extract the repo name (everything after the last slash) and remove any trailing .git
@@ -149,5 +181,4 @@ RUN set -eux; \
       > $GIT_INFO_PATH
 
 WORKDIR /
-
-ENTRYPOINT [ "/ngen-app/bin/run-nwm-cal-mgr.sh" ]
+ENTRYPOINT ["/ngen-app/bin/run-nwm-cal-mgr.sh"]
