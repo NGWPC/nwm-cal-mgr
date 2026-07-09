@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence, Dict, Union
+from typing import Any, Mapping, Optional, Sequence, Dict, Union, List
 
 from pydantic import BaseModel, Field, field_serializer
 
@@ -39,6 +39,7 @@ class NgenRealization(BaseModel):
     formulation_groups: Optional[Dict[str, Sequence[Formulation]]] = Field(default_factory=dict)
     forcing_groups: Dict[str, Forcing] = Field(default_factory=dict)
     catchments: Optional[Mapping[str, Union[CatchmentRealization, CatchmentGroup]]] = Field(default_factory=dict)
+    output_format: Optional[List[str]] = None
 
     class Config:
         validate_by_name = True

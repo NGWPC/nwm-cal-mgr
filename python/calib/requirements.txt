@@ -1,5 +1,6 @@
 geopandas
 hypy@git+https://github.com/noaa-owp/hypy.git@a5cf7db4d6938fb25a82f3225dd4bd407518fdb7#egg=hypy&subdirectory=python
+aiohttp<3.14
 matplotlib
 netCDF4==1.6.3
 numpy==1.26.4
