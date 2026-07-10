@@ -433,11 +433,12 @@ class NgenBase(ModelExec):
                     for k, v in obj.__dict__.items():
                         if exclude_none and v is None:
                             continue
-                        # Skip empty dicts and lists
-                        if isinstance(v, dict) and len(v) == 0:
-                            continue
-                        if isinstance(v, list) and len(v) == 0:
-                            continue
+                        # Skip empty dicts and lists, except output_vars
+                        if k != "output_vars":
+                            if isinstance(v, dict) and len(v) == 0:
+                                continue
+                            if isinstance(v, list) and len(v) == 0:
+                                continue
                         # Use alias if requested
                         field = obj.model_fields.get(k)
                         key = field.alias if by_alias and field and field.alias else k
