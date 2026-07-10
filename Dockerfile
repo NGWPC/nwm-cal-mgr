@@ -16,6 +16,8 @@ ARG EWTS_ORG=${GH_ORG}
 ARG EWTS_REF=development
 ARG MSW_MGR_ORG=${GH_ORG}
 ARG MSW_MGR_REF=development
+ARG EVAL_MGR_ORG=${GH_ORG}
+ARG EVAL_MGR_REF=development
 
 ############################################################################
 # Image selection
@@ -47,6 +49,8 @@ ARG EWTS_ORG
 ARG EWTS_REF
 ARG MSW_MGR_ORG
 ARG MSW_MGR_REF
+ARG EVAL_MGR_ORG
+ARG EVAL_MGR_REF
 ARG NGEN_IMAGE
 
 # OCI Metadata Arguments
@@ -60,6 +64,7 @@ ARG IMAGE_VERSION="unknown"
 ARG IMAGE_REVISION="unknown"
 ARG EWTS_REVISION="unknown"
 ARG MSW_MGR_REVISION="unknown"
+ARG EVAL_MGR_REVISION="unknown"
 
 # Image Labels: OCI-spec annotations followed by custom source-repo metadata.
 LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
@@ -76,7 +81,10 @@ LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
     io.${IMAGE_NAMESPACE}.ewts.revision="${EWTS_REVISION}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.org="${MSW_MGR_ORG}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.ref="${MSW_MGR_REF}" \
-    io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}"
+    io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}" \
+    io.${IMAGE_NAMESPACE}.eval.mgr.org="${EVAL_MGR_ORG}" \
+    io.${IMAGE_NAMESPACE}.eval.mgr.ref="${EVAL_MGR_REF}" \
+    io.${IMAGE_NAMESPACE}.eval.mgr.revision="${EVAL_MGR_REVISION}"
 
 COPY . /ngen-app/nwm-cal-mgr/
 
