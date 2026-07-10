@@ -4,34 +4,34 @@ This module contains functions to perform parameter optimization using different
 @author: Nels Frazer, Xia Feng
 """
 
+import copy
 import glob
-import ewts
 import numbers
 import os
 import re
 import subprocess
-import copy
 from datetime import datetime
 from functools import partial
-from pathlib import Path
 from math import log
 from multiprocessing import pool
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union, List
+from pathlib import Path
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
+import ewts
 import numpy as np  # type: ignore
 import pandas as pd  # type: ignore
+from common import get_calmgr_logger
 from mswm.edit_config import create_valid_realization_file
+from nwm_metrics.metric_functions import calculate_metrics, treat_values
 
 from .gwo_global_best import GlobalBestGWO
-from .metric_functions import calculate_all_metrics, treat_values
 from .plot_output import plot_calib_output, plot_cost_func
 from .utils import complete_msg, pushd, report_to_ngencerf
 
 
-from common import get_calmgr_logger
-
 def _logger():
     return get_calmgr_logger()
+
 
 if TYPE_CHECKING:
     from calib import Adjustable, Evaluatable
@@ -52,7 +52,7 @@ def _get_evaluatable_objs(calibration_object):
     Get a list of evaluatable objects from either a single Adjustable (NgenUniform)
     of a CalibrationSet with nested adjustables (NgenGrouped)
     """
-    if hasattr(calibration_object, 'adjustables') and calibration_object.adjustables:
+    if hasattr(calibration_object, "adjustables") and calibration_object.adjustables:
         # CalibrationSet with nested adjustables
         return calibration_object.adjustables
     else:
@@ -108,8 +108,8 @@ def _calc_metrics(
     simulated_hydrograph: pd.Series,
     observed_hydrograph: pd.Series,
     eval_range: Tuple[datetime, datetime] = None,
-    threshold: Optional[float] = None,
-    peak_flow_threshold: Optional[float] = 90.0,
+    threshold_categorical: Optional[dict] = {"value": 0.9, "type": "quantile"},
+    threshold_event: Optional[dict] = {"value": 0.9, "type": "quantile"},
 ) -> Dict[str, float]:
     """Calculate statistical metrics.
 
@@ -118,8 +118,8 @@ def _calc_metrics(
     simulated_hydrograph : Time series of simulated streamflow
     observed_hydrograph : Time series of observed streamflow
     eval_range : Evaluation time period for calibration run
-    threshold : Streamflow threshold (m3/s)for calculating categorical scores
-    peak_flow_threshold : Peak flow threshold (in percentile) for calculating event-based metrics
+    threshold_categorical : Streamflow threshold for calculating categorical scores
+    threshold_event : Peak flow threshold for calculating event-based metrics
 
     Returns
     ----------
@@ -132,7 +132,7 @@ def _calc_metrics(
     if df.empty:
         _logger().warning("Cannot compute objective function, do time indicies align?")
     if eval_range:
-        df = df.loc[eval_range[0]:eval_range[1]]
+        df = df.loc[eval_range[0] : eval_range[1]]
 
     df.reset_index(inplace=True)
 
@@ -144,8 +144,11 @@ def _calc_metrics(
     obsflow = df["obs_flow"]
     simflow = df["sim_flow"]
 
-    return calculate_all_metrics(
-        obsflow, simflow, threshold, peak_flow_threshold / 100.0
+    return calculate_metrics(
+        obsflow,
+        simflow,
+        threshold_categorical=threshold_categorical,
+        threshold_event=threshold_event,
     )
 
 
@@ -186,8 +189,8 @@ def _evaluate(
         primary_obj.output,
         primary_obj.observed,
         primary_obj.evaluation_range,
-        primary_obj.threshold,
-        primary_obj.peak_flow_threshold,
+        primary_obj.threshold_categorical,
+        primary_obj.threshold_event,
     )
 
     #  Handle single-run execution output writing for NoCalibModel
@@ -207,15 +210,11 @@ def _evaluate(
     obj_func = primary_obj.eval_params.objective
     if obj_func in obj_group1:
         primary_obj.objfunc_str = (
-            "1-" + obj_func.upper()
-            if primary_obj.target == "min"
-            else obj_func.upper()
+            "1-" + obj_func.upper() if primary_obj.target == "min" else obj_func.upper()
         )
     elif obj_func in obj_group2:
         primary_obj.objfunc_str = (
-            obj_func.upper()
-            if primary_obj.target == "min"
-            else "-" + obj_func.upper()
+            obj_func.upper() if primary_obj.target == "min" else "-" + obj_func.upper()
         )
     elif obj_func in obj_group3:
         primary_obj.objfunc_str = (
@@ -247,7 +246,6 @@ def _evaluate(
                 f"Optimization target can only be min or max. {primary_obj.target} is not supported"
             )
     else:
-
         if obj_func in obj_group1:
             score = (
                 1 - metric_objective_function
@@ -267,17 +265,13 @@ def _evaluate(
                 else 1 - abs(metric_objective_function)
             )
         else:
-            raise Exception(
-                obj_func + " is not supported for objective function"
-            )
+            raise Exception(obj_func + " is not supported for objective function")
 
     # Update based on latest objective function and write log files
     primary_obj.update(i, score, log=True, algorithm=agent.algorithm)
     if info:
         _logger().info(
-            "Current score {}\nBest score {}".format(
-                score, primary_obj.best_score
-            )
+            "Current score {}\nBest score {}".format(score, primary_obj.best_score)
         )
         _logger().info(
             "Best parameters at iteration {}".format(primary_obj.best_params)
@@ -306,9 +300,7 @@ def _evaluate(
 
     # make sure output csv for best iteration is saved at first iteration
     if i == 0:
-        primary_obj.save_best_output(
-            str(primary_obj.best_output_file), True
-        )
+        primary_obj.save_best_output(str(primary_obj.best_output_file), True)
     else:
         primary_obj.save_best_output(
             str(primary_obj.best_output_file), primary_obj.best_save_flag
@@ -361,7 +353,9 @@ def dds_update(
         neighborhood = calibration_object.variables.sample(n=1)
 
     # Generate new parameter set by perturbng the best parameters
-    calibration_object.df[str(iteration)] = calibration_object.df[agent.best_params].copy()
+    calibration_object.df[str(iteration)] = calibration_object.df[
+        agent.best_params
+    ].copy()
     for n in neighborhood:
         new = calibration_object.df.loc[
             n, agent.best_params
@@ -556,9 +550,7 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
             _logger().info(f"Running {agent.cmd} to produce initial simulation")
             _execute(agent, start_iteration)
         with pushd(agent.job.workdir):
-            _evaluate(
-                0, calibration_sets, agent, first_iter_for_agent=True, info=True
-            )
+            _evaluate(0, calibration_sets, agent, first_iter_for_agent=True, info=True)
         for calibration_set in calibration_sets:
             calibration_set.check_point(agent.job.workdir)
         start_iteration += 1
@@ -573,7 +565,7 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
             agent.update_config(
                 i,
                 calibration_object.adf[[str(i), "param", "model"]],
-                calibration_object.id
+                calibration_object.id,
             )
 
         # Write realization file with all updated parameters
@@ -597,18 +589,10 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
 
     log = _logger()
     create_valid_realization_file(
-        agent,
-        primary_set.eval_params,
-        combined_adf,
-        "valid_control",
-        log
+        agent, primary_set.eval_params, combined_adf, "valid_control", log
     )
     create_valid_realization_file(
-        agent,
-        primary_set.eval_params,
-        combined_adf,
-        "valid_best",
-        log
+        agent, primary_set.eval_params, combined_adf, "valid_best", log
     )
     primary_set.write_run_complete_file(agent.run_name, agent.workdir)
     complete_msg(
@@ -619,11 +603,7 @@ def dds_set(start_iteration: int, iterations: int, agent: "Agent") -> None:
     )
 
 
-def compute(
-    iteration: int,
-    agent_1st: str,
-    input: Tuple
-) -> float:
+def compute(iteration: int, agent_1st: str, input: Tuple) -> float:
     """Execute run and evaluate objection function.
 
     parameters
@@ -651,16 +631,14 @@ def compute(
     idx = 0
     for cal_set in calibration_sets:
         group_dims = len(cal_set.adjustables[0].df)
-        param_values = params[idx:idx + group_dims]
+        param_values = params[idx : idx + group_dims]
         for cal_obj in cal_set.adjustables:
             cal_obj.df[str(iteration)] = param_values
 
         # Apply updated parameters to realization
         for cal_obj in cal_set.adjustables:
             agent.update_config(
-                iteration,
-                cal_obj.df[[str(iteration), "param", "model"]],
-                cal_obj.id
+                iteration, cal_obj.df[[str(iteration), "param", "model"]], cal_obj.id
             )
 
         # Write realization file with all updated parameters
@@ -699,7 +677,7 @@ def cost_func(
     global __iteration_counter
     # TODO implement multi-processing here???
     func = partial(compute, __iteration_counter, agent_1st)
-    inputs = list(zip(params, agents[:len(params)]))
+    inputs = list(zip(params, agents[: len(params)]))
     costs = np.fromiter(pool.imap(func, inputs), dtype=float)
     __iteration_counter = __iteration_counter + 1
 
@@ -744,9 +722,7 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
     # Produce the baseline simulation output for first agent
     if start_iteration == 0:
         if calibration_sets[0].output is None:
-            _logger().info(
-                "Running {} to produce initial simulation".format(agent.cmd)
-            )
+            _logger().info("Running {} to produce initial simulation".format(agent.cmd))
             for calibration_set in calibration_sets:
                 # Only update first catchment in group
                 calibration_object = calibration_set.adjustables[0]
@@ -760,9 +736,7 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
             agent.model.strategy.write_realization_file(path=Path(agent.job.workdir))
             _execute(agent, start_iteration)
         with pushd(agent.job.workdir):
-            _evaluate(
-                0, calibration_sets, agent, first_iter_for_agent=True, info=True
-            )
+            _evaluate(0, calibration_sets, agent, first_iter_for_agent=True, info=True)
         for calibration_set in calibration_sets:
             calibration_set.check_point(agent.job.workdir)
 
@@ -798,10 +772,7 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
         options=options,
         bounds=bounds,
     )
-    cf = partial(cost_func,
-                 agents=agents,
-                 agent_1st=agent_1st,
-                 pool=_pool)
+    cf = partial(cost_func, agents=agents, agent_1st=agent_1st, pool=_pool)
 
     # Perform optimization
     # For pyswarm, DO NOT use the embedded multi-processing -- it is impossible to track the mapping of an agent to the params
@@ -812,8 +783,10 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
     for calibration_set in calibration_sets:
         calibration_object = calibration_set.adjustables[0]
         group_dims = len(calibration_object.df)
-        calibration_object.df.loc[:, "global_best"] = pos[idx:idx + group_dims]
-        _logger().info(calibration_object.df[["param", "global_best"]].set_index("param"))
+        calibration_object.df.loc[:, "global_best"] = pos[idx : idx + group_dims]
+        _logger().info(
+            calibration_object.df[["param", "global_best"]].set_index("param")
+        )
         calibration_object.check_point(agent.workdir)
         idx += group_dims
     _logger().info("Best params with cost {}:".format(cost))
@@ -825,9 +798,7 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
     combined_df = pd.concat(group_dfs, ignore_index=True)
 
     # Save and plot history
-    cost_hist_file = calibration_sets[0].write_hist_file(
-        optimizer, agent, combined_df
-    )
+    cost_hist_file = calibration_sets[0].write_hist_file(optimizer, agent, combined_df)
 
     plot_cost_func(calibration_sets[0], agent, cost_hist_file, agent.algorithm)
 
@@ -851,18 +822,10 @@ def pso_search(start_iteration: int, iterations: int, agent: "Agent") -> None:
 
     log = _logger()
     create_valid_realization_file(
-        agent,
-        primary_set.eval_params,
-        combined_adf,
-        "valid_control",
-        log
+        agent, primary_set.eval_params, combined_adf, "valid_control", log
     )
     create_valid_realization_file(
-        agent,
-        primary_set.eval_params,
-        combined_adf,
-        "valid_best",
-        log
+        agent, primary_set.eval_params, combined_adf, "valid_best", log
     )
 
     # Indicate completion
@@ -920,9 +883,7 @@ def gwo_search(start_iteration: int, iterations: int, agent) -> None:
     # Produce the baseline simulation output for first agent
     if start_iteration == 0:
         if calibration_sets[0].output is None:
-            _logger().info(
-                "Running {} to produce initial simulation".format(agent.cmd)
-            )
+            _logger().info("Running {} to produce initial simulation".format(agent.cmd))
             # agent.update_config(start_iteration, calibration_object.df[[str(start_iteration), 'param', 'model']], calibration_object.id)
             for calibration_set in calibration_sets:
                 calibration_object = calibration_set.adjustables[0]
@@ -938,9 +899,7 @@ def gwo_search(start_iteration: int, iterations: int, agent) -> None:
 
         with pushd(agent.job.workdir):
             _logger().info("Evaulating iteration 0")
-            _evaluate(
-                0, calibration_sets, agent, first_iter_for_agent=True, info=True
-            )
+            _evaluate(0, calibration_sets, agent, first_iter_for_agent=True, info=True)
             _logger().info("Finished evaluating iteration 0")
 
         for calibration_set in calibration_sets:
@@ -984,7 +943,7 @@ def gwo_search(start_iteration: int, iterations: int, agent) -> None:
     for calibration_set in calibration_sets:
         calibration_object = calibration_set.adjustables[0]
         group_dims = len(calibration_object.df)
-        calibration_object.df.loc[:, "global_best"] = pos[idx:idx + group_dims]
+        calibration_object.df.loc[:, "global_best"] = pos[idx : idx + group_dims]
         calibration_object.check_point(agent.workdir)
         idx += group_dims
     _logger().info("Best params with cost {}:".format(cost))
@@ -995,9 +954,7 @@ def gwo_search(start_iteration: int, iterations: int, agent) -> None:
         group_dfs.append(calibration_set.adjustables[0].df)
     combined_df = pd.concat(group_dfs, ignore_index=True)
 
-    cost_hist_file = calibration_sets[0].write_hist_file(
-        optimizer, agent, combined_df
-    )
+    cost_hist_file = calibration_sets[0].write_hist_file(optimizer, agent, combined_df)
     plot_cost_func(calibration_sets[0], agent, cost_hist_file, agent.algorithm)
 
     # Create configuration files for validation run
@@ -1019,18 +976,10 @@ def gwo_search(start_iteration: int, iterations: int, agent) -> None:
 
     log = _logger()
     create_valid_realization_file(
-        agent,
-        primary_set.eval_params,
-        combined_adf,
-        "valid_control",
-        log
+        agent, primary_set.eval_params, combined_adf, "valid_control", log
     )
     create_valid_realization_file(
-        agent,
-        primary_set.eval_params,
-        combined_adf,
-        "valid_best",
-        log
+        agent, primary_set.eval_params, combined_adf, "valid_best", log
     )
 
     # Indicate completion

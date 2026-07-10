@@ -43,6 +43,14 @@ on:
         description: 'MSW_MGR_REF'
         required: false
         type: string
+      NWM_METRICS_ORG:
+        description: 'NWM_METRICS_ORG'
+        required: false
+        type: string
+      NWM_METRICS_REF:
+        description: 'NWM_METRICS_REF'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -72,6 +80,7 @@ jobs:
       ngen_image_revision: ${{ steps.vars.outputs.ngen_image_revision }}
       ewts_revision: ${{ steps.vars.outputs.ewts_revision }}
       msw_mgr_revision: ${{ steps.vars.outputs.msw_mgr_revision }}
+      nwm_metrics_revision: ${{ steps.vars.outputs.nwm_metrics_revision }}
     steps:
       - name: Compute image vars
         id: vars
@@ -98,7 +107,7 @@ jobs:
             REAL_REF="${{ github.ref_name }}"
             REAL_SHA="${GITHUB_SHA}"
           fi
-
+          
           # clean ref name and short commit sha
           CLEAN_REF=$(echo "$REAL_REF" | tr '[:upper:]' '[:lower:]' | sed 's/\//-/g')
           SHORT_SHA="${REAL_SHA:0:7}"
@@ -163,6 +172,7 @@ jobs:
           # commit on the requested ref reinstalls that dep instead of a stale cache.
           EWTS_REVISION=$(resolve_sha "https://github.com/${{ inputs.EWTS_ORG || github.repository_owner }}/nwm-ewts.git" "$(ref_or_default "${{ inputs.EWTS_REF }}")")
           MSW_MGR_REVISION=$(resolve_sha "https://github.com/${{ inputs.MSW_MGR_ORG || github.repository_owner }}/nwm-msw-mgr.git" "$(ref_or_default "${{ inputs.MSW_MGR_REF }}")")
+          NWM_METRICS_REVISION=$(resolve_sha "https://github.com/${{ inputs.NWM_METRICS_ORG || github.repository_owner }}/nwm-eval-mgr.git" "$(ref_or_default "${{ inputs.NWM_METRICS_REF }}")")
 
           # save outputs
           cat >> "$GITHUB_OUTPUT" <<EOF
@@ -178,6 +188,7 @@ jobs:
           ngen_image_revision=${NGEN_IMAGE_REVISION}
           ewts_revision=${EWTS_REVISION}
           msw_mgr_revision=${MSW_MGR_REVISION}
+          nwm_metrics_revision=${NWM_METRICS_REVISION}
           EOF
 
   # CodeQL scan
@@ -246,6 +257,9 @@ jobs:
             MSW_MGR_REF=${{ inputs.MSW_MGR_REF || needs.setup.outputs.default_ref }}
             MSW_MGR_REVISION=${{ needs.setup.outputs.msw_mgr_revision }}
             MSW_MGR_CACHE_BUST=${{ needs.setup.outputs.msw_mgr_revision }}
+            NWM_METRICS_ORG=${{ inputs.NWM_METRICS_ORG || github.repository_owner }}
+            NWM_METRICS_REF=${{ inputs.NWM_METRICS_REF || needs.setup.outputs.default_ref }}
+            NWM_METRICS_REVISION=${{ needs.setup.outputs.nwm_metrics_revision }}            
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
             IMAGE_VENDOR=${{ github.repository_owner }}
             IMAGE_VERSION=${{ needs.setup.outputs.clean_ref }}

@@ -16,6 +16,8 @@ ARG EWTS_ORG=${GH_ORG}
 ARG EWTS_REF=development
 ARG MSW_MGR_ORG=${GH_ORG}
 ARG MSW_MGR_REF=development
+ARG EVAL_MGR_ORG=${GH_ORG}
+ARG EVAL_MGR_REF=development
 
 ############################################################################
 # Image selection
@@ -47,6 +49,8 @@ ARG EWTS_ORG
 ARG EWTS_REF
 ARG MSW_MGR_ORG
 ARG MSW_MGR_REF
+ARG EVAL_MGR_ORG
+ARG EVAL_MGR_REF
 ARG NGEN_IMAGE
 
 # OCI Metadata Arguments
@@ -60,6 +64,7 @@ ARG IMAGE_VERSION="unknown"
 ARG IMAGE_REVISION="unknown"
 ARG EWTS_REVISION="unknown"
 ARG MSW_MGR_REVISION="unknown"
+ARG EVAL_MGR_REVISION="unknown"
 
 # Image Labels: OCI-spec annotations followed by custom source-repo metadata.
 LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
@@ -76,7 +81,10 @@ LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
     io.${IMAGE_NAMESPACE}.ewts.revision="${EWTS_REVISION}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.org="${MSW_MGR_ORG}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.ref="${MSW_MGR_REF}" \
-    io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}"
+    io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}" \
+    io.${IMAGE_NAMESPACE}.eval.mgr.org="${EVAL_MGR_ORG}" \
+    io.${IMAGE_NAMESPACE}.eval.mgr.ref="${EVAL_MGR_REF}" \
+    io.${IMAGE_NAMESPACE}.eval.mgr.revision="${EVAL_MGR_REVISION}"
 
 COPY . /ngen-app/nwm-cal-mgr/
 
@@ -106,24 +114,12 @@ WORKDIR /ngen-app/
 ARG MSW_MGR_CACHE_BUST=1
 RUN set -eux; \
     echo "MSW MGR cache bust: ${MSW_MGR_CACHE_BUST}" && \
-    # Install shared common package first
-    cd /ngen-app/nwm-cal-mgr/python/common && \
-    python -m pip install . ; \
-    \
-    # Install dependencies for createInput module
-    cd /ngen-app/nwm-cal-mgr/python/calib && \
-#    touch src/*.py && \
-    python -m pip install . ; \
-    \
+    # install nwm-cal-mgr packages (common, calib, config)
+    python -m pip install /ngen-app/nwm-cal-mgr && \
     # Install mswm package
     python -m pip install mswm@git+https://github.com/${MSW_MGR_ORG}/nwm-msw-mgr.git@${MSW_MGR_REF} ; \
-    \
-    # Install dependencies for runCalibValid module
-    cd /ngen-app/nwm-cal-mgr/python/config && \
-#    touch src/ngen/cal/*.py && \
-    python -m pip install . ; \
-    \
-    # Clean up pip cache and remove .gitconfig
+    # Install nwm_metrics package
+    python -m pip install nwm_metrics@git+https://github.com/${EVAL_MGR_ORG}/nwm-eval-mgr.git@${EVAL_MGR_REF}#subdirectory=nwm_metrics ; \
     python -m pip cache purge && \
     rm --force /root/.gitconfig
 

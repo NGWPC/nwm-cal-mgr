@@ -261,14 +261,14 @@ class Evaluatable(ABC):
         return self.eval_params.basinID
 
     @property
-    def threshold(self) -> str:
+    def threshold_categorical(self) -> str:
         """streamflow threshold for calculation of categorical scores"""
-        return self.eval_params.threshold
+        return self.eval_params.threshold_categorical
 
     @property
-    def peak_flow_threshold(self) -> float:
-        """peak flow threshold for calculation of categorical scores"""
-        return self.eval_params.peak_flow_threshold
+    def threshold_event(self) -> float:
+        """peak flow threshold for calculation of event-based metrics"""
+        return self.eval_params.threshold_event
 
     @property
     def user(self) -> str:

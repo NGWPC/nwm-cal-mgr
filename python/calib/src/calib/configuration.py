@@ -15,21 +15,25 @@ try:  # to get literal in python 3.7, it was added to typing in 3.8
 except ImportError:
     from typing_extensions import Literal
 
-import glob
 import json
+import shutil
 import traceback
 from datetime import datetime
+from pathlib import Path
 
+import ewts
+import geopandas as gpd
+import netCDF4
 import pandas as pd
+from common import get_calmgr_logger
 from pydantic import BaseModel, DirectoryPath, Field, PrivateAttr
 
 from .model import ModelExec, PosInt
 from .ngen import Ngen
 from .strategy import Estimation, Sensitivity
 
-import ewts
-from common import get_calmgr_logger
 logger = get_calmgr_logger()
+
 
 class General(BaseModel):
     """General configuration class."""
@@ -95,24 +99,10 @@ class NoModel(BaseModel):
 class Model(BaseModel):
     """Composition data class for defining a model configuration."""
 
-    # model: Union[Ngen, NoModel] = Field(discriminator='type')
-    # model: Union[Ngen, NoModel, NoCalibModel] = Field(discriminator="type")
     model: Annotated[
         Union[Ngen, NoModel, NoCalibModel],
         Field(discriminator="type"),  # <-- v2 style discriminated union
     ]
-
-
-import shutil
-from pathlib import Path
-
-import geopandas as gpd
-import netCDF4
-
-# from .metrics import calculate_all_metrics
-from .model import BaseModel
-
-# ... [existing imports and code above remain unchanged] ...
 
 
 class NoCalibModel(ModelExec):
@@ -266,8 +256,8 @@ class NoCalibModel(ModelExec):
         from types import SimpleNamespace
 
         import pandas as pd
+        from nwm_metrics.metric_functions import calculate_metrics
 
-        from calib import metric_functions as mf
         from calib.plot_output import plot_calib_output
         from calib.utils import report_to_ngencerf
 
@@ -317,11 +307,11 @@ class NoCalibModel(ModelExec):
 
             df_all = pd.merge(obs_df, sim_df, left_index=True, right_index=True)
 
-            metrics = mf.calculate_all_metrics(
+            metrics = calculate_metrics(
                 df_all[obs_flow_col],
                 df_all[sim_streamflow_col],
-                self.eval_params.threshold,
-                self.eval_params.peak_flow_threshold / 100.0,
+                threshold_categorical=self.eval_params.threshold_categorical,
+                threshold_event=self.eval_params.threshold_event,
             )
             metrics_df = pd.DataFrame([metrics])
             metrics_df.insert(0, "iteration", 0, True)
@@ -389,8 +379,8 @@ class NoCalibModel(ModelExec):
             # Create calibration_object with required fields
             calibration_object = SimpleNamespace(
                 output=output,
-                threshold=self.eval_params.threshold,
-                peak_flow_threshold=self.eval_params.peak_flow_threshold,
+                threshold_categorical=self.eval_params.threshold_categorical,
+                threshold_event=self.eval_params.threshold_event,
                 streamflow_name=sim_streamflow_col,
                 observed=observed,
                 station_name=basin_id,
@@ -514,8 +504,8 @@ class NoCalibModel(ModelExec):
                 valid_evaluation_range=self.eval_params._valid_eval_range,
                 full_evaluation_range=self.eval_params._full_eval_range,
                 streamflow_name=sim_streamflow_col,
-                threshold=self.eval_params.threshold,
-                peak_flow_threshold=self.eval_params.peak_flow_threshold,
+                threshold_categorical=self.eval_params.threshold_categorical,
+                threshold_event=self.eval_params.threshold_event,
             )
             time_period = {
                 "calib": calibration_object.evaluation_range,
@@ -530,8 +520,8 @@ class NoCalibModel(ModelExec):
                     calibration_object.output,
                     calibration_object.observed,
                     date_range,
-                    calibration_object.threshold,
-                    calibration_object.peak_flow_threshold,
+                    calibration_object.threshold_categorical,
+                    calibration_object.threshold_event,
                 )
                 row = {"run": valid_suffix, "period": period_name, **result}
                 metrics = pd.concat([metrics, pd.DataFrame([row])], ignore_index=True)
@@ -604,8 +594,8 @@ class NoCalibModel(ModelExec):
                     calibration_object.output,
                     observed,
                     date_range,
-                    calibration_object.threshold,
-                    calibration_object.peak_flow_threshold,
+                    calibration_object.threshold_categorical,
+                    calibration_object.threshold_event,
                 )
                 nwm_row = {
                     "run": "nwm_retro",
@@ -708,12 +698,12 @@ class NoCalibModel(ModelExec):
         return self.eval_params._eval_range
 
     @property
-    def threshold(self):
-        return self.eval_params.threshold
+    def threshold_categorical(self):
+        return self.eval_params.threshold_categorical
 
     @property
-    def peak_flow_threshold(self):
-        return self.eval_params.peak_flow_threshold
+    def threshold_event(self):
+        return self.eval_params.threshold_event
 
     @property
     def realization_file(self) -> Path:
