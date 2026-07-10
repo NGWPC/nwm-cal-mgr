@@ -1,5 +1,8 @@
 # NWM Calibration Manager
-nwm-cal-mgr is a Python repository that provides tools for calibration and validation of [NGen](https://github.com/noaa-owp/ngen) Formulations using Dynamic Dimensioned Search (DDS), Grey Wolf Optimizer(GWO), and Particle Swarm Optimizer (PSO).
+nwm-cal-mgr is a Python repository that provides tools for automatic calibration and validation of [NGen](https://github.com/noaa-owp/ngen) Formulations. Currently, the following three optimization algorithms are supported:
+- Dynamic Dimensioned Search (DDS)
+- Grey Wolf Optimizer (GWO)
+- Particle Swarm Optimizer (PSO)
 
 ## Table of Contents
 
