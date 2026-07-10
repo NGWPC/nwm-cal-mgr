@@ -4,8 +4,6 @@
 # Change/Verify these values when adopting this Dockerfile into another org:
 #   GH_ORG, GHCR_ORG, IMAGE_NAMESPACE,
 #   EWTS_ORG, EWTS_REF, MSW_MGR_ORG, MSW_MGR_REF
-# 
-# The script build_nwm_cal_mgr.sh can be used to build this Dockerfile.
 ############################################################################
 
 # Ownership / branding overrides
@@ -18,8 +16,6 @@ ARG EWTS_ORG=${GH_ORG}
 ARG EWTS_REF=development
 ARG MSW_MGR_ORG=${GH_ORG}
 ARG MSW_MGR_REF=development
-ARG EVAL_MGR_ORG=${GH_ORG}
-ARG EVAL_MGR_REF=development
 
 ############################################################################
 # Image selection
@@ -51,8 +47,6 @@ ARG EWTS_ORG
 ARG EWTS_REF
 ARG MSW_MGR_ORG
 ARG MSW_MGR_REF
-ARG EVAL_MGR_ORG
-ARG EVAL_MGR_REF
 ARG NGEN_IMAGE
 
 # OCI Metadata Arguments
@@ -66,7 +60,6 @@ ARG IMAGE_VERSION="unknown"
 ARG IMAGE_REVISION="unknown"
 ARG EWTS_REVISION="unknown"
 ARG MSW_MGR_REVISION="unknown"
-ARG EVAL_MGR_REVISION="unknown"
 
 # Image Labels: OCI-spec annotations followed by custom source-repo metadata.
 LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
@@ -83,17 +76,9 @@ LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
     io.${IMAGE_NAMESPACE}.ewts.revision="${EWTS_REVISION}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.org="${MSW_MGR_ORG}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.ref="${MSW_MGR_REF}" \
-    io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}" \
-    io.${IMAGE_NAMESPACE}.nwm.eval.org="${EVAL_MGR_ORG}" \
-    io.${IMAGE_NAMESPACE}.nwm.eval.ref="${EVAL_MGR_REF}" \
-    io.${IMAGE_NAMESPACE}.nwm.eval.revision="${EVAL_MGR_REVISION}"
+    io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}"
 
-# Copy only required files to the image to avoid copying unnecessary files (e.g., .github, tests, etc.)
-# COPY . /ngen-app/nwm-cal-mgr/
-COPY python /ngen-app/nwm-cal-mgr/python
-COPY pyproject.toml /ngen-app/nwm-cal-mgr/
-COPY setup.py /ngen-app/nwm-cal-mgr/
-COPY README.md LICENSE /ngen-app/nwm-cal-mgr/
+COPY . /ngen-app/nwm-cal-mgr/
 
 COPY ./docker/run-nwm-cal-mgr.sh /ngen-app/bin/
 
@@ -130,43 +115,30 @@ RUN set -eux; \
     python -m pip cache purge && \
     rm --force /root/.gitconfig
 
-
-ARG IMAGE_SOURCE="unknown"
-ARG IMAGE_REVISION="unknown"
-ARG IMAGE_BRANCH="unknown"
-ARG IMAGE_AUTHOR="unknown"
-ARG IMAGE_COMMIT_DATE="unknown"
-ARG IMAGE_COMMIT_MESSAGE="unknown"
-ARG IMAGE_TAGS=""
-
 WORKDIR /ngen-app/nwm-cal-mgr
 
+ARG CI_COMMIT_REF_NAME
+
 RUN set -eux; \
-    key=${IMAGE_SOURCE##*/}; \
+    # Get the remote URL from Git configuration
+    repo_url=$(git config --get remote.origin.url); \
+    # Extract the repo name (everything after the last slash) and remove any trailing .git
+    key=${repo_url##*/}; \
     key=${key%.git}; \
+    # Construct the file path using the derived key
     GIT_INFO_PATH="/ngen-app/${key}_git_info.json"; \
-    build_date=$(date -u +'%Y-%m-%d %H:%M:%S UTC'); \
+    # Determine branch name: use CI_COMMIT_REF_NAME if set; otherwise, use git's current branch
+    branch=$( [ -n "${CI_COMMIT_REF_NAME:-}" ] && echo "${CI_COMMIT_REF_NAME}" || git rev-parse --abbrev-ref HEAD ); \
     jq -n \
-      --arg commit_hash "${IMAGE_REVISION}" \
-      --arg branch "${IMAGE_BRANCH}" \
-      --arg author "${IMAGE_AUTHOR}" \
-      --arg commit_date "${IMAGE_COMMIT_DATE}" \
-      --arg message "${IMAGE_COMMIT_MESSAGE}" \
-      --arg tags "${IMAGE_TAGS}" \
-      --arg source "${IMAGE_SOURCE}" \
-      --arg build_date "${build_date}" \
-      "{\
-        \"$key\": {\
-          commit_hash: \$commit_hash,\
-          branch: \$branch,\
-          author: \$author,\
-          commit_date: \$commit_date,\
-          message: \$message,\
-          tags: \$tags,\
-          source: \$source,\
-          build_date: \$build_date\
-        }\
-      }" > "$GIT_INFO_PATH"
+      --arg commit_hash "$(git rev-parse HEAD)" \
+      --arg branch "$branch" \
+      --arg tags "$(git tag --points-at HEAD | tr '\n' ' ')" \
+      --arg author "$(git log -1 --pretty=format:'%an')" \
+      --arg commit_date "$(date -u -d @$(git log -1 --pretty=format:'%ct') +'%Y-%m-%d %H:%M:%S UTC')" \
+      --arg message "$(git log -1 --pretty=format:'%s' | tr '\n' ';')" \
+      --arg build_date "$(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+      "{\"$key\": {commit_hash: \$commit_hash, branch: \$branch, tags: \$tags, author: \$author, commit_date: \$commit_date, message: \$message, build_date: \$build_date}}" \
+      > $GIT_INFO_PATH
 
 WORKDIR /
 
