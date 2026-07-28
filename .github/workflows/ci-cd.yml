@@ -8,6 +8,7 @@ on:
       - main
       - nwm-main
       - development
+      - development-pw
       - release-candidate
   push:
     branches:
@@ -16,6 +17,7 @@ on:
       - main
       - nwm-main
       - development
+      - development-pw
       - release-candidate
   workflow_dispatch:
     inputs:
@@ -41,6 +43,14 @@ on:
         type: string
       MSW_MGR_REF:
         description: 'MSW_MGR_REF'
+        required: false
+        type: string
+      EVAL_MGR_ORG:
+        description: 'EVAL_MGR_ORG'
+        required: false
+        type: string
+      EVAL_MGR_REF:
+        description: 'EVAL_MGR_REF'
         required: false
         type: string
       NWM_METRICS_ORG:
@@ -80,6 +90,7 @@ jobs:
       ngen_image_revision: ${{ steps.vars.outputs.ngen_image_revision }}
       ewts_revision: ${{ steps.vars.outputs.ewts_revision }}
       msw_mgr_revision: ${{ steps.vars.outputs.msw_mgr_revision }}
+      eval_mgr_revision: ${{ steps.vars.outputs.eval_mgr_revision }}
       nwm_metrics_revision: ${{ steps.vars.outputs.nwm_metrics_revision }}
     steps:
       - name: Compute image vars
@@ -113,10 +124,11 @@ jobs:
           SHORT_SHA="${REAL_SHA:0:7}"
 
           # default source-repo ref: follow the release-line branch we're building from
-          # (development / ngwpc-candidate / ngwpc-release); tags and other branches fall
-          # back to development. Override per source repo via the *_REF dispatch inputs.
+          # (development / development-pw / ngwpc-candidate / ngwpc-release); tags and
+          # other branches fall back to development. Override per source repo via the
+          # *_REF dispatch inputs.
           case "${GITHUB_REF_TYPE}:${GITHUB_REF_NAME}" in
-            branch:development|branch:ngwpc-candidate|branch:ngwpc-release)
+            branch:development|branch:development-pw|branch:ngwpc-candidate|branch:ngwpc-release)
               DEFAULT_REF="$GITHUB_REF_NAME" ;;
             *)
               DEFAULT_REF="development" ;;
@@ -172,6 +184,7 @@ jobs:
           # commit on the requested ref reinstalls that dep instead of a stale cache.
           EWTS_REVISION=$(resolve_sha "https://github.com/${{ inputs.EWTS_ORG || github.repository_owner }}/nwm-ewts.git" "$(ref_or_default "${{ inputs.EWTS_REF }}")")
           MSW_MGR_REVISION=$(resolve_sha "https://github.com/${{ inputs.MSW_MGR_ORG || github.repository_owner }}/nwm-msw-mgr.git" "$(ref_or_default "${{ inputs.MSW_MGR_REF }}")")
+          EVAL_MGR_REVISION=$(resolve_sha "https://github.com/${{ inputs.EVAL_MGR_ORG || github.repository_owner }}/nwm-eval-mgr.git" "$(ref_or_default "${{ inputs.EVAL_MGR_REF }}")")
           NWM_METRICS_REVISION=$(resolve_sha "https://github.com/${{ inputs.NWM_METRICS_ORG || github.repository_owner }}/nwm-eval-mgr.git" "$(ref_or_default "${{ inputs.NWM_METRICS_REF }}")")
 
           # save outputs
@@ -188,6 +201,7 @@ jobs:
           ngen_image_revision=${NGEN_IMAGE_REVISION}
           ewts_revision=${EWTS_REVISION}
           msw_mgr_revision=${MSW_MGR_REVISION}
+          eval_mgr_revision=${EVAL_MGR_REVISION}
           nwm_metrics_revision=${NWM_METRICS_REVISION}
           EOF
 
@@ -258,6 +272,10 @@ jobs:
             MSW_MGR_REF=${{ inputs.MSW_MGR_REF || needs.setup.outputs.default_ref }}
             MSW_MGR_REVISION=${{ needs.setup.outputs.msw_mgr_revision }}
             MSW_MGR_CACHE_BUST=${{ needs.setup.outputs.msw_mgr_revision }}
+            EVAL_MGR_ORG=${{ inputs.EVAL_MGR_ORG || github.repository_owner }}
+            EVAL_MGR_REF=${{ inputs.EVAL_MGR_REF || needs.setup.outputs.default_ref }}
+            EVAL_MGR_REVISION=${{ needs.setup.outputs.eval_mgr_revision }}
+            EVAL_MGR_CACHE_BUST=${{ needs.setup.outputs.eval_mgr_revision }}
             NWM_METRICS_ORG=${{ inputs.NWM_METRICS_ORG || github.repository_owner }}
             NWM_METRICS_REF=${{ inputs.NWM_METRICS_REF || needs.setup.outputs.default_ref }}
             NWM_METRICS_REVISION=${{ needs.setup.outputs.nwm_metrics_revision }}            
@@ -376,13 +394,23 @@ jobs:
             --all \
             "docker://${IMAGE_BASE}:${TEST_TAG}" "docker://${IMAGE_BASE}:${ALIAS_TAG}"
 
-          # tag with 'latest' on development branch
+          # Branch-keyed promotion: development promotes 'latest' (bookworm/AWS
+          # lane); development-pw promotes 'latest-pw' (rocky/PW lane). Do not
+          # manually dispatch a cross-lane build from either branch: promotion
+          # keys off the branch name, so the tested image would promote under
+          # the wrong alias.
           if [ "$GITHUB_REF_NAME" = "development" ]; then
             skopeo copy \
               --src-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
               --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
               --all \
               "docker://${IMAGE_BASE}:${TEST_TAG}" "docker://${IMAGE_BASE}:latest"
+          elif [ "$GITHUB_REF_NAME" = "development-pw" ]; then
+            skopeo copy \
+              --src-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+              --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+              --all \
+              "docker://${IMAGE_BASE}:${TEST_TAG}" "docker://${IMAGE_BASE}:latest-pw"
           fi
 
   # Build the Apptainer .sif from the tested + promoted image and publish it to
