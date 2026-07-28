@@ -3,7 +3,9 @@
 ############################################################################
 # Change/Verify these values when adopting this Dockerfile into another org:
 #   GH_ORG, GHCR_ORG, IMAGE_NAMESPACE,
-#   EWTS_ORG, EWTS_REF, MSW_MGR_ORG, MSW_MGR_REF
+#   EWTS_ORG, EWTS_REF, MSW_MGR_ORG, MSW_MGR_REF,
+#   EVAL_MGR_ORG, EVAL_MGR_REF,
+#   CAL_MGR_INSTALL_EWTS, EWTS_CACHE_BUST
 ############################################################################
 
 # Ownership / branding overrides
@@ -14,8 +16,12 @@ ARG IMAGE_NAMESPACE=ngwpc
 # External repository sources (org and ref/branch overrides)
 ARG EWTS_ORG=${GH_ORG}
 ARG EWTS_REF=development
+ARG CAL_MGR_INSTALL_EWTS=OFF
+ARG EWTS_CACHE_BUST=0
+
 ARG MSW_MGR_ORG=${GH_ORG}
 ARG MSW_MGR_REF=development
+
 ARG EVAL_MGR_ORG=${GH_ORG}
 ARG EVAL_MGR_REF=development
 
@@ -47,6 +53,8 @@ ARG GHCR_ORG
 ARG IMAGE_NAMESPACE
 ARG EWTS_ORG
 ARG EWTS_REF
+ARG CAL_MGR_INSTALL_EWTS
+ARG EWTS_CACHE_BUST
 ARG MSW_MGR_ORG
 ARG MSW_MGR_REF
 ARG EVAL_MGR_ORG
@@ -55,9 +63,9 @@ ARG NGEN_IMAGE
 
 # OCI Metadata Arguments
 #
-# BASE_IMAGE_* refers to the ngen image this image is built FROM.
-ARG BASE_IMAGE_DIGEST="unknown"
-ARG BASE_IMAGE_REVISION="unknown"
+# NGEN_IMAGE_* refers to the ngen image this image is built FROM.
+ARG NGEN_IMAGE_DIGEST="unknown"
+ARG NGEN_IMAGE_REVISION="unknown"
 ARG IMAGE_SOURCE="unknown"
 ARG IMAGE_VENDOR="unknown"
 ARG IMAGE_VERSION="unknown"
@@ -66,16 +74,22 @@ ARG EWTS_REVISION="unknown"
 ARG MSW_MGR_REVISION="unknown"
 ARG EVAL_MGR_REVISION="unknown"
 
+# NWM_METRICS_* records the nwm-eval-mgr source CI resolved for the metrics
+# labels; no install step consumes it yet.
+ARG NWM_METRICS_ORG="unknown"
+ARG NWM_METRICS_REF="unknown"
+ARG NWM_METRICS_REVISION="unknown"
+
 # Image Labels: OCI-spec annotations followed by custom source-repo metadata.
 LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
-    org.opencontainers.image.base.digest="${BASE_IMAGE_DIGEST}" \
+    org.opencontainers.image.base.digest="${NGEN_IMAGE_DIGEST}" \
     org.opencontainers.image.source="${IMAGE_SOURCE}" \
     org.opencontainers.image.vendor="${IMAGE_VENDOR}" \
     org.opencontainers.image.version="${IMAGE_VERSION}" \
     org.opencontainers.image.revision="${IMAGE_REVISION}" \
     org.opencontainers.image.title="NGEN Calibration Manager" \
     org.opencontainers.image.description="Docker image for the NGEN Calibration application" \
-    io.${IMAGE_NAMESPACE}.image.base.revision="${BASE_IMAGE_REVISION}" \
+    io.${IMAGE_NAMESPACE}.image.base.revision="${NGEN_IMAGE_REVISION}" \
     io.${IMAGE_NAMESPACE}.ewts.org="${EWTS_ORG}" \
     io.${IMAGE_NAMESPACE}.ewts.ref="${EWTS_REF}" \
     io.${IMAGE_NAMESPACE}.ewts.revision="${EWTS_REVISION}" \
@@ -84,7 +98,10 @@ LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
     io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}" \
     io.${IMAGE_NAMESPACE}.eval.mgr.org="${EVAL_MGR_ORG}" \
     io.${IMAGE_NAMESPACE}.eval.mgr.ref="${EVAL_MGR_REF}" \
-    io.${IMAGE_NAMESPACE}.eval.mgr.revision="${EVAL_MGR_REVISION}"
+    io.${IMAGE_NAMESPACE}.eval.mgr.revision="${EVAL_MGR_REVISION}" \
+    io.${IMAGE_NAMESPACE}.nwm.metrics.org="${NWM_METRICS_ORG}" \
+    io.${IMAGE_NAMESPACE}.nwm.metrics.ref="${NWM_METRICS_REF}" \
+    io.${IMAGE_NAMESPACE}.nwm.metrics.revision="${NWM_METRICS_REVISION}"
 
 COPY . /ngen-app/nwm-cal-mgr/
 
@@ -109,11 +126,45 @@ RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-rocky \
     python -m pip install "numpy==1.26.4" "netcdf4<=1.6.3" && \
     python -m pip install "hydrotools.events==1.1.5" "hydrotools.nwis-client==3.3.1"
 
+############################################################################
+# Optional development-only EWTS Python override
+############################################################################
+
+# Production images should inherit EWTS from ngen. Set CAL_MGR_INSTALL_EWTS=ON
+# only when testing a new EWTS Python package without rebuilding forcing/ngen.
+#
+# Example:
+#   docker build \
+#     --build-arg CAL_MGR_INSTALL_EWTS=ON \
+#     --build-arg EWTS_REF=my-ewts-branch \
+#     --build-arg EWTS_CACHE_BUST=$(date +%s) \
+#     -t nwm-cal-mgr .
+RUN --mount=type=cache,target=/root/.cache/pip,id=pip-cache-rocky \
+    set -eux; \
+    CAL_MGR_INSTALL_EWTS="${CAL_MGR_INSTALL_EWTS:-OFF}"; \
+    echo "CAL_MGR_INSTALL_EWTS=${CAL_MGR_INSTALL_EWTS}; EWTS ref: ${EWTS_REF}; cache bust: ${EWTS_CACHE_BUST}"; \
+    CAL_MGR_INSTALL_EWTS_NORMALIZED="$(echo "${CAL_MGR_INSTALL_EWTS}" | tr '[:lower:]' '[:upper:]')"; \
+    if [[ "${CAL_MGR_INSTALL_EWTS_NORMALIZED}" =~ ^(ON|YES|TRUE|1)$ ]]; then \
+        echo "Installing development EWTS Python override"; \
+        rm -rf /tmp/nwm-ewts; \
+        (git clone --depth 1 -b "${EWTS_REF}" \
+            "https://github.com/${EWTS_ORG}/nwm-ewts.git" /tmp/nwm-ewts \
+         || (git clone "https://github.com/${EWTS_ORG}/nwm-ewts.git" /tmp/nwm-ewts && \
+             cd /tmp/nwm-ewts && git checkout "${EWTS_REF}")); \
+        python -m pip install --force-reinstall --no-deps /tmp/nwm-ewts/runtime/python/ewts; \
+        rm -rf /tmp/nwm-ewts; \
+    else \
+        echo "Using EWTS inherited from ngen"; \
+    fi
+
 WORKDIR /ngen-app/
 # MSW_MGR_CACHE_BUST = nwm-msw-mgr commit SHA from CI; a new commit busts this layer so mswm is reinstalled from the requested ref, not a stale cache.
 ARG MSW_MGR_CACHE_BUST=1
+# EVAL_MGR_CACHE_BUST = nwm-eval-mgr commit SHA from CI; a new commit busts this layer so nwm_metrics is reinstalled from the requested ref, not a stale cache.
+ARG EVAL_MGR_CACHE_BUST=1
 RUN set -eux; \
     echo "MSW MGR cache bust: ${MSW_MGR_CACHE_BUST}" && \
+    echo "EVAL MGR cache bust: ${EVAL_MGR_CACHE_BUST}" && \
     # install nwm-cal-mgr packages (common, calib, config)
     python -m pip install /ngen-app/nwm-cal-mgr && \
     # Install mswm package
