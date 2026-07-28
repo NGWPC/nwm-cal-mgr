@@ -86,6 +86,7 @@ jobs:
       alias_tag: ${{ steps.vars.outputs.alias_tag }}
       clean_ref: ${{ steps.vars.outputs.clean_ref }}
       default_ref: ${{ steps.vars.outputs.default_ref }}
+      default_base_tag: ${{ steps.vars.outputs.default_base_tag }}
       ngen_image_digest: ${{ steps.vars.outputs.ngen_image_digest }}
       ngen_image_revision: ${{ steps.vars.outputs.ngen_image_revision }}
       ewts_revision: ${{ steps.vars.outputs.ewts_revision }}
@@ -136,6 +137,16 @@ jobs:
           # use an explicit *_REF input if provided, else DEFAULT_REF
           ref_or_default() { [ -n "$1" ] && echo "$1" || echo "$DEFAULT_REF"; }
 
+          # base-image alias follows the lane: development-pw (or a PR into it) pulls
+          # the rocky 'latest-pw' alias, every other ref the bookworm 'latest'. An
+          # explicit NGEN_IMAGE_TAG input always wins over this default.
+          LANE_REF="${GITHUB_BASE_REF:-$GITHUB_REF_NAME}"
+          if [ "$LANE_REF" = "development-pw" ]; then
+            DEFAULT_BASE_TAG="latest-pw"
+          else
+            DEFAULT_BASE_TAG="latest"
+          fi
+
           # logic for the tags:
           # test_image_tag (commit short sha): used for the initial build and test
           # alias_tag: used for final tagging on successful tests
@@ -161,7 +172,8 @@ jobs:
           fi
 
           # base image (ngen) metadata for Dockerfile labels
-          NGEN_IMAGE_TAG="${{ inputs.NGEN_IMAGE_TAG || 'latest' }}"
+          NGEN_IMAGE_TAG="${{ inputs.NGEN_IMAGE_TAG }}"
+          NGEN_IMAGE_TAG="${NGEN_IMAGE_TAG:-$DEFAULT_BASE_TAG}"
           NGEN_IMAGE="ghcr.io/${ORG}/ngen:${NGEN_IMAGE_TAG}"
           NGEN_INSPECT=$(skopeo inspect --override-os linux --override-arch amd64 "docker://${NGEN_IMAGE}" 2>/dev/null || echo '{}')
           NGEN_IMAGE_DIGEST=$(echo "$NGEN_INSPECT" | jq -r '.Digest // "unknown"')
@@ -197,6 +209,7 @@ jobs:
           commit_sha_short=${SHORT_SHA}
           clean_ref=${CLEAN_REF}
           default_ref=${DEFAULT_REF}
+          default_base_tag=${DEFAULT_BASE_TAG}
           ngen_image_digest=${NGEN_IMAGE_DIGEST}
           ngen_image_revision=${NGEN_IMAGE_REVISION}
           ewts_revision=${EWTS_REVISION}
@@ -261,7 +274,7 @@ jobs:
           tags: ${{ needs.setup.outputs.image_base }}:${{ needs.setup.outputs.test_image_tag }}
           build-args: |
             GHCR_ORG=${{ inputs.GHCR_ORG || needs.setup.outputs.org }}
-            NGEN_IMAGE=ghcr.io/${{ needs.setup.outputs.org }}/ngen:${{ inputs.NGEN_IMAGE_TAG || 'latest' }}
+            NGEN_IMAGE=ghcr.io/${{ needs.setup.outputs.org }}/ngen:${{ inputs.NGEN_IMAGE_TAG || needs.setup.outputs.default_base_tag }}
             NGEN_IMAGE_DIGEST=${{ needs.setup.outputs.ngen_image_digest }}
             NGEN_IMAGE_REVISION=${{ needs.setup.outputs.ngen_image_revision }}
             EWTS_ORG=${{ inputs.EWTS_ORG || github.repository_owner }}
@@ -278,7 +291,7 @@ jobs:
             EVAL_MGR_CACHE_BUST=${{ needs.setup.outputs.eval_mgr_revision }}
             NWM_METRICS_ORG=${{ inputs.NWM_METRICS_ORG || github.repository_owner }}
             NWM_METRICS_REF=${{ inputs.NWM_METRICS_REF || needs.setup.outputs.default_ref }}
-            NWM_METRICS_REVISION=${{ needs.setup.outputs.nwm_metrics_revision }}            
+            NWM_METRICS_REVISION=${{ needs.setup.outputs.nwm_metrics_revision }}
             IMAGE_SOURCE=https://github.com/${{ github.repository }}
             IMAGE_VENDOR=${{ github.repository_owner }}
             IMAGE_VERSION=${{ needs.setup.outputs.clean_ref }}
