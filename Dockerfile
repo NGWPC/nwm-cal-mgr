@@ -73,6 +73,11 @@ ARG IMAGE_REVISION="unknown"
 ARG EWTS_REVISION="unknown"
 ARG MSW_MGR_REVISION="unknown"
 ARG EVAL_MGR_REVISION="unknown"
+# NWM_METRICS_* records the nwm-eval-mgr source CI resolved for the metrics
+# labels; no install step consumes it yet.
+ARG NWM_METRICS_ORG="unknown"
+ARG NWM_METRICS_REF="unknown"
+ARG NWM_METRICS_REVISION="unknown"
 
 # Image Labels: OCI-spec annotations followed by custom source-repo metadata.
 LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
@@ -92,7 +97,10 @@ LABEL org.opencontainers.image.base.name="${NGEN_IMAGE}" \
       io.${IMAGE_NAMESPACE}.msw.mgr.revision="${MSW_MGR_REVISION}" \
       io.${IMAGE_NAMESPACE}.eval.mgr.org="${EVAL_MGR_ORG}" \
       io.${IMAGE_NAMESPACE}.eval.mgr.ref="${EVAL_MGR_REF}" \
-      io.${IMAGE_NAMESPACE}.eval.mgr.revision="${EVAL_MGR_REVISION}"
+      io.${IMAGE_NAMESPACE}.eval.mgr.revision="${EVAL_MGR_REVISION}" \
+      io.${IMAGE_NAMESPACE}.nwm.metrics.org="${NWM_METRICS_ORG}" \
+      io.${IMAGE_NAMESPACE}.nwm.metrics.ref="${NWM_METRICS_REF}" \
+      io.${IMAGE_NAMESPACE}.nwm.metrics.revision="${NWM_METRICS_REVISION}"
 
 # Reuse the Python virtual environment inherited from ngen. The dependency image
 # creates the venv; forcing and ngen install their Python packages into that same
