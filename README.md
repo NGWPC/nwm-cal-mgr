@@ -601,10 +601,10 @@ chmod +x run_full_calib_valid_workflow.sh
     --iterations 500
 
 ./docker/run_full_calib_valid_workflow.sh \
-    --b 10310500 \
-    --m "noah-owp-modular, cfe-x" \
-    --f noah_cfex \
-    --i 500
+    -b 10310500 \
+    -m "noah-owp-modular, cfe-x" \
+    -f noah_cfex \
+    -i 500
 
 ```
 

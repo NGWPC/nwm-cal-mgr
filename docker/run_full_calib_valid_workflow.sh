@@ -175,9 +175,9 @@ EOF
 fi
 
 # cfe-s
-PARAM_FILE_CFEX="${CALIB_PARAM_FILES}/calib_params_cfe-s.csv"
-if [[ "$MODELS" == *"cfe-s"* && ! -f "$PARAM_FILE_CFEX" ]]; then
-    cat > "$PARAM_FILE_CFEX" <<EOF
+PARAM_FILE_CFES="${CALIB_PARAM_FILES}/calib_params_cfe-s.csv"
+if [[ "$MODELS" == *"cfe-s"* && ! -f "$PARAM_FILE_CFES" ]]; then
+    cat > "$PARAM_FILE_CFES" <<EOF
 param	min	max	init
 b	2	15	7.272
 satdk	1.950e-07	0.001	5.231e-06
