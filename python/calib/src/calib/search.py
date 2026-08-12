@@ -130,14 +130,35 @@ def _calc_metrics(
         simulated_hydrograph, observed_hydrograph, left_index=True, right_index=True
     )
     if df.empty:
-        _logger().warning("Cannot compute objective function, do time indicies align?")
+        msg = "No overlapping time period between simulated and observed streamflow. Metrics cannot be calculated. Exit."
+        _logger().error(msg)
+        raise ValueError(msg)
+
+    # If eval_range is provided, filter the dataframe to only include data within that range
     if eval_range:
         df = df.loc[eval_range[0] : eval_range[1]]
 
     df.reset_index(inplace=True)
 
+    # treat the data by removing negative values, NaN values, and replacing zero values with a small positive value
     df = treat_values(df, remove_neg=True, remove_na=True, replace_zero=True)
 
+    # if df is empty, log an error and raise an exception
+    if df.empty:
+        if eval_range:
+            eval_range_str = (
+                f" within the evaluation datetime range "
+                f"{eval_range[0].strftime('%Y-%m-%d %H:%M')} "
+                f"to {eval_range[1].strftime('%Y-%m-%d %H:%M')}"
+            )
+        else:
+            eval_range_str = ""
+
+        msg = f"There are no valid observed or simulated streamflow data{eval_range_str}. Metrics cannot be calculated. Exit."
+
+        _logger().error(msg)
+        raise ValueError(msg)
+    
     # reset the time index (needed for calculation of event-based metrics)
     df.set_index(df.columns[0], inplace=True)
 

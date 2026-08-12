@@ -246,6 +246,11 @@ class NoCalibModel(ModelExec):
         except Exception as e:
             raise (e)
 
+        if hydrograph is None or hydrograph.empty:
+            msg = "Simulated hydrograph is unavailable or empty."
+            logger.error(msg)
+            raise ValueError(msg)
+        
         return hydrograph
 
     def postprocess_single_calibration_output(self, agent):
@@ -295,6 +300,13 @@ class NoCalibModel(ModelExec):
 
             # Load observed data
             obs_df = pd.read_csv(self.obsflow, parse_dates=["value_date"])
+
+            # if obs is empty, raise an error
+            if obs_df.empty:
+                msg = f"Streamflow observation file is empty: {self.obsflow}"
+                logger.error(msg)
+                raise ValueError(msg)
+            
             obs_df = obs_df.rename(
                 columns={"value_date": "Time", obs_df.columns[1]: obs_flow_col}
             ).set_index("Time")
@@ -316,8 +328,6 @@ class NoCalibModel(ModelExec):
             metrics_df = pd.DataFrame([metrics])
             metrics_df.insert(0, "iteration", 0, True)
 
-            # IS THIS CORRECT???????
-            # metrics_df["objFunVal"] = metrics_df[self.eval_params.objective.upper()]
             metrics_best_path = workdir / f"{basin_id}_metrics_iteration.csv"
             metrics_df.to_csv(metrics_best_path, index=False)
 
