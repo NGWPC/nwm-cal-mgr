@@ -92,15 +92,14 @@ def run_valid_ctrl_best(agent):
 
         outputs = [primary_set.output]
         runs = [agent.run_name]
-        if agent.run_name != "valid_control":
-            if agent.nwmflow is not None:
-                outputs.append(agent.nwmflow)
-                runs.append("nwm_retro")
+        if agent.run_name != "valid_control" and agent.nwmflow is not None:
+            outputs.append(agent.nwmflow)
+            runs.append("nwm_retro")
 
         for out1, run1 in zip(outputs, runs):
             metrics = pd.DataFrame()
-            # _logger().info(f"Computing metrics for out1 : {out1}, run1: {run1}")
             for key, value in time_period.items():
+                _logger().info(f"Computing metrics for {run1} and time period: {key}")
                 result = _calc_metrics(
                     out1,
                     primary_set.observed,

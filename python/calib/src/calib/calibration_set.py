@@ -75,6 +75,13 @@ class CalibrationSet(Evaluatable):
             if os.path.exists(obsflow_file):
                 logger.info(f"Read observed streamflow from: {obsflow_file}")
                 obs = pd.read_csv(obsflow_file)
+
+                # if obs is empty, raise an error
+                if obs.empty:
+                    msg = f"Streamflow observation file is empty: {obsflow_file}"
+                    logger.error(msg)
+                    raise ValueError(msg)
+                
                 cols = obs.columns.str.lower()
                 obs.columns = cols
 
@@ -217,8 +224,10 @@ class CalibrationSet(Evaluatable):
             except Exception as e:
                 raise e
 
-        if hydrograph is None:
-            logger.info("Output could not be read after multiple attempts.")
+        if hydrograph is None or hydrograph.empty:
+            msg = "Simulated hydrograph is unavailable or empty."
+            logger.error(msg)
+            raise ValueError(msg)
 
         return hydrograph
 
