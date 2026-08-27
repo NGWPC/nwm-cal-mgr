@@ -113,14 +113,12 @@ def resolve_log_target(
     else:
         if default_log_dir is not None:
             resolved_log_dir = Path(default_log_dir)
-        elif Path("/ngencerf/data").exists():
-            resolved_log_dir = Path("/ngencerf/data/run-logs/cal_mgr")
-        else:
-            resolved_log_dir = Path.home() / "run-logs" / "cal_mgr"
-
-        resolved_log_file_name = (
-            log_file_name_override or f"cal_mgr_{create_timestamp('compact')}.log"
-        )
+            resolved_log_file_name = (
+                log_file_name_override or f"cal_mgr_{create_timestamp('compact')}.log"
+            )
+        else:  # if default_log_dir is None, send logs to stdout only, do not create log file
+            resolved_log_dir = None
+            resolved_log_file_name = None
 
     return resolved_log_dir, resolved_log_file_name
 
@@ -142,19 +140,22 @@ def initialize_logger(
         default_log_dir=default_log_dir,
     )
 
-    resolved_log_dir.mkdir(parents=True, exist_ok=True)
-    full_log_path = resolved_log_dir / resolved_log_file_name
+    if resolved_log_dir is not None:
+        resolved_log_dir.mkdir(parents=True, exist_ok=True)
+        full_log_path = resolved_log_dir / resolved_log_file_name
 
-    if reset_file or log_path_overwrite:
-        print(
-            f"log setup: Deleting file, if already exists, to start a new log file: {full_log_path!s}, "
-        )
-        try:
-            full_log_path.unlink()
-        except FileNotFoundError:
-            pass
+        if reset_file or log_path_overwrite:
+            print(
+                f"log setup: Deleting file, if already exists, to start a new log file: {full_log_path!s}, "
+            )
+            try:
+                full_log_path.unlink()
+            except FileNotFoundError:
+                pass
 
-    print(f"CALMGR EWTS Logging into: {full_log_path}")
+        print(f"CALMGR EWTS Logging into: {full_log_path}")
+    else:
+        print("CALMGR EWTS Logging into: stdout only (no log file will be created)")
 
     return ewts.logger.setup_logger(
         ewts.CAL_MGR_ID,
