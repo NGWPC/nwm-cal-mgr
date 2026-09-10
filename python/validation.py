@@ -8,8 +8,6 @@ import sys
 import argparse
 import os
 from pathlib import Path
-from pprint import pprint
-from datetime import datetime, timezone
 
 import yaml
 from calib.agent import Agent
@@ -22,6 +20,7 @@ from common import (
     str_to_bool,
     initialize_logger,
     build_validation_log_file_name,
+    configure_stdout_logging,
 )
 
 try:
@@ -35,43 +34,6 @@ except ImportError:
 import logging
 LOG = logging.getLogger(CAL_MGR_ID)
 LOGGER_CONFIGURED = False
-
-
-class StdoutStyleFormatter(logging.Formatter):
-
-    INFO_FORMAT = (
-        "%(asctime)s %(name)-8s %(levelname)-7s %(message)s"
-    )
-
-    DETAILED_FORMAT = (
-        "%(asctime)s %(name)-8s %(levelname)-7s "
-        "%(message)s "
-        "[%(filename)s.%(funcName)s(L%(lineno)s)]"
-    )
-
-    def format(self, record):
-        if record.levelno == logging.INFO:
-            self._style._fmt = self.INFO_FORMAT
-        else:
-            self._style._fmt = self.DETAILED_FORMAT
-
-        return super().format(record)
-    
-    def formatTime(self, record, datefmt=None):
-        dt = datetime.fromtimestamp(record.created, tz=timezone.utc)
-        return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-
-
-def _configure_stdout_logging():
-    LOG.setLevel(logging.INFO)
-
-    if not LOG.handlers:
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.INFO)
-        handler.setFormatter(StdoutStyleFormatter())
-        LOG.addHandler(handler)
-
-    LOG.propagate = False
     
 
 def main(
@@ -89,7 +51,7 @@ def main(
         if CALMGR_USE_EWTS:
             configure_existing_logger(LOG)
         else:
-            _configure_stdout_logging()
+            configure_stdout_logging(LOG)
 
     print_git_info_all()
 
@@ -162,7 +124,7 @@ def cli():
     if CALMGR_USE_EWTS:
         configure_existing_logger(LOG)
     else:
-        _configure_stdout_logging()
+        configure_stdout_logging(LOG)
 
     """Command-line interface entry point for nwm-validation."""
     parser = argparse.ArgumentParser(description="Run Validation in NGEN architecture.")
