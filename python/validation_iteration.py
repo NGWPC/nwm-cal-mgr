@@ -11,6 +11,7 @@ import json
 import os
 import shutil
 from pathlib import Path
+from datetime import datetime, timezone
 
 import pandas as pd
 import yaml
@@ -27,7 +28,54 @@ from common import (
     build_validation_log_file_name,
 )
 
-LOG = ewts.logger.get_logger(ewts.CAL_MGR_ID)
+try:
+    from ewts.logger import configure_existing_logger, reset_logger
+    from ewts.modules import CAL_MGR_ID
+    CALMGR_USE_EWTS = True
+except ImportError:
+    CALMGR_USE_EWTS = False
+    CAL_MGR_ID = "CALMGR"
+    
+import logging
+LOG = logging.getLogger(CAL_MGR_ID)
+LOGGER_CONFIGURED = False
+
+
+class StdoutStyleFormatter(logging.Formatter):
+
+    INFO_FORMAT = (
+        "%(asctime)s %(name)-8s %(levelname)-7s %(message)s"
+    )
+
+    DETAILED_FORMAT = (
+        "%(asctime)s %(name)-8s %(levelname)-7s "
+        "%(message)s "
+        "[%(filename)s.%(funcName)s(L%(lineno)s)]"
+    )
+
+    def format(self, record):
+        if record.levelno == logging.INFO:
+            self._style._fmt = self.INFO_FORMAT
+        else:
+            self._style._fmt = self.DETAILED_FORMAT
+
+        return super().format(record)
+    
+    def formatTime(self, record, datefmt=None):
+        dt = datetime.fromtimestamp(record.created, tz=timezone.utc)
+        return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
+def _configure_stdout_logging():
+    LOG.setLevel(logging.INFO)
+
+    if not LOG.handlers:
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(StdoutStyleFormatter())
+        LOG.addHandler(handler)
+
+    LOG.propagate = False
 
 
 def main(
@@ -41,6 +89,13 @@ def main(
         enabled_override: bool | None = None
 ):
     global LOG
+    global LOGGER_CONFIGURED
+    if not LOGGER_CONFIGURED:
+        LOGGER_CONFIGURED = True
+        if CALMGR_USE_EWTS:
+            configure_existing_logger(LOG)
+        else:
+            _configure_stdout_logging()
 
     print_git_info_all()
 
@@ -152,7 +207,8 @@ def main(
             bootstrap=False,
         )
 
-        ewts.logger.reset_logger(ewts.CAL_MGR_ID)
+        if CALMGR_USE_EWTS:
+            reset_logger(CAL_MGR_ID)
 
         LOG = initialize_logger(
             log_path_overwrite=None,
@@ -180,6 +236,15 @@ def main(
 
 
 def cli():
+    # Setup logger
+    global LOG
+    global LOGGER_CONFIGURED
+    LOGGER_CONFIGURED = True
+    if CALMGR_USE_EWTS:
+        configure_existing_logger(LOG)
+    else:
+        _configure_stdout_logging()
+
     """Command-line interface entry point for nwm-validation-iteration."""
 
     parser = argparse.ArgumentParser(
@@ -239,7 +304,6 @@ def cli():
     default_log_dir = workdir / "logs"
     calibration_run_id = general_conf.get("calibration_run_id")
 
-    global LOG
     if args.log_path_overwrite is not None:
         job_log_file_name = build_validation_log_file_name(
             calibration_run_id=calibration_run_id,
