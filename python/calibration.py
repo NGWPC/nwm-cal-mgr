@@ -18,8 +18,6 @@ import pprint
 import argparse
 import os
 from pathlib import Path
-from datetime import datetime, timezone
-
 
 import yaml
 
@@ -47,44 +45,8 @@ from common import (
     str_to_bool,
     initialize_logger,
     build_calibration_log_file_name,
+    configure_stdout_logging,
 )
-
-
-class StdoutStyleFormatter(logging.Formatter):
-
-    INFO_FORMAT = (
-        "%(asctime)s %(name)-8s %(levelname)-7s %(message)s"
-    )
-
-    DETAILED_FORMAT = (
-        "%(asctime)s %(name)-8s %(levelname)-7s "
-        "%(message)s "
-        "[%(filename)s.%(funcName)s(L%(lineno)s)]"
-    )
-
-    def format(self, record):
-        if record.levelno == logging.INFO:
-            self._style._fmt = self.INFO_FORMAT
-        else:
-            self._style._fmt = self.DETAILED_FORMAT
-
-        return super().format(record)
-    
-    def formatTime(self, record, datefmt=None):
-        dt = datetime.fromtimestamp(record.created, tz=timezone.utc)
-        return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-
-
-def _configure_stdout_logging():
-    LOG.setLevel(logging.INFO)
-
-    if not LOG.handlers:
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.INFO)
-        handler.setFormatter(StdoutStyleFormatter())
-        LOG.addHandler(handler)
-
-    LOG.propagate = False
 
 
 def main(
@@ -104,7 +66,7 @@ def main(
             configure_existing_logger(LOG)
         else:
             print(f"main() CALMGR_USE_EWTS={CALMGR_USE_EWTS} configuring for stdout logging", flush=True) 
-            _configure_stdout_logging()
+            configure_stdout_logging(LOG)
 
     print_git_info_all()
 
@@ -227,7 +189,7 @@ def cli():
         configure_existing_logger(LOG)
     else:
         print(f"cli() CALMGR_USE_EWTS={CALMGR_USE_EWTS} configuring for stdout logging", flush=True) 
-        _configure_stdout_logging()
+        configure_stdout_logging(LOG)
 
 
     """Command-line interface entry point for nwm-calibration."""

@@ -16,6 +16,42 @@ except ImportError:
     EWTS_AVAILABLE = False
     CAL_MGR_ID = "CALMGR"
 
+class StdoutStyleFormatter(logging.Formatter):
+
+    INFO_FORMAT = (
+        "%(asctime)s %(name)-8s %(levelname)-7s %(message)s"
+    )
+
+    DETAILED_FORMAT = (
+        "%(asctime)s %(name)-8s %(levelname)-7s "
+        "%(message)s "
+        "[%(filename)s.%(funcName)s(L%(lineno)s)]"
+    )
+
+    def format(self, record):
+        if record.levelno == logging.INFO:
+            self._style._fmt = self.INFO_FORMAT
+        else:
+            self._style._fmt = self.DETAILED_FORMAT
+
+        return super().format(record)
+    
+    def formatTime(self, record, datefmt=None):
+        dt = datetime.fromtimestamp(record.created, tz=timezone.utc)
+        return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
+def configure_stdout_logging(logger: logging.Logger) -> None:
+    logger.setLevel(logging.INFO)
+
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(StdoutStyleFormatter())
+        logger.addHandler(handler)
+
+    logger.propagate = False
+
 
 def str_to_bool(value: str) -> bool:
     value = value.lower()
@@ -93,7 +129,7 @@ def resolve_log_target(
     log_path_overwrite: str | None = None,
     log_file_name_override: str | None = None,
     default_log_dir: str | Path | None = None,
-) -> tuple[Path, str]:
+) -> tuple[Path | None, str | None]:
     resolved_log_dir: Path | None = None
     resolved_log_file_name: str | None = None
 
@@ -183,9 +219,14 @@ def initialize_logger(
         default_log_dir=default_log_dir,
     )
 
-    if resolved_log_dir is not None:
-        resolved_log_dir.mkdir(parents=True, exist_ok=True)
-        full_log_path = resolved_log_dir / resolved_log_file_name
+    if resolved_log_dir is None:
+        # No log_path_overwrite and no default_log_dir: nowhere to write a
+        # file, so fall back to the already-configured stdout logger.
+        print("CALMGR stdout logging only (no log directory resolved)", flush=True)
+        logger = logging.getLogger(CAL_MGR_ID)
+        logger.setLevel(log_level)
+        logger.disabled = enabled_override is False
+        return logger
 
     resolved_log_dir.mkdir(parents=True, exist_ok=True)
     full_log_path = resolved_log_dir / resolved_log_file_name
