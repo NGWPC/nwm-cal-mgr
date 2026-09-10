@@ -9,6 +9,7 @@ import argparse
 import os
 from pathlib import Path
 from pprint import pprint
+from datetime import datetime, timezone
 
 import yaml
 from calib.agent import Agent
@@ -23,10 +24,55 @@ from common import (
     build_validation_log_file_name,
 )
 
-import ewts
+try:
+    from ewts.logger import configure_existing_logger, reset_logger
+    from ewts.modules import CAL_MGR_ID
+    CALMGR_USE_EWTS = True
+except ImportError:
+    CALMGR_USE_EWTS = False
+    CAL_MGR_ID = "CALMGR"
 
-LOG = ewts.logger.get_logger(ewts.CAL_MGR_ID)
+import logging
+LOG = logging.getLogger(CAL_MGR_ID)
+LOGGER_CONFIGURED = False
 
+
+class StdoutStyleFormatter(logging.Formatter):
+
+    INFO_FORMAT = (
+        "%(asctime)s %(name)-8s %(levelname)-7s %(message)s"
+    )
+
+    DETAILED_FORMAT = (
+        "%(asctime)s %(name)-8s %(levelname)-7s "
+        "%(message)s "
+        "[%(filename)s.%(funcName)s(L%(lineno)s)]"
+    )
+
+    def format(self, record):
+        if record.levelno == logging.INFO:
+            self._style._fmt = self.INFO_FORMAT
+        else:
+            self._style._fmt = self.DETAILED_FORMAT
+
+        return super().format(record)
+    
+    def formatTime(self, record, datefmt=None):
+        dt = datetime.fromtimestamp(record.created, tz=timezone.utc)
+        return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
+def _configure_stdout_logging():
+    LOG.setLevel(logging.INFO)
+
+    if not LOG.handlers:
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(StdoutStyleFormatter())
+        LOG.addHandler(handler)
+
+    LOG.propagate = False
+    
 
 def main(
         general: General,
@@ -37,6 +83,13 @@ def main(
         enabled_override: bool | None = None
     ):
     global LOG
+    global LOGGER_CONFIGURED
+    if not LOGGER_CONFIGURED:
+        LOGGER_CONFIGURED = True
+        if CALMGR_USE_EWTS:
+            configure_existing_logger(LOG)
+        else:
+            _configure_stdout_logging()
 
     print_git_info_all()
 
@@ -63,7 +116,8 @@ def main(
             bootstrap=False,
         )
 
-        ewts.logger.reset_logger(ewts.CAL_MGR_ID)
+        if CALMGR_USE_EWTS:
+            reset_logger(CAL_MGR_ID)
 
         job_log_dir = Path(agent.job.workdir)
         LOG = initialize_logger(
@@ -101,6 +155,15 @@ def main(
 
 
 def cli():
+    # Setup logger
+    global LOG
+    global LOGGER_CONFIGURED
+    LOGGER_CONFIGURED = True
+    if CALMGR_USE_EWTS:
+        configure_existing_logger(LOG)
+    else:
+        _configure_stdout_logging()
+
     """Command-line interface entry point for nwm-validation."""
     parser = argparse.ArgumentParser(description="Run Validation in NGEN architecture.")
     parser.add_argument(
@@ -157,8 +220,6 @@ def cli():
     workdir = Path(general_conf["workdir"])
     default_log_dir = workdir / "logs"
     calibration_run_id = general_conf.get("calibration_run_id")
-
-    global LOG
 
     if args.log_path_overwrite is not None:
         job_log_file_name = build_validation_log_file_name(

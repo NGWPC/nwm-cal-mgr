@@ -18,12 +18,22 @@ import pprint
 import argparse
 import os
 from pathlib import Path
+from datetime import datetime, timezone
+
 
 import yaml
 
-import ewts
+try:
+    from ewts.logger import configure_existing_logger
+    from ewts.modules import CAL_MGR_ID
+    CALMGR_USE_EWTS = True
+except ImportError:
+    CALMGR_USE_EWTS = False
+    CAL_MGR_ID = "CALMGR"
 
-LOG = ewts.logger.get_logger(ewts.CAL_MGR_ID)
+import logging
+LOG = logging.getLogger(CAL_MGR_ID)
+LOGGER_CONFIGURED = False
 
 from calib import General
 from calib.agent import Agent
@@ -40,6 +50,43 @@ from common import (
 )
 
 
+class StdoutStyleFormatter(logging.Formatter):
+
+    INFO_FORMAT = (
+        "%(asctime)s %(name)-8s %(levelname)-7s %(message)s"
+    )
+
+    DETAILED_FORMAT = (
+        "%(asctime)s %(name)-8s %(levelname)-7s "
+        "%(message)s "
+        "[%(filename)s.%(funcName)s(L%(lineno)s)]"
+    )
+
+    def format(self, record):
+        if record.levelno == logging.INFO:
+            self._style._fmt = self.INFO_FORMAT
+        else:
+            self._style._fmt = self.DETAILED_FORMAT
+
+        return super().format(record)
+    
+    def formatTime(self, record, datefmt=None):
+        dt = datetime.fromtimestamp(record.created, tz=timezone.utc)
+        return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
+def _configure_stdout_logging():
+    LOG.setLevel(logging.INFO)
+
+    if not LOG.handlers:
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(StdoutStyleFormatter())
+        LOG.addHandler(handler)
+
+    LOG.propagate = False
+
+
 def main(
         general: General,
         model_conf,
@@ -50,6 +97,14 @@ def main(
         enabled_override: bool | None = None
     ):
     global LOG
+    global LOGGER_CONFIGURED
+    if not LOGGER_CONFIGURED:
+        LOGGER_CONFIGURED = True
+        if CALMGR_USE_EWTS:
+            configure_existing_logger(LOG)
+        else:
+            print(f"main() CALMGR_USE_EWTS={CALMGR_USE_EWTS} configuring for stdout logging", flush=True) 
+            _configure_stdout_logging()
 
     print_git_info_all()
 
@@ -100,8 +155,8 @@ def main(
         )
 
     # set environment variables for ngencerf backend and ngen runs
-    print(f"ngen env var {OS_ENV_KEY_RESULTS_DIR} set to {agent.workdir}",flush=True)
-    print(f"ngen env var {OS_ENV_KEY_NGEN_LOG_FILE_PREFIX} set to ngen_calib",flush=True)
+    print(f"ngen env var {OS_ENV_KEY_RESULTS_DIR} set to {agent.workdir}", flush=True)
+    print(f"ngen env var {OS_ENV_KEY_NGEN_LOG_FILE_PREFIX} set to ngen_calib", flush=True)
     set_os_env_key(
         OS_ENV_KEY_RESULTS_DIR, str(Path(agent.workdir)), override=False
     )
@@ -164,6 +219,17 @@ def main(
 
 
 def cli():
+    # Setup logger
+    global LOG
+    global LOGGER_CONFIGURED
+    LOGGER_CONFIGURED = True
+    if CALMGR_USE_EWTS:
+        configure_existing_logger(LOG)
+    else:
+        print(f"cli() CALMGR_USE_EWTS={CALMGR_USE_EWTS} configuring for stdout logging", flush=True) 
+        _configure_stdout_logging()
+
+
     """Command-line interface entry point for nwm-calibration."""
     parser = argparse.ArgumentParser(
         description="Calibrate catchments in NGEN architecture."
@@ -200,8 +266,6 @@ def cli():
     workdir = Path(general_conf["workdir"])
     default_log_dir = workdir / "logs"
     calibration_run_id = general_conf.get("calibration_run_id")
-
-    global LOG
 
     if args.log_path_overwrite is not None:
         job_log_file_name = build_calibration_log_file_name(
