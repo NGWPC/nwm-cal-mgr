@@ -7,6 +7,7 @@ import inspect
 import argparse
 import logging
 import re
+import sys
 
 try:
     import ewts
@@ -45,7 +46,7 @@ def configure_stdout_logging(logger: logging.Logger) -> None:
     logger.setLevel(logging.INFO)
 
     if not logger.handlers:
-        handler = logging.StreamHandler()
+        handler = logging.StreamHandler(sys.stdout)
         handler.setLevel(logging.INFO)
         handler.setFormatter(StdoutStyleFormatter())
         logger.addHandler(handler)
@@ -167,7 +168,7 @@ def resolve_log_target(
     return resolved_log_dir, resolved_log_file_name
 
 
-def _attach_file_handler(logger: logging.Logger, full_log_path: Path, log_level: str) -> None:
+def _attach_file_handler(logger: logging.Logger, full_log_path: Path, log_level: str = "INFO") -> None:
     """Add/replace a FileHandler on an already-configured logger without touching
     its existing handlers (e.g. the stdout StreamHandler set up before this call)."""
     for handler in list(logger.handlers):
