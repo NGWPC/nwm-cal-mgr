@@ -21,9 +21,17 @@ from pathlib import Path
 
 import yaml
 
-import ewts
+try:
+    from ewts.logger import configure_existing_logger
+    from ewts.modules import CAL_MGR_ID
+    CALMGR_USE_EWTS = True
+except ImportError:
+    CALMGR_USE_EWTS = False
+    CAL_MGR_ID = "CALMGR"
 
-LOG = ewts.logger.get_logger(ewts.CAL_MGR_ID)
+import logging
+LOG = logging.getLogger(CAL_MGR_ID)
+LOGGER_CONFIGURED = False
 
 from calib import General
 from calib.agent import Agent
@@ -37,6 +45,7 @@ from common import (
     str_to_bool,
     initialize_logger,
     build_calibration_log_file_name,
+    configure_stdout_logging,
 )
 
 
@@ -50,6 +59,14 @@ def main(
         enabled_override: bool | None = None
     ):
     global LOG
+    global LOGGER_CONFIGURED
+    if not LOGGER_CONFIGURED:
+        LOGGER_CONFIGURED = True
+        if CALMGR_USE_EWTS:
+            configure_existing_logger(LOG)
+        else:
+            print(f"main() CALMGR_USE_EWTS={CALMGR_USE_EWTS} configuring for stdout logging", flush=True) 
+            configure_stdout_logging(LOG)
 
     print_git_info_all()
 
@@ -100,8 +117,8 @@ def main(
         )
 
     # set environment variables for ngencerf backend and ngen runs
-    print(f"ngen env var {OS_ENV_KEY_RESULTS_DIR} set to {agent.workdir}",flush=True)
-    print(f"ngen env var {OS_ENV_KEY_NGEN_LOG_FILE_PREFIX} set to ngen_calib",flush=True)
+    print(f"ngen env var {OS_ENV_KEY_RESULTS_DIR} set to {agent.workdir}", flush=True)
+    print(f"ngen env var {OS_ENV_KEY_NGEN_LOG_FILE_PREFIX} set to ngen_calib", flush=True)
     set_os_env_key(
         OS_ENV_KEY_RESULTS_DIR, str(Path(agent.workdir)), override=False
     )
@@ -164,6 +181,17 @@ def main(
 
 
 def cli():
+    # Setup logger
+    global LOG
+    global LOGGER_CONFIGURED
+    LOGGER_CONFIGURED = True
+    if CALMGR_USE_EWTS:
+        configure_existing_logger(LOG)
+    else:
+        print(f"cli() CALMGR_USE_EWTS={CALMGR_USE_EWTS} configuring for stdout logging", flush=True) 
+        configure_stdout_logging(LOG)
+
+
     """Command-line interface entry point for nwm-calibration."""
     parser = argparse.ArgumentParser(
         description="Calibrate catchments in NGEN architecture."
@@ -200,8 +228,6 @@ def cli():
     workdir = Path(general_conf["workdir"])
     default_log_dir = workdir / "logs"
     calibration_run_id = general_conf.get("calibration_run_id")
-
-    global LOG
 
     if args.log_path_overwrite is not None:
         job_log_file_name = build_calibration_log_file_name(
