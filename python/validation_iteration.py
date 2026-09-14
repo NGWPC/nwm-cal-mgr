@@ -6,7 +6,6 @@ validation run with an alternative parameter set
 """
 
 import argparse
-import ewts
 import json
 import os
 import shutil
@@ -25,9 +24,20 @@ from common import (
     str_to_bool,
     initialize_logger,
     build_validation_log_file_name,
+    configure_stdout_logging,
 )
 
-LOG = ewts.logger.get_logger(ewts.CAL_MGR_ID)
+try:
+    from ewts.logger import configure_existing_logger, reset_logger
+    from ewts.modules import CAL_MGR_ID
+    CALMGR_USE_EWTS = True
+except ImportError:
+    CALMGR_USE_EWTS = False
+    CAL_MGR_ID = "CALMGR"
+    
+import logging
+LOG = logging.getLogger(CAL_MGR_ID)
+LOGGER_CONFIGURED = False
 
 
 def main(
@@ -41,6 +51,13 @@ def main(
         enabled_override: bool | None = None
 ):
     global LOG
+    global LOGGER_CONFIGURED
+    if not LOGGER_CONFIGURED:
+        LOGGER_CONFIGURED = True
+        if CALMGR_USE_EWTS:
+            configure_existing_logger(LOG)
+        else:
+            configure_stdout_logging(LOG)
 
     print_git_info_all()
 
@@ -152,7 +169,8 @@ def main(
             bootstrap=False,
         )
 
-        ewts.logger.reset_logger(ewts.CAL_MGR_ID)
+        if CALMGR_USE_EWTS:
+            reset_logger(CAL_MGR_ID)
 
         LOG = initialize_logger(
             log_path_overwrite=None,
@@ -180,6 +198,15 @@ def main(
 
 
 def cli():
+    # Setup logger
+    global LOG
+    global LOGGER_CONFIGURED
+    LOGGER_CONFIGURED = True
+    if CALMGR_USE_EWTS:
+        configure_existing_logger(LOG)
+    else:
+        configure_stdout_logging(LOG)
+
     """Command-line interface entry point for nwm-validation-iteration."""
 
     parser = argparse.ArgumentParser(
@@ -239,7 +266,6 @@ def cli():
     default_log_dir = workdir / "logs"
     calibration_run_id = general_conf.get("calibration_run_id")
 
-    global LOG
     if args.log_path_overwrite is not None:
         job_log_file_name = build_validation_log_file_name(
             calibration_run_id=calibration_run_id,

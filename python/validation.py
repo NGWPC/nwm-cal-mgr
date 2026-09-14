@@ -8,7 +8,6 @@ import sys
 import argparse
 import os
 from pathlib import Path
-from pprint import pprint
 
 import yaml
 from calib.agent import Agent
@@ -21,12 +20,21 @@ from common import (
     str_to_bool,
     initialize_logger,
     build_validation_log_file_name,
+    configure_stdout_logging,
 )
 
-import ewts
+try:
+    from ewts.logger import configure_existing_logger, reset_logger
+    from ewts.modules import CAL_MGR_ID
+    CALMGR_USE_EWTS = True
+except ImportError:
+    CALMGR_USE_EWTS = False
+    CAL_MGR_ID = "CALMGR"
 
-LOG = ewts.logger.get_logger(ewts.CAL_MGR_ID)
-
+import logging
+LOG = logging.getLogger(CAL_MGR_ID)
+LOGGER_CONFIGURED = False
+    
 
 def main(
         general: General,
@@ -37,6 +45,13 @@ def main(
         enabled_override: bool | None = None
     ):
     global LOG
+    global LOGGER_CONFIGURED
+    if not LOGGER_CONFIGURED:
+        LOGGER_CONFIGURED = True
+        if CALMGR_USE_EWTS:
+            configure_existing_logger(LOG)
+        else:
+            configure_stdout_logging(LOG)
 
     print_git_info_all()
 
@@ -63,7 +78,8 @@ def main(
             bootstrap=False,
         )
 
-        ewts.logger.reset_logger(ewts.CAL_MGR_ID)
+        if CALMGR_USE_EWTS:
+            reset_logger(CAL_MGR_ID)
 
         job_log_dir = Path(agent.job.workdir)
         LOG = initialize_logger(
@@ -101,6 +117,15 @@ def main(
 
 
 def cli():
+    # Setup logger
+    global LOG
+    global LOGGER_CONFIGURED
+    LOGGER_CONFIGURED = True
+    if CALMGR_USE_EWTS:
+        configure_existing_logger(LOG)
+    else:
+        configure_stdout_logging(LOG)
+
     """Command-line interface entry point for nwm-validation."""
     parser = argparse.ArgumentParser(description="Run Validation in NGEN architecture.")
     parser.add_argument(
@@ -157,8 +182,6 @@ def cli():
     workdir = Path(general_conf["workdir"])
     default_log_dir = workdir / "logs"
     calibration_run_id = general_conf.get("calibration_run_id")
-
-    global LOG
 
     if args.log_path_overwrite is not None:
         job_log_file_name = build_validation_log_file_name(
