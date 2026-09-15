@@ -220,6 +220,7 @@ def _evaluate(
         return metrics
 
     # get objective function value from metrics
+    metrics = {key.upper(): value for key, value in metrics.items()}
     metric_objective_function = metrics[primary_obj.objective.value.upper()]
 
     # objective function grouping
