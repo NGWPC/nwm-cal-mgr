@@ -481,11 +481,10 @@ To build and run `nwm-cal-mgr` with Docker, you will need:
 
 ### Build
 
-From the repository root, run `build_nwm_cal_mgr.sh` to build the container image:
+From the repository root, run `docker build` to build the container image:
 
 ```bash
-./build_nwm_cal_mgr.sh
-./build_nwm_cal_mgr.sh --ref development
+docker build -t nwm-cal-mgr .
 ```
 
 ### Container help
@@ -515,10 +514,10 @@ ITERATION_NUMBER: Required for validation_iteration.
 STDOUT_FILE: Optional path where script console output will be saved.
 
 Examples:
-  run-nwm-cal-mgr.sh mswm /path/to/mswm_config.yaml
-  run-nwm-cal-mgr.sh calibration /path/to/calib_config.yaml
-  run-nwm-cal-mgr.sh validation /path/to/valid_config.yaml /path/to/output.log
-  run-nwm-cal-mgr.sh validation_iteration /path/to/calib_config.yaml worker1 5 /path/to/output.log
+  mswm /path/to/mswm_config.yaml
+  calibration /path/to/calib_config.yaml
+  validation /path/to/valid_config.yaml /path/to/output.log
+  validation_iteration /path/to/calib_config.yaml worker1 5 /path/to/output.log
 ```
 
 ### Run calibration and validation in the container
