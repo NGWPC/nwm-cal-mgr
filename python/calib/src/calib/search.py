@@ -220,10 +220,11 @@ def _evaluate(
         return metrics
 
     # get objective function value from metrics
-    metric_objective_function = metrics[primary_obj.objective.value.upper()]
+    normalized_metrics = {key.upper(): value for key, value in metrics.items()}
+    metric_objective_function = normalized_metrics[primary_obj.objective.value.upper()]
 
     # objective function grouping
-    obj_group1 = ["kge", "nse", "nnse", "nselog", "corr", "csi", "pod"]
+    obj_group1 = ["kge", "nse", "nnse", "nselog", "nsewt","corr", "csi", "pod"]
     obj_group2 = ["rmse", "mae", "rsr", "far", "pkbias", "pkte", "evbias"]
     obj_group3 = ["pbias", "lseg_fdc", "hseg_fdc"]
 
