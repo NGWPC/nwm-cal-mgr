@@ -25,10 +25,10 @@ show_help() {
   echo "STDOUT_FILE: Optional path where script console output will be saved."
   echo ""
   echo "Examples:"
-  echo "  $(basename "$0") mswm /path/to/mswm_config.yaml"
-  echo "  $(basename "$0") calibration /path/to/calib_config.yaml"
-  echo "  $(basename "$0") validation /path/to/valid_config.yaml /path/to/output.log"
-  echo "  $(basename "$0") validation_iteration /path/to/calib_config.yaml worker1 5 /path/to/output.log"
+  echo "  mswm /path/to/mswm_config.yaml"
+  echo "  calibration /path/to/calib_config.yaml"
+  echo "  validation /path/to/valid_config.yaml /path/to/output.log"
+  echo "  validation_iteration /path/to/calib_config.yaml worker1 5 /path/to/output.log"
   echo ""
   exit 1
 }
