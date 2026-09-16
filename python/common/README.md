@@ -197,4 +197,4 @@ This package follows semantic versioning:
 
 ## Authors
 
-Maintained as part of the NGWPC `nwm-cal-mgr` project.
+Maintained as part of the NOAA-OWP `nwm-cal-mgr` project.
