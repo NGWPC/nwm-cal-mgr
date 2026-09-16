@@ -25,7 +25,7 @@ You can choose from the following installation options:
 2. **Manual local installation**
 3. **Docker container installation** (recommended)
 
-Note for local installations (options 1 and 2), you will also need to install ngen (https://github.com/NGWPC/ngen) and 
+Note for local installations (options 1 and 2), you will also need to install ngen (https://github.com/NOAA-OWP/ngen) and 
 its various submodules locally, in order to run calibration and validation workflows. 
 
 ---
@@ -340,7 +340,7 @@ pip install --upgrade pip
 ```bash
 mkdir -p [WORK_DIR]
 cd [WORK_DIR]
-git clone -b development https://github.com/ngwpc/nwm-cal-mgr.git
+git clone -b development https://github.com/[GH_ORG]/nwm-cal-mgr.git
 ```
 
 ### 3. Install `nwm-cal-mgr`
@@ -362,7 +362,7 @@ pip install -e [WORK_DIR]/nwm-cal-mgr
 Install directly from GitHub:
 
 ```bash
-pip install "mswm@git+https://github.com/ngwpc/nwm-msw-mgr.git@development"
+pip install "mswm@git+https://github.com/[GH_ORG]/nwm-msw-mgr.git@development"
 ```
 
 ### 5. Install dependency `nwm_metrics`
@@ -370,14 +370,14 @@ pip install "mswm@git+https://github.com/ngwpc/nwm-msw-mgr.git@development"
 Install the `nwm_metrics` package directly from GitHub:
 
 ```bash
-pip install "nwm_metrics@git+https://github.com/ngwpc/nwm-eval-mgr.git@development#subdirectory=nwm_metrics"
+pip install "nwm_metrics@git+https://github.com/[GH_ORG]/nwm-eval-mgr.git@development#subdirectory=nwm_metrics"
 ```
 
 ### 6. Install dependency `ewts`
 Install the `ewts` package directly from GitHub:
 
 ```bash
-pip install "ewts@git+https://github.com/ngwpc/nwm-ewts.git@development#subdirectory=runtime/python/ewts"
+pip install "ewts@git+https://github.com/[GH_ORG]/nwm-ewts.git@development#subdirectory=runtime/python/ewts"
 ```
 ---
 
@@ -408,7 +408,7 @@ validation_iteration --help
 ### Run MSWM
 
 First, run model setup workflow manager (MSWM) to produce input files for calibration/validation. Refer to one of 
-the sample config files in [MSWM](https://github.com/NGWPC/nwm-msw-mgr/tree/development/src/mswm/example_inputs) 
+the sample config files in [MSWM](https://github.com/NOAA-OWP/nwm-msw-mgr/tree/development/src/mswm/example_inputs) 
 to set up your configuration for calibration/validation.
 
 ```bash
@@ -581,7 +581,7 @@ validation (control, best, and alternative iteration) sequentially.
 cd [WORK_DIR]
 
 # download the script
-curl -L -O https://raw.githubusercontent.com/ngwpc/nwm-cal-mgr/development/docker/run_full_calib_valid_workflow.sh
+curl -L -O https://raw.githubusercontent.com/[GH_ORG]/nwm-cal-mgr/development/docker/run_full_calib_valid_workflow.sh
 
 # make the script executable
 chmod +x run_full_calib_valid_workflow.sh
