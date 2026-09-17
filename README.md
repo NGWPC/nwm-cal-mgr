@@ -574,8 +574,8 @@ When running a calibration workflow, you will typically need to mount local data
 - test the full calibration and validation workflow:
 
 The helper script [`docker/run_full_calib_valid_workflow.sh`](docker/run_full_calib_valid_workflow.sh) can be used to 
-run the full calibration and validation workflow in a single command. The script will run MSWM, calibration, and 
-validation (control, best, and alternative iteration) sequentially.
+run the full calibration and validation workflow with a single command. The standalone script sequentially runs MSWM, calibration, and validation, including the control, best, and alternative iterations. It uses a docker image to execute 
+the workflow, eliminating the need to install nwm-cal-mgr and its dependencies locally.
 
 ```bash
 cd [WORK_DIR]
@@ -590,16 +590,16 @@ chmod +x run_full_calib_valid_workflow.sh
 ./run_full_calib_valid_workflow.sh --help
 
 # run the full workflow with default settings (basin 01123000, noah-owp-modular + cfe-s, 3 iterations)
-./docker/run_full_calib_valid_workflow.sh
+./run_full_calib_valid_workflow.sh
 
 # run the full workflow with custom settings
-./docker/run_full_calib_valid_workflow.sh \
+./run_full_calib_valid_workflow.sh \
     --basin 10310500 \
     --models "noah-owp-modular, cfe-x" \
     --formulation noah_cfex \
     --iterations 500
 
-./docker/run_full_calib_valid_workflow.sh \
+./run_full_calib_valid_workflow.sh \
     -b 10310500 \
     -m "noah-owp-modular, cfe-x" \
     -f noah_cfex \
