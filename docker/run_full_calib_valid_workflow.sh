@@ -1,6 +1,5 @@
 #!/bin/bash
-# Self-contained script to run the full calibration and validation workflow, using an nwm-cal-mgr docker image from GHCR: 
-#     https://github.com/NGWPC/nwm-cal-mgr/pkgs/container/nwm-cal-mgr 
+# Self-contained script to run the full calibration and validation workflow, using an nwm-cal-mgr docker image 
 #
 # Run "./run_full_calib_valid_workflow.sh --help" for usage
 
@@ -61,7 +60,7 @@ Options:
   -a, --alt_iteration ALT_ITERATION, alternative iteration number (default: 1)
   -w, --workdir WORK_DIR, working directory (default: $(pwd)/calib)
   --image IMAGE, docker image to use (default: ghcr.io/ngwpc/nwm-cal-mgr)
-  -t, --image-tag IMAGE_TAG, docker image tag (default: pr-79-build)
+  -t, --image-tag IMAGE_TAG, docker image tag (default: latest)
   -p, --pull-image, pull the docker image before running (regardless of whether it exists locally)
   -r, --run-alt-iteration, run validation for the alternative iteration
   -h, --help, display this help message and exit
