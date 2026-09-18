@@ -1,6 +1,5 @@
 #!/bin/bash
-# Self-contained script to run the full calibration and validation workflow, using an nwm-cal-mgr docker image from GHCR: 
-#     https://github.com/NGWPC/nwm-cal-mgr/pkgs/container/nwm-cal-mgr 
+# Self-contained script to run the full calibration and validation workflow, using an nwm-cal-mgr docker image 
 #
 # Run "./run_full_calib_valid_workflow.sh --help" for usage
 
@@ -20,15 +19,15 @@ ITERATIONS=3
 ALT_ITERATION=1
 
 WORK_DIR="$(pwd)/calib"
-IMAGE_TAG="pr-79-build"
+IMAGE="ghcr.io/ngwpc/nwm-cal-mgr"
+IMAGE_TAG="latest"
 PULL_IMAGE=false
 RUN_ALT_ITERATION=false
 
 usage() {
     cat <<EOF
 Overview:
-    Self-contained script to run the full calibration and validation workflow, using an nwm-cal-mgr docker image from GHCR: 
-        https://github.com/NGWPC/nwm-cal-mgr/pkgs/container/nwm-cal-mgr 
+    Self-contained script to run the full calibration and validation workflow, using an nwm-cal-mgr docker image.
 
     The workflow includes the following steps:
     - MSWM to generate input files for calibration and validation
@@ -60,7 +59,8 @@ Options:
   -i, --iterations ITERATIONS, number of calibration iterations (default: 3)
   -a, --alt_iteration ALT_ITERATION, alternative iteration number (default: 1)
   -w, --workdir WORK_DIR, working directory (default: $(pwd)/calib)
-  -t, --image-tag IMAGE_TAG, docker image tag (default: pr-79-build)
+  --image IMAGE, docker image to use (default: ghcr.io/ngwpc/nwm-cal-mgr)
+  -t, --image-tag IMAGE_TAG, docker image tag (default: latest)
   -p, --pull-image, pull the docker image before running (regardless of whether it exists locally)
   -r, --run-alt-iteration, run validation for the alternative iteration
   -h, --help, display this help message and exit
@@ -75,6 +75,9 @@ Examples:
 
   # Long options (calibration and validation for basin 10310500 with noah_cfex formulation)
   $0 --basin 10310500 --models "noah-owp-modular, cfe-x" --formulation noah_cfex
+
+  # Specify a custom docker image and tag
+  $0 --image ghcr.io/ngwpc/nwm-cal-mgr -t debug
 
 EOF
 }
@@ -116,6 +119,11 @@ while [[ $# -gt 0 ]]; do
             WORK_DIR="$2"
             shift 2
             ;;
+        --image)
+            [[ $# -ge 2 ]] || { echo "Missing value for $1"; exit 1; }
+            IMAGE="$2"
+            shift 2
+            ;;
         -t|--image-tag)
             [[ $# -ge 2 ]] || { echo "Missing value for $1"; exit 1; }
             IMAGE_TAG="$2"
@@ -141,7 +149,6 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-IMAGE="ghcr.io/ngwpc/nwm-cal-mgr"
 echo "DOMAIN      = $DOMAIN"
 echo "MODELS      = $MODELS"
 echo "FORMULATION = $FORMULATION"
@@ -379,10 +386,10 @@ forcing_template_dir = /ngen-app/ngen-forcing/NextGen_Forcings_Engine_BMI/BMI_Ne
 forcing_configuration = aorc
 
 [DataFile]
-noah_parameter_dir = /ngen-app/ngen-python/lib/python3.11/site-packages/mswm/module_parameter_files/noah-owp-modular
-ueb_parameter_dir = /ngen-app/ngen-python/lib/python3.11/site-packages/mswm/module_parameter_files/ueb
-lasam_parameter_dir = /ngen-app/ngen-python/lib/python3.11/site-packages/mswm/module_parameter_files/lasam
-lstm_parameter_dir = /ngen-app/ngen-python/lib/python3.11/site-packages/mswm/module_parameter_files/lstm
+noah_parameter_dir = /ngen-app/ngen-python/lib/python3.12/site-packages/mswm/module_parameter_files/noah-owp-modular
+ueb_parameter_dir = /ngen-app/ngen-python/lib/python3.12/site-packages/mswm/module_parameter_files/ueb
+lasam_parameter_dir = /ngen-app/ngen-python/lib/python3.12/site-packages/mswm/module_parameter_files/lasam
+lstm_parameter_dir = /ngen-app/ngen-python/lib/python3.12/site-packages/mswm/module_parameter_files/lstm
 
 ngen_exe_file = /ngen-app/ngen/cmake_build/ngen
 sloth_lib = /ngen-app/ngen/extern/sloth/cmake_build/libslothmodel.so

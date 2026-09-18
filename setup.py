@@ -1,7 +1,21 @@
-"""Top-level setup for NWM Calibration Manager with scripts."""
+"""Top-level setup for NWM Calibration Manager with scripts.
 
+GH_ORG is the GitHub organization under which the repository resides. It defaults to "NGWPC".
+To pip install with a custom GitHub organization (e.g., NOAA-OWP), use:
+    GH_ORG=NOAA-OWP pip install .
+Or:
+    export GH_ORG=NOAA-OWP
+    pip install .
+
+"""
+
+import os
 from pathlib import Path
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
+
+GH_ORG = os.environ.get("GH_ORG", "NGWPC")
+
 
 # Load dependencies from both subdirectory requirements
 def load_requirements(*paths):
@@ -15,6 +29,7 @@ def load_requirements(*paths):
                 if line and not line.startswith("#"):
                     requirements.add(line)
     return sorted(requirements)
+
 
 install_requires = load_requirements(
     "python/calib/requirements.txt",
@@ -42,11 +57,11 @@ setup(
     name="nwm-cal-mgr",
     version="0.3.0",
     author="OWP & Raytheon",
-    author_email="yuqiong.liu@ertcorp.com",
+    author_email="yuqiong.liu@entarian.com",
     description="NWM Calibration Manager with calib, config packages and executable scripts",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/NGWPC/nwm-cal-mgr",
+    url=f"https://github.com/{GH_ORG}/nwm-cal-mgr",
     # Packages from both calib and config src directories
     packages=all_packages,
     package_dir=package_dir,
