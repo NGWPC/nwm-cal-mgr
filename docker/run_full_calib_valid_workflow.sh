@@ -386,10 +386,10 @@ forcing_template_dir = /ngen-app/ngen-forcing/NextGen_Forcings_Engine_BMI/BMI_Ne
 forcing_configuration = aorc
 
 [DataFile]
-noah_parameter_dir = /ngen-app/ngen-python/lib/python3.12/site-packages/mswm/module_parameter_files/noah-owp-modular
-ueb_parameter_dir = /ngen-app/ngen-python/lib/python3.12/site-packages/mswm/module_parameter_files/ueb
-lasam_parameter_dir = /ngen-app/ngen-python/lib/python3.12/site-packages/mswm/module_parameter_files/lasam
-lstm_parameter_dir = /ngen-app/ngen-python/lib/python3.12/site-packages/mswm/module_parameter_files/lstm
+noah_parameter_dir = /ngen-app/ngen-python/lib/python3.11/site-packages/mswm/module_parameter_files/noah-owp-modular
+ueb_parameter_dir = /ngen-app/ngen-python/lib/python3.11/site-packages/mswm/module_parameter_files/ueb
+lasam_parameter_dir = /ngen-app/ngen-python/lib/python3.11/site-packages/mswm/module_parameter_files/lasam
+lstm_parameter_dir = /ngen-app/ngen-python/lib/python3.11/site-packages/mswm/module_parameter_files/lstm
 
 ngen_exe_file = /ngen-app/ngen/cmake_build/ngen
 sloth_lib = /ngen-app/ngen/extern/sloth/cmake_build/libslothmodel.so
