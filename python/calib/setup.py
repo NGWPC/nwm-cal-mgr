@@ -1,8 +1,20 @@
-"""Function for setting up regionalization."""
+"""Function for setting up regionalization.
 
+GH_ORG is the GitHub organization under which the repository resides. It defaults to "NGWPC".
+To pip install with a custom GitHub organization (e.g., NOAA-OWP), use:
+    GH_ORG=NOAA-OWP pip install .
+Or:
+    export GH_ORG=NOAA-OWP
+    pip install .
+
+"""
+
+import os
 from pathlib import Path
 
 from setuptools import find_packages, setup
+
+GH_ORG = os.environ.get("GH_ORG", "NGWPC")
 
 # Load dependencies from requirements.txt
 requirements_path = Path(__file__).with_name("requirements.txt")
@@ -18,11 +30,11 @@ setup(
     name="calib",
     version="0.3.0",
     author="OWP & Raytheon",
-    author_email="yuqiong.liu@ertcorp.com",
+    author_email="yuqiong.liu@entarian.com",
     description="NWM Calibration Manager (calib package)",
     long_description=open("../../README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/NGWPC/nwm-cal-mgr/python/calib",
+    url=f"https://github.com/{GH_ORG}/nwm-cal-mgr/python/calib",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     include_package_data=True,
