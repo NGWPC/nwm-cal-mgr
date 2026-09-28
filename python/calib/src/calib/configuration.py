@@ -692,7 +692,8 @@ class NoCalibModel(ModelExec):
         self.catchments = self.catchments.resolve()
         self.nexus = self.nexus.resolve()
         self.obsflow = self.obsflow.resolve()
-        #self.nwmflow = self.nwmflow.resolve()
+        if self.nwmflow is not None:
+            self.nwmflow = self.nwmflow.resolve()
         self.crosswalk = self.crosswalk.resolve()
 
     @property
