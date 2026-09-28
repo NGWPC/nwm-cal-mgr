@@ -113,7 +113,7 @@ class NoCalibModel(ModelExec):
     catchments: Path
     nexus: Path
     obsflow: Path
-    nwmflow: Path
+    nwmflow: Optional[Path] = None
     crosswalk: Path
     _precip: gpd.GeoDataFrame = None
     objective_score: Optional[float] = None
@@ -692,7 +692,7 @@ class NoCalibModel(ModelExec):
         self.catchments = self.catchments.resolve()
         self.nexus = self.nexus.resolve()
         self.obsflow = self.obsflow.resolve()
-        self.nwmflow = self.nwmflow.resolve()
+        #self.nwmflow = self.nwmflow.resolve()
         self.crosswalk = self.crosswalk.resolve()
 
     @property
